@@ -1,0 +1,381 @@
+import { relations, sql } from "drizzle-orm";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+
+/* =========================================================
+   USERS
+   Основная таблица пользователей (better-auth core + admin)
+   ========================================================= */
+
+export const user = sqliteTable("user", {
+  // Primary key пользователя
+  id: text("id").primaryKey(),
+
+  // Имя пользователя (можно использовать как display name)
+  name: text("name").notNull(),
+
+  // Email (уникальный логин)
+  email: text("email").notNull().unique(),
+
+  // Подтверждён ли email
+  emailVerified: integer("email_verified", { mode: "boolean" })
+    .default(false)
+    .notNull(),
+
+  // Аватар пользователя
+  image: text("image"),
+
+  // Дата создания аккаунта
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+
+  // Дата последнего обновления
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .$onUpdate(() => new Date())
+    .notNull(),
+
+  /* ===== поля admin plugin ===== */
+
+  // Роль пользователя (admin / teacher / student / parent)
+  role: text("role"),
+
+  // Забанен ли пользователь
+  banned: integer("banned", { mode: "boolean" }).default(false),
+
+  // Причина бана
+  banReason: text("ban_reason"),
+
+  // Дата окончания бана
+  banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
+});
+
+/* =========================================================
+   SESSIONS
+   Сессии авторизации (cookies / tokens)
+   ========================================================= */
+
+export const session = sqliteTable(
+  "session",
+  {
+    // ID сессии
+    id: text("id").primaryKey(),
+
+    // Когда сессия истекает
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+
+    // Уникальный токен сессии
+    token: text("token").notNull().unique(),
+
+    // Дата создания сессии
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+
+    // Последнее обновление сессии
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .$onUpdate(() => new Date())
+      .notNull(),
+
+    // IP адрес пользователя
+    ipAddress: text("ip_address"),
+
+    // User-Agent браузера
+    userAgent: text("user_agent"),
+
+    // Владелец сессии
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+
+    // Если сессия создана через impersonation (admin → user)
+    impersonatedBy: text("impersonated_by"),
+  },
+  (table) => [
+    // Индекс для быстрого поиска сессий пользователя
+    index("session_userId_idx").on(table.userId),
+  ],
+);
+
+/* =========================================================
+   ACCOUNTS
+   Провайдеры входа (email/password, OAuth и т.п.)
+   ========================================================= */
+
+export const account = sqliteTable(
+  "account",
+  {
+    id: text("id").primaryKey(),
+
+    // ID аккаунта у провайдера
+    accountId: text("account_id").notNull(),
+
+    // ID провайдера (credentials, google, github...)
+    providerId: text("provider_id").notNull(),
+
+    // Пользователь, к которому привязан аккаунт
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+
+    // OAuth / credentials данные
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+
+    // Сроки действия токенов
+    accessTokenExpiresAt: integer("access_token_expires_at", {
+      mode: "timestamp_ms",
+    }),
+    refreshTokenExpiresAt: integer("refresh_token_expires_at", {
+      mode: "timestamp_ms",
+    }),
+
+    // OAuth scope
+    scope: text("scope"),
+
+    // Хэш пароля (для credentials)
+    password: text("password"),
+
+    // Даты
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    // Индекс для поиска аккаунтов пользователя
+    index("account_userId_idx").on(table.userId),
+  ],
+);
+
+/* =========================================================
+   VERIFICATION
+   Email verification, reset password, magic links
+   ========================================================= */
+
+export const verification = sqliteTable(
+  "verification",
+  {
+    id: text("id").primaryKey(),
+
+    // Email / identifier
+    identifier: text("identifier").notNull(),
+
+    // Код или токен подтверждения
+    value: text("value").notNull(),
+
+    // Когда истекает
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("verification_identifier_idx").on(table.identifier),
+  ],
+);
+
+/* =========================================================
+   GROUPS (Классы)
+   ========================================================= */
+
+export const groups = sqliteTable("groups", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+
+  // Название класса (9-А, 10-Б)
+  name: text("name").notNull(),
+
+  // Классный руководитель
+  teacherId: text("teacher_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
+});
+
+/* =========================================================
+   SUBJECTS (Предметы)
+   ========================================================= */
+
+export const subjects = sqliteTable("subjects", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+});
+
+/* =========================================================
+   SCHEDULE (Расписание)
+   ========================================================= */
+
+export const schedule = sqliteTable("schedule", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+
+  groupId: integer("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+
+  subjectId: integer("subject_id")
+    .notNull()
+    .references(() => subjects.id, { onDelete: "cascade" }),
+
+  teacherId: text("teacher_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+
+  dayOfWeek: integer("day_of_week").notNull(), // 1–6
+  lessonNumber: integer("lesson_number").notNull(),
+});
+
+/* =========================================================
+   GRADES (Оценки)
+   ========================================================= */
+
+export const grades = sqliteTable("grades", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+
+  studentId: text("student_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+
+  subjectId: integer("subject_id")
+    .notNull()
+    .references(() => subjects.id, { onDelete: "cascade" }),
+
+  teacherId: text("teacher_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+
+  value: text("value").notNull(), // 5, 4, 3, Н
+
+  comment: text("comment"),
+
+  date: text("date").default(sql`CURRENT_DATE`),
+});
+
+/* =========================================================
+   PARENTS_TO_STUDENTS
+   ========================================================= */
+
+export const parentsToStudents = sqliteTable("parents_to_students", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+
+  parentId: text("parent_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+
+  studentId: text("student_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+});
+
+/* =========================================================
+   ACADEMIC PERIODS (Четверти)
+   ========================================================= */
+
+export const academicPeriods = sqliteTable("academic_periods", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+
+  name: text("name").notNull(), // 1 четверть
+
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date").notNull(),
+});
+
+/* =========================================================
+   RELATIONS
+   Связи между таблицами
+   ========================================================= */
+
+export const userRelations = relations(user, ({ many }) => ({
+  sessions: many(session),
+  accounts: many(account),
+
+  // Оценки как ученик
+  gradesReceived: many(grades, {
+    relationName: "student_grades",
+  }),
+
+  // Оценки как учитель
+  gradesGiven: many(grades, {
+    relationName: "teacher_grades",
+  }),
+
+  // Родитель → дети
+  parentLinks: many(parentsToStudents, {
+    relationName: "parent_links",
+  }),
+
+  // Ученик → родители
+  studentLinks: many(parentsToStudents, {
+    relationName: "student_links",
+  }),
+}));
+
+
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, {
+    fields: [session.userId],
+    references: [user.id],
+  }),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
+  }),
+}));
+
+export const gradesRelations = relations(grades, ({ one }) => ({
+  student: one(user, {
+    fields: [grades.studentId],
+    references: [user.id],
+    relationName: "student_grades",
+  }),
+
+  teacher: one(user, {
+    fields: [grades.teacherId],
+    references: [user.id],
+    relationName: "teacher_grades",
+  }),
+
+  subject: one(subjects, {
+    fields: [grades.subjectId],
+    references: [subjects.id],
+  }),
+}));
+
+export const parentsToStudentsRelations = relations(
+  parentsToStudents,
+  ({ one }) => ({
+    parent: one(user, {
+      fields: [parentsToStudents.parentId],
+      references: [user.id],
+      relationName: "parent_links",
+    }),
+
+    student: one(user, {
+      fields: [parentsToStudents.studentId],
+      references: [user.id],
+      relationName: "student_links",
+    }),
+  })
+);
+
+export const groupsRelations = relations(groups, ({ one, many }) => ({
+  teacher: one(user, {
+    fields: [groups.teacherId],
+    references: [user.id],
+  }),
+
+  schedule: many(schedule),
+}));
+
+
