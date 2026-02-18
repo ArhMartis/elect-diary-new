@@ -38,7 +38,9 @@ export const user = sqliteTable("user", {
   /* ===== поля admin plugin ===== */
 
   // Роль пользователя (admin / teacher / student / parent)
-  role: text("role"),
+ role: text("role")
+  .$type<"admin" | "principal" | "teacher" | "student" | "parent">()
+  .default("student"),
 
   // Забанен ли пользователь
   banned: integer("banned", { mode: "boolean" }).default(false),
@@ -258,6 +260,8 @@ export const grades = sqliteTable("grades", {
 
   date: text("date").default(sql`CURRENT_DATE`),
 });
+
+
 
 /* =========================================================
    PARENTS_TO_STUDENTS
