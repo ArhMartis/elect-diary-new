@@ -65,3 +65,21 @@ Thumbs.db
 
 # typescript
 *.tsbuildinfo
+
+# local database uploads / user content
+/public/uploads
+/public/avatars
+
+# temp
+/tmp
+*.tmp
+
+# editor caches
+.idea/
+*.swp
+
+# next cache (иногда пролезает)
+.next/cache
+
+# drizzle generated sql (если используешь generate)
+drizzle/*.sql

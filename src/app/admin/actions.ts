@@ -5,8 +5,14 @@ import { headers } from "next/headers";
 import { db } from "@/db";
 import { user } from "@/db/schema/auth_schema";
 import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { roles, type Role } from "@/db/schema/auth_schema";
 
-export async function makeAdmin(formData: FormData) {
+
+// ==========================
+// СМЕНА РОЛИ
+// ==========================
+export async function changeRole(formData: FormData) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -16,9 +22,20 @@ export async function makeAdmin(formData: FormData) {
   }
 
   const userId = formData.get("userId") as string;
+  const role = formData.get("role");
+
+  if (!roles.includes(role as Role)) {
+    throw new Error("Некорректная роль");
+  }
+
+  if (userId === session.user.id) {
+    throw new Error("Нельзя менять свою роль");
+  }
 
   await db
     .update(user)
-    .set({ role: "admin" })
+    .set({ role: role as Role })
     .where(eq(user.id, userId));
+
+  revalidatePath("/admin");
 }

@@ -30,6 +30,45 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* ===================================
+   КАСТОМНЫЙ СКРОЛЛБАР
+   =================================== */
+
+/* Для Webkit-браузеров (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6366f1, #a855f7);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #4f46e5, #9333ea);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #4338ca, #7e22ce);
+}
+
+/* Для Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #6366f1 transparent;
+}
+
+/* Плавная прокрутка для всей страницы */
+html {
+  scroll-behavior: smooth;
+}
+
 @keyframes slide-in {
   from {
     opacity: 0;

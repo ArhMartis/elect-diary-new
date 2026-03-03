@@ -1,6 +1,20 @@
 import { relations, sql } from "drizzle-orm";
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 
+
+
+/* ===== ROLES ===== */
+
+export const roles = [
+  "admin",
+  "principal",
+  "teacher",
+  "student",
+  "parent",
+] as const;
+
+export type Role = typeof roles[number];
+
 /* =========================================================
    USERS
    Основная таблица пользователей (better-auth core + admin)
@@ -35,11 +49,13 @@ export const user = sqliteTable("user", {
     .$onUpdate(() => new Date())
     .notNull(),
 
+    avatar: text("avatar"),
+
   /* ===== поля admin plugin ===== */
 
   // Роль пользователя (admin / teacher / student / parent)
  role: text("role")
-  .$type<"admin" | "principal" | "teacher" | "student" | "parent">()
+  .$type<Role>()
   .default("student"),
 
   // Забанен ли пользователь
@@ -50,6 +66,9 @@ export const user = sqliteTable("user", {
 
   // Дата окончания бана
   banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
+
+  // Класс/группа ученика
+  groupId: integer("group_id"),
 });
 
 /* =========================================================
@@ -297,7 +316,7 @@ export const academicPeriods = sqliteTable("academic_periods", {
    Связи между таблицами
    ========================================================= */
 
-export const userRelations = relations(user, ({ many }) => ({
+export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
 
@@ -319,6 +338,12 @@ export const userRelations = relations(user, ({ many }) => ({
   // Ученик → родители
   studentLinks: many(parentsToStudents, {
     relationName: "student_links",
+  }),
+
+  // Класс ученика
+  group: one(groups, {
+    fields: [user.groupId],
+    references: [groups.id],
   }),
 }));
 
@@ -380,6 +405,9 @@ export const groupsRelations = relations(groups, ({ one, many }) => ({
   }),
 
   schedule: many(schedule),
+
+  // Ученики класса
+  students: many(user),
 }));
 
 

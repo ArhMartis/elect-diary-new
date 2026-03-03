@@ -16,9 +16,18 @@ export const auth = betterAuth({
 
   emailAndPassword: { enabled: true },
 
+  user: {
+    additionalFields: {
+      avatar: {
+        type: "string",
+        required: false, // обязательно false!
+      },
+    },
+  },
+
   plugins: [
     admin({
-      adminRoles: ["admin"], // только admin имеет доступ к admin plugin
+      adminRoles: ["admin"],
       defaultRole: "student",
     }),
   ],

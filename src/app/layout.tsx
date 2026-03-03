@@ -39,7 +39,7 @@ export default async function RootLayout({
 
 return (
   <html lang="ru">
-    <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <body className={`${geistSans.variable} ${geistMono.variable} antialiased pt-16`}>
       <Navbar />
       <AuthRefresh />
 
