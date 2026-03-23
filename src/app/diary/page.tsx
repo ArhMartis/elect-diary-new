@@ -857,26 +857,28 @@ export default function DiaryPage() {
         <p>Республика Беларусь • 2026</p>
       </div>
 
-      {/* Функциональные кнопки */}
-      <div className="max-w-[210mm] mx-auto no-print mt-8 mb-8 p-6">
-        <h3 className="text-center font-bold text-gray-700 mb-4 text-lg">Управление дневником</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button onClick={saveData} className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-emerald-500 to-teal-500 text-white rounded-xl hover:from-emerald-600 hover:to-teal-600 shadow-lg transition-all font-medium">
-            <span className="text-3xl">💾</span>
-            <span>Сохранить</span>
-          </button>
-          <button onClick={loadData} className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 shadow-lg transition-all font-medium">
-            <span className="text-3xl">📂</span>
-            <span>Загрузить</span>
-          </button>
-          <button onClick={handlePrint} className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 shadow-lg transition-all font-medium">
-            <span className="text-3xl">🖨️</span>
-            <span>Печать</span>
-          </button>
-          <button onClick={clearData} className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-red-500 to-rose-500 text-white rounded-xl hover:from-red-600 hover:to-rose-600 shadow-lg transition-all font-medium">
-            <span className="text-3xl">🗑️</span>
-            <span>Очистить</span>
-          </button>
+      {/* Функциональные кнопки (фиксированные) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 no-print">
+        <div className="bg-white/95 backdrop-blur-sm shadow-2xl border-2 border-emerald-300 rounded-2xl p-4">
+          <h3 className="text-center font-bold text-gray-700 mb-3 text-sm">Управление дневником</h3>
+          <div className="grid grid-cols-4 gap-3">
+            <button onClick={saveData} className="flex flex-col items-center gap-1 p-3 bg-gradient-to-br from-emerald-500 to-teal-500 text-white rounded-xl hover:from-emerald-600 hover:to-teal-600 shadow-lg transition-all font-medium text-xs">
+              <span className="text-2xl">💾</span>
+              <span>Сохранить</span>
+            </button>
+            <button onClick={loadData} className="flex flex-col items-center gap-1 p-3 bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 shadow-lg transition-all font-medium text-xs">
+              <span className="text-2xl">📂</span>
+              <span>Загрузить</span>
+            </button>
+            <button onClick={handlePrint} className="flex flex-col items-center gap-1 p-3 bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 shadow-lg transition-all font-medium text-xs">
+              <span className="text-2xl">🖨️</span>
+              <span>Печать</span>
+            </button>
+            <button onClick={clearData} className="flex flex-col items-center gap-1 p-3 bg-gradient-to-br from-red-500 to-rose-500 text-white rounded-xl hover:from-red-600 hover:to-rose-600 shadow-lg transition-all font-medium text-xs">
+              <span className="text-2xl">🗑️</span>
+              <span>Очистить</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
