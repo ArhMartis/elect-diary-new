@@ -848,26 +848,6 @@ export default function DiaryPage() {
         }
       `}</style>
 
-      {/* Функциональные кнопки внизу */}
-      <div className="max-w-[210mm] mx-auto no-print mt-4 mb-8">
-        <div className="bg-white shadow-lg border-2 border-emerald-300 rounded-xl p-4">
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <button onClick={saveData} className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 shadow-md transition-all font-medium">
-              💾 Сохранить
-            </button>
-            <button onClick={loadData} className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 shadow-md transition-all font-medium">
-              📂 Загрузить
-            </button>
-            <button onClick={handlePrint} className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg hover:from-orange-600 hover:to-amber-600 shadow-md transition-all font-medium">
-              🖨️ Печать
-            </button>
-            <button onClick={clearData} className="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-lg hover:from-red-600 hover:to-rose-600 shadow-md transition-all font-medium">
-              🗑️ Очистить
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Подвал */}
       <div className="text-center py-8 text-gray-500 text-sm no-print border-t border-gray-200">
         <div className="flex items-center justify-center gap-2 mb-2">
@@ -875,6 +855,29 @@ export default function DiaryPage() {
           <span>Электронный дневник учащегося</span>
         </div>
         <p>Республика Беларусь • 2026</p>
+      </div>
+
+      {/* Функциональные кнопки */}
+      <div className="max-w-[210mm] mx-auto no-print mt-8 mb-8 p-6">
+        <h3 className="text-center font-bold text-gray-700 mb-4 text-lg">Управление дневником</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <button onClick={saveData} className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-emerald-500 to-teal-500 text-white rounded-xl hover:from-emerald-600 hover:to-teal-600 shadow-lg transition-all font-medium">
+            <span className="text-3xl">💾</span>
+            <span>Сохранить</span>
+          </button>
+          <button onClick={loadData} className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 shadow-lg transition-all font-medium">
+            <span className="text-3xl">📂</span>
+            <span>Загрузить</span>
+          </button>
+          <button onClick={handlePrint} className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 shadow-lg transition-all font-medium">
+            <span className="text-3xl">🖨️</span>
+            <span>Печать</span>
+          </button>
+          <button onClick={clearData} className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-red-500 to-rose-500 text-white rounded-xl hover:from-red-600 hover:to-rose-600 shadow-lg transition-all font-medium">
+            <span className="text-3xl">🗑️</span>
+            <span>Очистить</span>
+          </button>
+        </div>
       </div>
     </div>
   );
