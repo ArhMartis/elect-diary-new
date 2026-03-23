@@ -288,6 +288,27 @@ export default function DiaryPage() {
         </div>
       )}
 
+      {/* Навигация по секциям */}
+      <div className="bg-white shadow-md border-b border-emerald-100 no-print">
+        <div className="max-w-[210mm] mx-auto">
+          <div className="flex gap-1 overflow-x-auto py-2 px-4 scrollbar-thin scrollbar-thumb-emerald-300 scrollbar-track-emerald-50">
+            {sections.map(section => (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                className={`px-3 py-2 rounded-lg whitespace-nowrap transition-all font-medium text-sm ${
+                  activeSection === section.id
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md"
+                    : "bg-gray-50 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"
+                }`}
+              >
+                {section.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Основной контент */}
       <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-4 print:my-0 print:shadow-none rounded-xl overflow-hidden">
         {/* Титульный лист */}
@@ -660,8 +681,6 @@ export default function DiaryPage() {
             updateMonth={updateMonth}
             updateDay={updateDay}
             updateLesson={updateLesson}
-            activeSection={activeSection}
-            setActiveSection={setActiveSection}
           />
         )}
 
@@ -872,29 +891,15 @@ function MonthPage({
   updateMonth,
   updateDay,
   updateLesson,
-  activeSection,
-  setActiveSection,
 }: {
   monthIndex: number;
   data: DiaryData;
   updateMonth: (index: number, field: string, value: any) => void;
   updateDay: (monthIndex: number, dayIndex: number, field: string, value: string) => void;
   updateLesson: (monthIndex: number, dayIndex: number, lessonIndex: number, field: string, value: string) => void;
-  activeSection: string;
-  setActiveSection: (id: string) => void;
 }) {
   const month = data.months[monthIndex];
   const days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-  const sections = [
-    { id: "title", label: "Титульный лист" },
-    { id: "contacts", label: "Контакты" },
-    { id: "subjects", label: "Предметы" },
-    { id: "schedule", label: "Расписание" },
-    ...MONTHS.map((m, i) => ({ id: `month-${i}`, label: m })),
-    { id: "grades", label: "Аттестация" },
-    { id: "holidays", label: "Каникулы" },
-    { id: "official", label: "Праздники" },
-  ];
 
   return (
     <div className="min-h-[297mm] p-8">
@@ -1025,27 +1030,6 @@ function MonthPage({
               className="w-4 h-4"
             />
             <label className="text-sm">Подпись родителя</label>
-          </div>
-        </div>
-      </div>
-
-      {/* Навигация по секциям (внизу) */}
-      <div className="max-w-[210mm] mx-auto bg-white shadow-lg border-t-2 border-emerald-300 no-print rounded-xl mt-4 mb-8">
-        <div className="p-4">
-          <div className="flex gap-2 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-emerald-300 scrollbar-track-emerald-50">
-            {sections.map(section => (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id)}
-                className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all font-medium text-sm flex-shrink-0 ${
-                  activeSection === section.id
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md"
-                    : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"
-                }`}
-              >
-                {section.label}
-              </button>
-            ))}
           </div>
         </div>
       </div>
