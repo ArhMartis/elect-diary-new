@@ -288,29 +288,8 @@ export default function DiaryPage() {
         </div>
       )}
 
-      {/* Навигация по секциям */}
-      <div className="bg-white shadow-md border-b border-emerald-100 no-print">
-        <div className="max-w-[210mm] mx-auto">
-          <div className="flex gap-1 overflow-x-auto py-2 px-4 scrollbar-thin scrollbar-thumb-emerald-300 scrollbar-track-emerald-50">
-            {sections.map(section => (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id)}
-                className={`px-3 py-2 rounded-lg whitespace-nowrap transition-all font-medium text-sm ${
-                  activeSection === section.id
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md"
-                    : "bg-gray-50 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"
-                }`}
-              >
-                {section.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Основной контент */}
-      <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-4 print:my-0 print:shadow-none rounded-xl overflow-hidden pt-4">
+      <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-4 print:my-0 print:shadow-none rounded-xl overflow-hidden">
         {/* Титульный лист */}
         {activeSection === "title" && (
           <div className="min-h-[297mm] p-12 bg-gradient-to-b from-amber-50/50 to-white">
@@ -339,7 +318,7 @@ export default function DiaryPage() {
                     ["Телефон:", "schoolPhone", ""],
                   ].map(([label, field, placeholder]) => (
                     <tr key={field} className="border-b border-emerald-50 last:border-0">
-                      <td className="py-4 font-semibold text-gray-700 w-2/5">{label}</td>
+                      <td className="py-4 font-semibold text-gray-900 w-2/5">{label}</td>
                       <td className="py-4">
                         <input
                           type="text"
@@ -562,7 +541,7 @@ export default function DiaryPage() {
                           type="text"
                           value={subject.name}
                           onChange={e => updateSubject(i, "name", e.target.value)}
-                          className="w-full text-gray-700"
+                          className="w-full text-black font-medium"
                         />
                       </td>
                       <td className="border border-emerald-200 p-3">
@@ -570,7 +549,7 @@ export default function DiaryPage() {
                           type="text"
                           value={subject.teacher}
                           onChange={e => updateSubject(i, "teacher", e.target.value)}
-                          className="w-full text-gray-700"
+                          className="w-full text-black font-medium"
                           placeholder="Введите ФИО учителя"
                         />
                       </td>
@@ -605,7 +584,7 @@ export default function DiaryPage() {
                             electives[i].name = e.target.value;
                             setData({ ...data, electives });
                           }}
-                          className="w-full text-gray-700"
+                          className="w-full text-black font-medium"
                           placeholder="Название факультатива"
                         />
                       </td>
@@ -618,7 +597,7 @@ export default function DiaryPage() {
                             electives[i].teacher = e.target.value;
                             setData({ ...data, electives });
                           }}
-                          className="w-full text-gray-700"
+                          className="w-full text-black font-medium"
                           placeholder="ФИО учителя"
                         />
                       </td>
@@ -631,7 +610,7 @@ export default function DiaryPage() {
                             electives[i].schedule = e.target.value;
                             setData({ ...data, electives });
                           }}
-                          className="w-full text-gray-700"
+                          className="w-full text-black font-medium"
                           placeholder="Например: Пн 15:00"
                         />
                       </td>
@@ -681,6 +660,8 @@ export default function DiaryPage() {
             updateMonth={updateMonth}
             updateDay={updateDay}
             updateLesson={updateLesson}
+            activeSection={activeSection}
+            setActiveSection={setActiveSection}
           />
         )}
 
@@ -717,7 +698,7 @@ export default function DiaryPage() {
                             type="text"
                             value={grade.subject}
                             onChange={e => updateGrade(i, "subject", e.target.value)}
-                            className="w-full text-gray-700 font-medium"
+                            className="w-full text-black font-medium"
                           />
                         </td>
                         {["q1", "q2", "q3", "q4", "year", "exam", "final"].map((field, fi) => (
@@ -747,7 +728,7 @@ export default function DiaryPage() {
                 value={data.decisionText}
                 onChange={e => setData({ ...data, decisionText: e.target.value })}
                 placeholder="Дата и номер приказа о переводе в следующий класс / об окончании учреждения образования"
-                className="w-full border-2 border-amber-300 rounded-xl px-4 py-3 focus:border-amber-500 focus:outline-none bg-white text-gray-700"
+                className="w-full border-2 border-amber-300 rounded-xl px-4 py-3 focus:border-amber-500 focus:outline-none bg-white text-black font-medium"
               />
             </div>
           </div>
@@ -780,7 +761,7 @@ export default function DiaryPage() {
                       setData({ ...data, holidays });
                     }}
                     placeholder="с __ по __"
-                    className="w-full border-2 border-sky-300 rounded-xl px-4 py-3 focus:border-sky-500 focus:outline-none text-gray-700 text-lg"
+                    className="w-full border-2 border-sky-300 rounded-xl px-4 py-3 focus:border-sky-500 focus:outline-none text-black text-lg font-medium"
                   />
                 </div>
               ))}
@@ -891,15 +872,29 @@ function MonthPage({
   updateMonth,
   updateDay,
   updateLesson,
+  activeSection,
+  setActiveSection,
 }: {
   monthIndex: number;
   data: DiaryData;
   updateMonth: (index: number, field: string, value: any) => void;
   updateDay: (monthIndex: number, dayIndex: number, field: string, value: string) => void;
   updateLesson: (monthIndex: number, dayIndex: number, lessonIndex: number, field: string, value: string) => void;
+  activeSection: string;
+  setActiveSection: (id: string) => void;
 }) {
   const month = data.months[monthIndex];
   const days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+  const sections = [
+    { id: "title", label: "Титульный лист" },
+    { id: "contacts", label: "Контакты" },
+    { id: "subjects", label: "Предметы" },
+    { id: "schedule", label: "Расписание" },
+    ...MONTHS.map((m, i) => ({ id: `month-${i}`, label: m })),
+    { id: "grades", label: "Аттестация" },
+    { id: "holidays", label: "Каникулы" },
+    { id: "official", label: "Праздники" },
+  ];
 
   return (
     <div className="min-h-[297mm] p-8">
@@ -1032,6 +1027,36 @@ function MonthPage({
             <label className="text-sm">Подпись родителя</label>
           </div>
         </div>
+      </div>
+
+      {/* Навигация по секциям (внизу) */}
+      <div className="max-w-[210mm] mx-auto bg-white shadow-lg border-t-2 border-emerald-300 no-print rounded-xl mt-4 mb-8">
+        <div className="p-4">
+          <div className="flex gap-2 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-emerald-300 scrollbar-track-emerald-50">
+            {sections.map(section => (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all font-medium text-sm flex-shrink-0 ${
+                  activeSection === section.id
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"
+                }`}
+              >
+                {section.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Подвал */}
+      <div className="text-center py-8 text-gray-500 text-sm no-print border-t border-gray-200 mt-8">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <span className="text-xl">📚</span>
+          <span>Электронный дневник учащегося</span>
+        </div>
+        <p>Республика Беларусь • 2026</p>
       </div>
     </div>
   );
