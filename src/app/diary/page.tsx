@@ -254,26 +254,26 @@ export default function DiaryPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 font-sans pt-16">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 font-sans">
       {/* Панель управления */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur-sm shadow-xl border border-emerald-200 no-print rounded-full">
-        <div className="px-6 py-2">
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-xl border-b-2 border-emerald-300 no-print">
+        <div className="max-w-[210mm] mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-xl">📚</span>
-              <span className="font-bold text-emerald-800 text-sm hidden sm:inline">Электронный дневник</span>
+              <span className="text-2xl">📚</span>
+              <span className="font-bold text-emerald-800 text-lg hidden sm:inline">Электронный дневник</span>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <button onClick={saveData} className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full hover:from-emerald-600 hover:to-teal-600 shadow-md transition-all font-medium text-xs">
+              <button onClick={saveData} className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 shadow-md transition-all font-medium text-sm">
                 💾 Сохранить
               </button>
-              <button onClick={loadData} className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full hover:from-blue-600 hover:to-cyan-600 shadow-md transition-all font-medium text-xs">
+              <button onClick={loadData} className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 shadow-md transition-all font-medium text-sm">
                 📂 Загрузить
               </button>
-              <button onClick={handlePrint} className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full hover:from-orange-600 hover:to-amber-600 shadow-md transition-all font-medium text-xs">
+              <button onClick={handlePrint} className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg hover:from-orange-600 hover:to-amber-600 shadow-md transition-all font-medium text-sm">
                 🖨️ Печать
               </button>
-              <button onClick={clearData} className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-full hover:from-red-600 hover:to-rose-600 shadow-md transition-all font-medium text-xs">
+              <button onClick={clearData} className="px-4 py-2 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-lg hover:from-red-600 hover:to-rose-600 shadow-md transition-all font-medium text-sm">
                 🗑️ Очистить
               </button>
             </div>
@@ -283,13 +283,13 @@ export default function DiaryPage() {
 
       {/* Уведомление о сохранении */}
       {showSaveNotification && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg shadow-xl animate-pulse font-medium">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg shadow-xl animate-pulse font-medium">
           ✓ Данные успешно сохранены!
         </div>
       )}
 
       {/* Навигация по секциям */}
-      <div className="bg-white shadow-md border-b border-emerald-100 no-print mt-16">
+      <div className="bg-white shadow-md border-b border-emerald-100 no-print">
         <div className="max-w-[210mm] mx-auto">
           <div className="flex gap-1 overflow-x-auto py-2 px-4 scrollbar-thin scrollbar-thumb-emerald-300 scrollbar-track-emerald-50">
             {sections.map(section => (
@@ -310,7 +310,7 @@ export default function DiaryPage() {
       </div>
 
       {/* Основной контент */}
-      <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-4 print:my-0 print:shadow-none rounded-xl overflow-hidden">
+      <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-4 print:my-0 print:shadow-none rounded-xl overflow-hidden pt-4">
         {/* Титульный лист */}
         {activeSection === "title" && (
           <div className="min-h-[297mm] p-12 bg-gradient-to-b from-amber-50/50 to-white">
@@ -489,7 +489,7 @@ export default function DiaryPage() {
                             schedule[i].number = e.target.value;
                             setData({ ...data, bellSchedule: schedule });
                           }}
-                          className="w-full text-center font-bold text-gray-900"
+                          className="w-full text-center font-bold text-black"
                         />
                       </td>
                       <td className="border border-cyan-200 p-3">
@@ -501,7 +501,7 @@ export default function DiaryPage() {
                             schedule[i].start = e.target.value;
                             setData({ ...data, bellSchedule: schedule });
                           }}
-                          className="w-full text-center font-semibold text-gray-900"
+                          className="w-full text-center font-bold text-black"
                         />
                       </td>
                       <td className="border border-cyan-200 p-3">
@@ -513,7 +513,7 @@ export default function DiaryPage() {
                             schedule[i].end = e.target.value;
                             setData({ ...data, bellSchedule: schedule });
                           }}
-                          className="w-full text-center font-semibold text-gray-900"
+                          className="w-full text-center font-bold text-black"
                         />
                       </td>
                       <td className="border border-cyan-200 p-3">
@@ -525,7 +525,7 @@ export default function DiaryPage() {
                             schedule[i].break = e.target.value;
                             setData({ ...data, bellSchedule: schedule });
                           }}
-                          className="w-full text-center text-gray-700"
+                          className="w-full text-center font-bold text-black"
                         />
                       </td>
                     </tr>
@@ -726,9 +726,7 @@ export default function DiaryPage() {
                               type="text"
                               value={grade[field as keyof typeof grade]}
                               onChange={e => updateGrade(i, field, e.target.value)}
-                              className={`w-full text-center font-bold text-gray-900 ${
-                                fi >= 4 ? "bg-rose-100" : ""
-                              }`}
+                              className="w-full text-center font-bold text-black"
                             />
                           </td>
                         ))}
