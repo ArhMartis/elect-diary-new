@@ -22,6 +22,10 @@ export const auth = betterAuth({
         type: "string",
         required: false, // обязательно false!
       },
+      fullName: {
+        type: "string",
+        required: true,
+      },
     },
   },
 

@@ -2,10 +2,9 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { parentsToStudents, user, grades, subjects } from "@/db/schema/auth_schema";
+import { parentsToStudents, user, grades, subjects, schedule, groups } from "@/db/schema/auth_schema";
 import { eq } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
-import AvatarUploader from "@/components/AvatarUploader";
 import StudentDiary from "@/components/StudentDiary";
 import Link from "next/link";
 
@@ -107,6 +106,31 @@ export default async function ParentPage() {
     );
   }
 
+  // Получаем класс ученика
+  const studentGroup = student.groupId
+    ? await db.select().from(groups).where(eq(groups.id, student.groupId)).then((res) => res[0])
+    : null;
+
+  // Получаем расписание для класса ученика
+  const scheduleList = await db
+    .select({
+      id: schedule.id,
+      groupId: schedule.groupId,
+      subjectId: schedule.subjectId,
+      teacherId: schedule.teacherId,
+      lessonDate: schedule.lessonDate,
+      dayOfWeek: schedule.dayOfWeek,
+      lessonNumber: schedule.lessonNumber,
+      subjectName: subjects.name,
+      teacherName: user.name,
+      groupName: groups.name,
+    })
+    .from(schedule)
+    .leftJoin(subjects, eq(schedule.subjectId, subjects.id))
+    .leftJoin(user, eq(schedule.teacherId, user.id))
+    .leftJoin(groups, eq(schedule.groupId, groups.id))
+    .orderBy(schedule.lessonDate, schedule.dayOfWeek, schedule.lessonNumber);
+
   // Получаем оценки ученика
   const studentGrades = await db
     .select({
@@ -152,12 +176,13 @@ export default async function ParentPage() {
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">Дневник ученика</h1>
                 <p className="text-gray-600">{student.name}</p>
+                {studentGroup && (
+                  <p className="text-sm text-gray-500 mt-1">Класс: {studentGroup.name}</p>
+                )}
               </div>
             </div>
 
             <div className="flex items-center gap-4 flex-wrap">
-              <AvatarUploader current={session?.user.avatar ?? undefined} />
-              
               {average !== null && (
                 <div className="bg-gradient-to-br from-green-400 to-green-500 text-white px-5 py-3 rounded-xl shadow-lg">
                   <div className="text-xs opacity-90">Средний балл</div>
@@ -165,7 +190,7 @@ export default async function ParentPage() {
                   <div className="text-xs opacity-75">по {numericGrades.length} оценкам</div>
                 </div>
               )}
-              
+
               <Link
                 href="/"
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-medium"
@@ -196,6 +221,14 @@ export default async function ParentPage() {
             currentUserId={session.user.id}
             isTeacher={false}
             isParent={true}
+            schedule={scheduleList.map((s) => ({
+              id: s.id,
+              lessonNumber: s.lessonNumber,
+              subjectName: s.subjectName,
+              teacherName: s.teacherName,
+              lessonDate: s.lessonDate,
+              dayOfWeek: s.dayOfWeek,
+            }))}
           />
         </div>
       </div>

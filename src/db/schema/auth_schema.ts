@@ -27,6 +27,9 @@ export const user = sqliteTable("user", {
   // Имя пользователя (можно использовать как display name)
   name: text("name").notNull(),
 
+  // ФИО пользователя (обязательное поле)
+  fullName: text("full_name").notNull(),
+
   // Email (уникальный логин)
   email: text("email").notNull().unique(),
 
@@ -229,6 +232,29 @@ export const groups = sqliteTable("groups", {
 export const subjects = sqliteTable("subjects", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
+  // Учитель, закреплённый за предметом (может быть null для общих предметов)
+  // Поле устарело, используется teacherSubjects для связи многие-ко-многим
+  teacherId: text("teacher_id").references(() => user.id, { onDelete: "set null" }),
+});
+
+/* =========================================================
+   TEACHER SUBJECTS (Справочник: учителя ↔ предметы)
+   Связь многие-ко-многим: один учитель может вести несколько предметов,
+   один предмет может вестись несколькими учителями
+   ========================================================= */
+
+export const teacherSubjects = sqliteTable("teacher_subjects", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  teacherId: text("teacher_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  subjectId: integer("subject_id")
+    .notNull()
+    .references(() => subjects.id, { onDelete: "cascade" }),
+  // Дата закрепления
+  assignedAt: integer("assigned_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
 });
 
 /* =========================================================
@@ -250,7 +276,15 @@ export const schedule = sqliteTable("schedule", {
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
 
-  dayOfWeek: integer("day_of_week").notNull(), // 1–6
+  // Название мероприятия/собрания/классного часа
+  name: text("name"),
+
+  // Дата урока (конкретная дата, например "2025-03-10")
+  lessonDate: text("lesson_date"), // формат YYYY-MM-DD
+
+  // День недели (1-6) для регулярного расписания
+  dayOfWeek: integer("day_of_week"), // 1–6
+
   lessonNumber: integer("lesson_number").notNull(),
 });
 
@@ -278,6 +312,10 @@ export const grades = sqliteTable("grades", {
   comment: text("comment"),
 
   date: text("date").default(sql`CURRENT_DATE`),
+
+  // Четверть (1-4)
+  academicPeriodId: integer("academic_period_id")
+    .references(() => academicPeriods.id, { onDelete: "set null" }),
 });
 
 
@@ -309,6 +347,46 @@ export const academicPeriods = sqliteTable("academic_periods", {
 
   startDate: text("start_date").notNull(),
   endDate: text("end_date").notNull(),
+
+  // Класс, к которому относится четверть (null = для всех классов)
+  groupId: integer("group_id").references(() => groups.id, { onDelete: "cascade" }),
+});
+
+/* =========================================================
+   HOMEWORK (Домашнее задание)
+   ========================================================= */
+
+export const homework = sqliteTable("homework", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+
+  // Учитель, который задал ДЗ
+  teacherId: text("teacher_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+
+  // Класс, которому задано ДЗ
+  groupId: integer("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+
+  // Предмет
+  subjectId: integer("subject_id")
+    .notNull()
+    .references(() => subjects.id, { onDelete: "cascade" }),
+
+  // Дата урока
+  lessonDate: text("lesson_date").notNull(), // формат YYYY-MM-DD
+
+  // Текст домашнего задания
+  description: text("description").notNull(),
+
+  // Дата, к которой нужно выполнить (срок)
+  dueDate: text("due_date"), // формат YYYY-MM-DD
+
+  // Дата создания
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
 });
 
 /* =========================================================
@@ -379,6 +457,11 @@ export const gradesRelations = relations(grades, ({ one }) => ({
     fields: [grades.subjectId],
     references: [subjects.id],
   }),
+
+  academicPeriod: one(academicPeriods, {
+    fields: [grades.academicPeriodId],
+    references: [academicPeriods.id],
+  }),
 }));
 
 export const parentsToStudentsRelations = relations(
@@ -408,6 +491,49 @@ export const groupsRelations = relations(groups, ({ one, many }) => ({
 
   // Ученики класса
   students: many(user),
+
+  // Четверти класса
+  academicPeriods: many(academicPeriods),
+}));
+
+export const academicPeriodsRelations = relations(academicPeriods, ({ one }) => ({
+  group: one(groups, {
+    fields: [academicPeriods.groupId],
+    references: [groups.id],
+  }),
+}));
+
+export const homeworkRelations = relations(homework, ({ one }) => ({
+  teacher: one(user, {
+    fields: [homework.teacherId],
+    references: [user.id],
+  }),
+
+  group: one(groups, {
+    fields: [homework.groupId],
+    references: [groups.id],
+  }),
+
+  subject: one(subjects, {
+    fields: [homework.subjectId],
+    references: [subjects.id],
+  }),
+}));
+
+export const teacherSubjectsRelations = relations(teacherSubjects, ({ one }) => ({
+  teacher: one(user, {
+    fields: [teacherSubjects.teacherId],
+    references: [user.id],
+  }),
+
+  subject: one(subjects, {
+    fields: [teacherSubjects.subjectId],
+    references: [subjects.id],
+  }),
+}));
+
+export const subjectsRelations = relations(subjects, ({ many }) => ({
+  teacherAssignments: many(teacherSubjects),
 }));
 
 

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { saveAccount } from "@/lib/accounts-storage";
 import Link from "next/link";
 
 export default function SignUpPage() {
@@ -19,10 +20,21 @@ export default function SignUpPage() {
 
     startTransition(async () => {
       try {
-        await authClient.signUp.email({
+        const formDataObj = {
           email: formData.get("email") as string,
           password: formData.get("password") as string,
           name: formData.get("name") as string,
+          fullName: formData.get("fullName") as string,
+        };
+
+        // @ts-ignore - fullName is defined in additionalFields config
+        await authClient.signUp.email(formDataObj);
+
+        // Сохраняем аккаунт для быстрого переключения
+        saveAccount({
+          email: formDataObj.email,
+          password: formDataObj.password,
+          fullName: formDataObj.fullName,
         });
 
         window.location.assign("/");
@@ -61,7 +73,7 @@ export default function SignUpPage() {
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-white">
-              Knowledge<span className="opacity-80">Hub</span>
+              Knowledge<span className="opacity-80">BY</span>
             </h1>
           </Link>
           <p className="text-white/80 text-lg">Создайте аккаунт</p>
@@ -97,6 +109,27 @@ export default function SignUpPage() {
                   name="name"
                   type="text"
                   placeholder="Иван Иванов"
+                  className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  disabled={pending}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                ФИО
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <input
+                  name="fullName"
+                  type="text"
+                  placeholder="Иванов Иван Иванович"
                   className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
                   disabled={pending}
                   required

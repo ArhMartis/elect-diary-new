@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Electronic Diary",
+  title: "KnowledgeBY",
   description: "School system",
 };
 

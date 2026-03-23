@@ -5,7 +5,6 @@ import { db } from "@/db";
 import { user, groups } from "@/db/schema/auth_schema";
 import { eq } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
-import AvatarUploader from "@/components/AvatarUploader";
 import Link from "next/link";
 
 export default async function PrincipalPage() {
@@ -56,7 +55,6 @@ export default async function PrincipalPage() {
             </div>
 
             <div className="flex items-center gap-4">
-              <AvatarUploader current={session?.user.avatar ?? undefined} />
               <Link
                 href="/"
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-medium"

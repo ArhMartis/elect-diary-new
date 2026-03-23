@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import LogoutButton from "./LogoutButton";
+import AccountSwitcher from "./AccountSwitcher";
 import { unstable_noStore as noStore } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +39,7 @@ export default async function Navbar() {
               </svg>
             </div>
             <span className="text-xl font-bold text-white hidden sm:block">
-              KnowledgeHub
+              KnowledgeBY
             </span>
           </Link>
 
@@ -63,22 +64,30 @@ export default async function Navbar() {
 
             {session && (
               <div className="flex items-center gap-4">
+                {/* Переключатель аккаунтов */}
+                <AccountSwitcher />
+
                 {/* Профиль */}
-                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-xl">
-                  <img
-                    src={session.user.avatar ?? "/default-avatar.png"}
-                    alt="avatar"
-                    className="w-9 h-9 rounded-full object-cover border-2 border-white/50"
-                  />
-                  <div className="text-sm leading-tight text-white hidden sm:block">
-                    <div className="font-medium">
-                      {session.user.name ?? "Пользователь"}
-                    </div>
-                    <div className="opacity-75 text-xs max-w-[150px] truncate">
-                      {session.user.email}
+                <Link href="/profile">
+                  <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-xl hover:bg-white/20 transition-all cursor-pointer">
+                    <img
+                      src={session.user.avatar ?? "/default-avatar.png"}
+                      alt="avatar"
+                      className="w-9 h-9 rounded-full object-cover border-2 border-white/50"
+                    />
+                    <div className="text-sm leading-tight text-white hidden sm:block">
+                      <div className="font-medium">
+                        {session.user.name ?? "Пользователь"}
+                      </div>
+                      <div className="opacity-75 text-xs max-w-[150px] truncate">
+                        {session.user.email}
+                      </div>
+                      <div className="opacity-90 text-xs font-medium text-white/90 mt-0.5">
+                        {session.user.fullName || "ФИО не указано"}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </Link>
 
                 {/* Кнопка выхода */}
                 <LogoutButton />

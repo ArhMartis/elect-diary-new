@@ -3,5 +3,17 @@ import { adminClient } from "better-auth/client/plugins"
 
 export const authClient = createAuthClient({
 baseURL: process.env.BETTER_AUTH_URL,
-plugins: [ adminClient() ]
+plugins: [ adminClient() ],
+additionalFields: {
+  signUp: {
+    fullName: {
+      type: "string",
+      required: true,
+    },
+    avatar: {
+      type: "string",
+      required: false,
+    },
+  },
+},
 });

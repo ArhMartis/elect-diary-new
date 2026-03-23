@@ -41,7 +41,7 @@ export default async function HomePage() {
               </svg>
             </div>
             <h1 className="text-5xl md:text-6xl font-extrabold text-white tracking-tight">
-              Knowledge<span className="opacity-80">Hub</span>
+              Knowledge<span className="opacity-80">BY</span>
             </h1>
           </div>
           <p className="text-xl text-white/90 font-light max-w-2xl mx-auto">
@@ -49,82 +49,8 @@ export default async function HomePage() {
           </p>
         </div>
 
-        {/* Основная карточка */}
-        <div className="max-w-2xl mx-auto mb-12">
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 md:p-12">
-            <div className="text-center">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-                Добро пожаловать
-              </h2>
-              <p className="text-gray-600 mb-8 text-lg">
-                Ваша персональная система для отслеживания успеваемости, 
-                взаимодействия с учителями и контроля учебного процесса
-              </p>
-
-              {role !== "guest" && (
-                <Link
-                  href={`/${role}`}
-                  className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-lg font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
-                    />
-                  </svg>
-                  Перейти в личный кабинет
-                </Link>
-              )}
-
-              {role === "guest" && (
-                <div className="space-y-4">
-                  <Link
-                    href="/sign-in"
-                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-lg font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
-                      />
-                    </svg>
-                    Войти в систему
-                  </Link>
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-500">
-                      Используйте учетные данные, предоставленные школой
-                    </p>
-                    <Link
-                      href="/sign-up"
-                      className="block text-center text-sm text-indigo-600 hover:text-indigo-800 font-medium underline underline-offset-2 decoration-indigo-300 hover:decoration-indigo-600 transition-all"
-                    >
-                      Или зарегистрируйтесь для подтверждения профиля администратором дневника
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Карточки преимуществ */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all hover:-translate-y-1">
             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-4">
               <svg
@@ -195,9 +121,83 @@ export default async function HomePage() {
           </div>
         </div>
 
+        {/* Основная карточка */}
+        <div className="max-w-2xl mx-auto mb-12">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 md:p-12">
+            <div className="text-center">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+                Добро пожаловать
+              </h2>
+              <p className="text-gray-600 mb-8 text-lg">
+                Ваша персональная система для отслеживания успеваемости,
+                взаимодействия с учителями и контроля учебного процесса
+              </p>
+
+              {role !== "guest" && (
+                <Link
+                  href={`/${role}`}
+                  className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-lg font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                  Перейти в личный кабинет
+                </Link>
+              )}
+
+              {role === "guest" && (
+                <div className="space-y-4">
+                  <Link
+                    href="/sign-in"
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-lg font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    Войти в систему
+                  </Link>
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">
+                      Используйте учетные данные, предоставленные школой
+                    </p>
+                    <Link
+                      href="/sign-up"
+                      className="block text-center text-sm text-indigo-600 hover:text-indigo-800 font-medium underline underline-offset-2 decoration-indigo-300 hover:decoration-indigo-600 transition-all"
+                    >
+                      Или зарегистрируйтесь для подтверждения профиля администратором дневника
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Футер */}
         <div className="text-center mt-16 text-white/70 text-sm">
-          <p>© 2026 KnowledgeHub. Система электронного дневника</p>
+          <p>© 2026 KnowledgeBY. Система электронного дневника</p>
         </div>
       </main>
     </div>

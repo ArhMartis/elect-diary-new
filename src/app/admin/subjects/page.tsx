@@ -1,5 +1,6 @@
 import { db } from "@/db";
-import { subjects } from "@/db/schema/auth_schema";
+import { subjects, user, teacherSubjects } from "@/db/schema/auth_schema";
+import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -17,6 +18,10 @@ export default async function SubjectsAdminPage() {
   }
 
   const allSubjects = await db.select().from(subjects);
+  const teachers = await db.select().from(user).where(eq(user.role, "teacher"));
+  
+  // Получаем все назначения предметов учителям
+  const allTeacherSubjects = await db.select().from(teacherSubjects);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6 space-y-6">
@@ -101,7 +106,12 @@ export default async function SubjectsAdminPage() {
             </p>
           ) : (
             allSubjects.map((s) => (
-              <SubjectItem key={s.id} subject={s} />
+              <SubjectItem 
+                key={s.id} 
+                subject={s} 
+                teachers={teachers}
+                teacherSubjects={allTeacherSubjects.filter(ts => ts.subjectId === s.id)}
+              />
             ))
           )}
         </div>

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { saveAccount } from "@/lib/accounts-storage";
 import Link from "next/link";
 
 export default function SignInPage() {
@@ -24,6 +25,7 @@ export default function SignInPage() {
       const result = await authClient.signIn.email({
         email,
         password,
+        // Опция rememberMe для будущего расширения
       });
 
       if (result.error) {
@@ -39,6 +41,14 @@ export default function SignInPage() {
 
         return;
       }
+
+      // Сохраняем аккаунт для быстрого переключения
+      // fullName будет получен после загрузки профиля
+      saveAccount({
+        email,
+        password,
+        fullName: email.split("@")[0], // временное значение, обновится после загрузки
+      });
 
       window.location.assign("/");
     });
@@ -73,7 +83,7 @@ export default function SignInPage() {
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-white">
-              Knowledge<span className="opacity-80">Hub</span>
+              Knowledge<span className="opacity-80">BY</span>
             </h1>
           </Link>
           <p className="text-white/80 text-lg">С возвращением!</p>

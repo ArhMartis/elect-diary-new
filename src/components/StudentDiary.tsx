@@ -12,6 +12,15 @@ interface Grade {
   teacherName?: string | null;
 }
 
+interface Lesson {
+  id: number;
+  lessonNumber: number;
+  subjectName: string | null;
+  teacherName: string | null;
+  lessonDate: string | null;
+  dayOfWeek: number | null;
+}
+
 interface StudentDiaryProps {
   grades: Grade[];
   studentId: string;
@@ -19,6 +28,7 @@ interface StudentDiaryProps {
   isTeacher?: boolean;
   isParent?: boolean;
   isHomeroomTeacher?: boolean;
+  schedule?: Lesson[];
 }
 
 const DAYS_OF_WEEK = [
@@ -32,7 +42,6 @@ const DAYS_OF_WEEK = [
 
 const SUBJECTS_ORDER = [
   "Белорусский язык",
-  "Русский язык",
   "Белорусская литература",
   "Русская литература",
   "Иностранный язык",
@@ -114,6 +123,7 @@ export default function StudentDiary({
   isTeacher = false,
   isParent = false,
   isHomeroomTeacher = false,
+  schedule = [],
 }: StudentDiaryProps) {
   const [selectedWeek, setSelectedWeek] = useState<Date>(getStartOfWeek(new Date()));
   const [studentNote, setStudentNote] = useState("");
@@ -138,10 +148,14 @@ export default function StudentDiary({
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 5);
 
+  // Сбрасываем время для корректного сравнения дат
+  const weekStartOnlyDate = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
+  const weekEndOnlyDate = new Date(weekEnd.getFullYear(), weekEnd.getMonth(), weekEnd.getDate());
+
   const weekGrades = grades.filter((g) => {
     if (!g.date) return false;
-    const gradeDate = new Date(g.date);
-    return gradeDate >= weekStart && gradeDate <= weekEnd;
+    const gradeDate = new Date(g.date + "T00:00:00"); // устанавливаем время в полночь
+    return gradeDate >= weekStartOnlyDate && gradeDate <= weekEndOnlyDate;
   });
 
   const currentMonth = selectedWeek.toLocaleDateString("ru-RU", {
@@ -252,10 +266,49 @@ export default function StudentDiary({
   const getGradesForSubjectAndDay = (subjectName: string | null, dayOfWeek: number) => {
     return weekGrades.filter((g) => {
       if (!g.date) return false;
-      const gradeDate = new Date(g.date);
+      const gradeDate = new Date(g.date + "T00:00:00");
       const gradeDay = gradeDate.getDay() || 7;
-      return g.subjectName === subjectName && gradeDay === dayOfWeek;
+      // Фильтруем по дню недели И по предмету
+      return gradeDay === dayOfWeek && g.subjectName === subjectName;
     });
+  };
+
+  // Форматирование даты для отображения
+  const formatDateShort = (dateStr: string | null) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+  };
+
+  // Получение названия дня недели
+  const getDayOfWeekName = (dateStr: string | null) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("ru-RU", { weekday: "long" });
+  };
+
+  // Получаем предметы из расписания на текущую неделю для каждого дня
+  const getScheduleForDay = (dayOfWeek: number) => {
+    if (!schedule || schedule.length === 0) return [];
+    
+    const weekStartStr = weekStart.toISOString().split("T")[0];
+    const weekEndStr = weekEnd.toISOString().split("T")[0];
+    
+    // Фильтруем расписание на даты текущей недели для этого дня
+    const dateLessons = schedule.filter((lesson) => {
+      if (!lesson.lessonDate) return false;
+      const lessonDate = new Date(lesson.lessonDate);
+      const lessonDay = lessonDate.getDay() || 7;
+      return lessonDay === dayOfWeek && lesson.lessonDate >= weekStartStr && lesson.lessonDate <= weekEndStr;
+    });
+    
+    // Фильтруем регулярное расписание для этого дня
+    const regularLessons = schedule.filter((lesson) => {
+      if (!lesson.dayOfWeek || lesson.lessonDate) return false;
+      return lesson.dayOfWeek === dayOfWeek;
+    });
+    
+    return [...dateLessons, ...regularLessons].sort((a, b) => a.lessonNumber - b.lessonNumber);
   };
 
   return (
@@ -310,53 +363,144 @@ export default function StudentDiary({
               </tr>
             </thead>
             <tbody>
-              {subjectNames.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-12 text-gray-500">
-                    <div className="flex flex-col items-center gap-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                      </svg>
-                      <p>Нет предметов за эту неделю</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                subjectNames.map((subject, index) => (
-                  <tr key={subject} className="hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0">
-                    <td className="text-center py-4 font-mono text-gray-600 border-r border-gray-200">{index + 1}</td>
-                    <td className="font-medium text-gray-800 px-4 py-4 border-r border-gray-200">{subject}</td>
-                    {DAYS_OF_WEEK.map((day) => {
-                      const dayGrades = getGradesForSubjectAndDay(subject, day.dayOfWeek);
-                      return (
-                        <td key={day.dayOfWeek} className="text-center py-4 px-2 border-r border-gray-200 last:border-r-0">
-                          {dayGrades.length === 0 ? (
-                            <span className="text-gray-300 text-xl">—</span>
-                          ) : (
-                            <div className="flex flex-col gap-2 items-center">
+              {(() => {
+                // Собираем все предметы из расписания на эту неделю
+                const allLessons: Record<number, typeof schedule> = {};
+                
+                DAYS_OF_WEEK.forEach((day) => {
+                  const daySchedule = getScheduleForDay(day.dayOfWeek);
+                  daySchedule.forEach((lesson) => {
+                    if (!allLessons[lesson.lessonNumber]) {
+                      allLessons[lesson.lessonNumber] = [];
+                    }
+                    // Добавляем предмет, если его ещё нет на этом уроке
+                    const exists = allLessons[lesson.lessonNumber].some(
+                      (l) => l.subjectName === lesson.subjectName && l.dayOfWeek === day.dayOfWeek
+                    );
+                    if (!exists) {
+                      allLessons[lesson.lessonNumber].push(lesson);
+                    }
+                  });
+                });
+
+                // Добавляем предметы из оценок, если их нет в расписании
+                subjectNames.forEach((subject, idx) => {
+                  // Проверяем, есть ли уже этот предмет на этом уроке
+                  const lessonNum = idx + 1;
+                  if (!allLessons[lessonNum]) {
+                    allLessons[lessonNum] = [];
+                  }
+                  const exists = allLessons[lessonNum].some((l) => l.subjectName === subject);
+                  if (!exists) {
+                    // Добавляем предмет без привязки к дню (просто из оценок)
+                    allLessons[lessonNum].push({
+                      id: 0,
+                      lessonNumber: lessonNum,
+                      subjectName: subject,
+                      teacherName: null,
+                      lessonDate: null,
+                      dayOfWeek: null,
+                    });
+                  }
+                });
+
+                const lessonNumbers = Object.keys(allLessons).map(Number).sort((a, b) => a - b);
+
+                if (lessonNumbers.length === 0) {
+                  return (
+                    <tr>
+                      <td colSpan={8} className="text-center py-12 text-gray-500">
+                        <div className="flex flex-col items-center gap-3">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                          </svg>
+                          <p>Нет предметов за эту неделю</p>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
+                return lessonNumbers.map((lessonNum) => {
+                  const lessons = allLessons[lessonNum] || [];
+                  const subjectName = lessons[0]?.subjectName || subjectNames[lessonNum - 1] || "—";
+
+                  return (
+                    <tr key={lessonNum} className="hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0">
+                      <td className="text-center py-4 font-mono text-gray-600 border-r border-gray-200">{lessonNum}</td>
+                      <td className="font-medium text-gray-800 px-4 py-4 border-r border-gray-200">{subjectName}</td>
+                      {DAYS_OF_WEEK.map((day) => {
+                        const dayLesson = lessons.find((l) => {
+                          if (l.lessonDate) {
+                            const lessonDate = new Date(l.lessonDate);
+                            const lessonDay = lessonDate.getDay() || 7;
+                            return lessonDay === day.dayOfWeek;
+                          }
+                          return l.dayOfWeek === day.dayOfWeek;
+                        });
+                        // Получаем оценки для этого предмета в этот день
+                        const dayGrades = dayLesson ? getGradesForSubjectAndDay(dayLesson.subjectName, day.dayOfWeek) : [];
+                        const hasLesson = dayLesson !== undefined;
+
+                        return (
+                          <td key={day.dayOfWeek} className="py-4 px-2 border-r border-gray-200 last:border-r-0">
+                            <div className="flex items-start gap-2 justify-center flex-wrap">
+                              {/* Оценки с tooltip */}
                               {dayGrades.map((grade) => (
-                                <div key={grade.id} className="flex flex-col items-center">
-                                  <span className={`w-10 h-10 rounded-lg ${getGradeColor(grade.value)} text-white font-bold flex items-center justify-center shadow-md`}>
+                                <div key={grade.id} className="relative group">
+                                  <span
+                                    className={`w-10 h-10 rounded-lg ${getGradeColor(grade.value)} text-white font-bold flex items-center justify-center shadow-md cursor-pointer transition-transform hover:scale-110`}
+                                  >
                                     {grade.value}
                                   </span>
-                                  {grade.comment && (
-                                    <span className="text-xs text-gray-500 mt-1 max-w-[100px] truncate" title={grade.comment}>
-                                      {grade.comment}
-                                    </span>
-                                  )}
-                                  <span className="text-xs text-gray-400 mt-0.5">
-                                    {grade.date ? new Date(grade.date).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" }) : ""}
-                                  </span>
+
+                                  {/* Всплывающая подсказка */}
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 whitespace-nowrap">
+                                    <div className="font-semibold mb-1">{grade.subjectName || "Предмет"}</div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                      <span>{formatDateShort(grade.date)}</span>
+                                    </div>
+                                    {grade.teacherName && (
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                        <span>{grade.teacherName}</span>
+                                      </div>
+                                    )}
+                                    {grade.comment && (
+                                      <div className="flex items-start gap-2 mt-1 pt-1 border-t border-gray-700">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        <span className="text-gray-300 max-w-[200px] break-words">{grade.comment}</span>
+                                      </div>
+                                    )}
+                                    {/* Стрелочка вниз */}
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+                                  </div>
                                 </div>
                               ))}
+
+                              {/* Индикатор урока без оценок */}
+                              {dayGrades.length === 0 && hasLesson && (
+                                <div className="flex items-center justify-center h-full">
+                                  <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
+                                    {dayLesson?.lessonNumber} урок
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))
-              )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                });
+              })()}
             </tbody>
           </table>
         </div>
@@ -400,110 +544,106 @@ export default function StudentDiary({
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           {/* Верификация классным руководителем */}
-          {(isTeacher || isParent || isHomeroomTeacher) && (
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {teacherVerification ? (
-                    <>
-                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">Классный руководитель просмотрел</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(teacherVerification.verifiedAt).toLocaleDateString("ru-RU", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-500">Не просмотрен</span>
-                        <p className="text-xs text-gray-400">классным руководителем</p>
-                      </div>
-                    </>
-                  )}
-                </div>
-                {canVerify && (
-                  <button
-                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md"
-                    onClick={handleVerify}
-                    disabled={isVerifying}
-                    type="button"
-                  >
-                    {isVerifying ? "..." : "Подтвердить"}
-                  </button>
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {teacherVerification ? (
+                  <>
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800">Классный руководитель просмотрел</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(teacherVerification.verifiedAt).toLocaleDateString("ru-RU", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-500">Не просмотрен</span>
+                      <p className="text-xs text-gray-400">классным руководителем</p>
+                    </div>
+                  </>
                 )}
               </div>
+              {canVerify && (
+                <button
+                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md"
+                  onClick={handleVerify}
+                  disabled={isVerifying}
+                  type="button"
+                >
+                  {isVerifying ? "..." : "Подтвердить"}
+                </button>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Верификация родителями */}
-          {(isTeacher || isParent || isHomeroomTeacher) && (
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {parentVerification ? (
-                    <>
-                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">Родители просмотрели</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(parentVerification.verifiedAt).toLocaleDateString("ru-RU", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-500">Не просмотрен</span>
-                        <p className="text-xs text-gray-400">родителем</p>
-                      </div>
-                    </>
-                  )}
-                </div>
-                {canParentVerify && (
-                  <button
-                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-md"
-                    onClick={handleParentVerify}
-                    disabled={isParentVerifying}
-                    type="button"
-                  >
-                    {isParentVerifying ? "..." : "Подтвердить"}
-                  </button>
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {parentVerification ? (
+                  <>
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800">Родители просмотрели</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(parentVerification.verifiedAt).toLocaleDateString("ru-RU", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-500">Не просмотрен</span>
+                      <p className="text-xs text-gray-400">родителем</p>
+                    </div>
+                  </>
                 )}
               </div>
+              {canParentVerify && (
+                <button
+                  className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-md"
+                  onClick={handleParentVerify}
+                  disabled={isParentVerifying}
+                  type="button"
+                >
+                  {isParentVerifying ? "..." : "Подтвердить"}
+                </button>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
