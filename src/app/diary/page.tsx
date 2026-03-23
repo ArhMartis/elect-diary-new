@@ -255,51 +255,18 @@ export default function DiaryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 font-sans">
-      {/* Панель управления */}
-      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-xl border-b-2 border-emerald-300 no-print">
-        <div className="max-w-[210mm] mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📚</span>
-              <span className="font-bold text-emerald-800 text-lg hidden sm:inline">Электронный дневник</span>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <button onClick={saveData} className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 shadow-md transition-all font-medium text-sm">
-                💾 Сохранить
-              </button>
-              <button onClick={loadData} className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 shadow-md transition-all font-medium text-sm">
-                📂 Загрузить
-              </button>
-              <button onClick={handlePrint} className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg hover:from-orange-600 hover:to-amber-600 shadow-md transition-all font-medium text-sm">
-                🖨️ Печать
-              </button>
-              <button onClick={clearData} className="px-4 py-2 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-lg hover:from-red-600 hover:to-rose-600 shadow-md transition-all font-medium text-sm">
-                🗑️ Очистить
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Уведомление о сохранении */}
-      {showSaveNotification && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg shadow-xl animate-pulse font-medium">
-          ✓ Данные успешно сохранены!
-        </div>
-      )}
-
       {/* Навигация по секциям */}
-      <div className="bg-white shadow-md border-b border-emerald-100 no-print">
-        <div className="max-w-[210mm] mx-auto">
-          <div className="flex gap-1 overflow-x-auto py-2 px-4 scrollbar-thin scrollbar-thumb-emerald-300 scrollbar-track-emerald-50">
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-lg border-b-2 border-emerald-300 no-print">
+        <div className="max-w-[210mm] mx-auto px-4 py-2">
+          <div className="flex gap-1 overflow-x-auto scrollbar-thin scrollbar-thumb-emerald-300 scrollbar-track-emerald-50">
             {sections.map(section => (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                className={`px-3 py-2 rounded-lg whitespace-nowrap transition-all font-medium text-sm ${
+                className={`px-3 py-2 rounded-lg whitespace-nowrap transition-all font-medium text-sm flex-shrink-0 ${
                   activeSection === section.id
                     ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md"
-                    : "bg-gray-50 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"
+                    : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"
                 }`}
               >
                 {section.label}
@@ -880,6 +847,35 @@ export default function DiaryPage() {
           }
         }
       `}</style>
+
+      {/* Функциональные кнопки внизу */}
+      <div className="max-w-[210mm] mx-auto no-print mt-4 mb-8">
+        <div className="bg-white shadow-lg border-2 border-emerald-300 rounded-xl p-4">
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <button onClick={saveData} className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 shadow-md transition-all font-medium">
+              💾 Сохранить
+            </button>
+            <button onClick={loadData} className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 shadow-md transition-all font-medium">
+              📂 Загрузить
+            </button>
+            <button onClick={handlePrint} className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg hover:from-orange-600 hover:to-amber-600 shadow-md transition-all font-medium">
+              🖨️ Печать
+            </button>
+            <button onClick={clearData} className="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-lg hover:from-red-600 hover:to-rose-600 shadow-md transition-all font-medium">
+              🗑️ Очистить
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Подвал */}
+      <div className="text-center py-8 text-gray-500 text-sm no-print border-t border-gray-200">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <span className="text-xl">📚</span>
+          <span>Электронный дневник учащегося</span>
+        </div>
+        <p>Республика Беларусь • 2026</p>
+      </div>
     </div>
   );
 }
@@ -1032,15 +1028,6 @@ function MonthPage({
             <label className="text-sm">Подпись родителя</label>
           </div>
         </div>
-      </div>
-
-      {/* Подвал */}
-      <div className="text-center py-8 text-gray-500 text-sm no-print border-t border-gray-200 mt-8">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <span className="text-xl">📚</span>
-          <span>Электронный дневник учащегося</span>
-        </div>
-        <p>Республика Беларусь • 2026</p>
       </div>
     </div>
   );
