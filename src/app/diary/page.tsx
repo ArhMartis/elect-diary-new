@@ -36,10 +36,8 @@ interface DiaryData {
   
   // Каникулы
   holidays: { autumn: string; winter: string; spring: string; summer: string };
-  
-  // Заметки
-  teacherNotes: string;
-  awardsNotes: string;
+
+  // Решение о переводе
   decisionText: string;
 }
 
@@ -103,7 +101,9 @@ const DEFAULT_DATA: DiaryData = {
     { number: "3", start: "10:00", end: "10:45", break: "20 мин" },
     { number: "4", start: "11:05", end: "11:50", break: "10 мин" },
     { number: "5", start: "12:00", end: "12:45", break: "10 мин" },
-    { number: "6", start: "12:55", end: "13:40", break: "—" },
+    { number: "6", start: "12:55", end: "13:40", break: "10 мин" },
+    { number: "7", start: "13:50", end: "14:35", break: "10 мин" },
+    { number: "8", start: "14:45", end: "15:30", break: "—" },
   ],
   months: MONTHS.map(name => ({
     name,
@@ -118,14 +118,12 @@ const DEFAULT_DATA: DiaryData = {
   })),
   grades: DEFAULT_SUBJECTS.map(s => ({ subject: s, q1: "", q2: "", q3: "", q4: "", year: "", exam: "", final: "" })),
   holidays: { autumn: "", winter: "", spring: "", summer: "" },
-  teacherNotes: "",
-  awardsNotes: "",
   decisionText: "",
 };
 
 export default function DiaryPage() {
   const [data, setData] = useState<DiaryData>(DEFAULT_DATA);
-  const [activeSection, setActiveSection] = useState<string>("cover");
+  const [activeSection, setActiveSection] = useState<string>("title");
   const [showSaveNotification, setShowSaveNotification] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -245,7 +243,6 @@ export default function DiaryPage() {
   };
 
   const sections = [
-    { id: "cover", label: "Обложка" },
     { id: "title", label: "Титульный лист" },
     { id: "contacts", label: "Контакты" },
     { id: "subjects", label: "Предметы" },
@@ -253,7 +250,6 @@ export default function DiaryPage() {
     ...MONTHS.map((m, i) => ({ id: `month-${i}`, label: m })),
     { id: "grades", label: "Аттестация" },
     { id: "holidays", label: "Каникулы" },
-    { id: "notes", label: "Заметки" },
     { id: "official", label: "Праздники" },
   ];
 
@@ -314,38 +310,7 @@ export default function DiaryPage() {
       </div>
 
       {/* Основной контент */}
-      <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-8 print:my-0 print:shadow-none rounded-xl overflow-hidden">
-        {/* Обложка */}
-        {activeSection === "cover" && (
-          <div className="min-h-[297mm] bg-gradient-to-br from-emerald-700 via-teal-700 to-cyan-800 text-white flex flex-col items-center justify-center p-12 relative overflow-hidden">
-            {/* Декоративные элементы */}
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-10 left-10 w-32 h-32 border-4 border-white rounded-full"></div>
-              <div className="absolute bottom-10 right-10 w-24 h-24 border-4 border-white rounded-full"></div>
-              <div className="absolute top-1/2 left-1/4 w-16 h-16 border-2 border-white rotate-45"></div>
-            </div>
-            
-            <div className="relative z-10 text-center">
-              <div className="text-7xl mb-8 animate-pulse">📚</div>
-              <h1 className="text-5xl font-bold uppercase tracking-wider mb-6 text-yellow-300 drop-shadow-lg">
-                Дневник учащегося
-              </h1>
-              <div className="text-3xl mb-8 font-light text-yellow-200">V–XI классов</div>
-              <div className="w-32 h-1 bg-yellow-300 mx-auto mb-8 rounded-full"></div>
-              <div className="text-xl opacity-90 font-light">
-                Учреждение образования<br />Республики Беларусь
-              </div>
-              <div className="mt-16 text-white/70 text-base font-light">
-                {data.academicYear || "20__/20__"} учебный год
-              </div>
-              <div className="mt-8 text-xs opacity-60">
-                Образец утверждён постановлением Министерства образования<br />
-                Республики Беларусь № 267 от 17.08.2022
-              </div>
-            </div>
-          </div>
-        )}
-
+      <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-8 pt-20 print:my-0 print:shadow-none print:pt-0 rounded-xl overflow-hidden">
         {/* Титульный лист */}
         {activeSection === "title" && (
           <div className="min-h-[297mm] p-12 bg-gradient-to-b from-amber-50/50 to-white">
@@ -524,7 +489,7 @@ export default function DiaryPage() {
                             schedule[i].number = e.target.value;
                             setData({ ...data, bellSchedule: schedule });
                           }}
-                          className="w-full text-center font-semibold text-gray-700"
+                          className="w-full text-center font-bold text-gray-900"
                         />
                       </td>
                       <td className="border border-cyan-200 p-3">
@@ -536,7 +501,7 @@ export default function DiaryPage() {
                             schedule[i].start = e.target.value;
                             setData({ ...data, bellSchedule: schedule });
                           }}
-                          className="w-full text-center text-gray-700"
+                          className="w-full text-center font-semibold text-gray-900"
                         />
                       </td>
                       <td className="border border-cyan-200 p-3">
@@ -548,7 +513,7 @@ export default function DiaryPage() {
                             schedule[i].end = e.target.value;
                             setData({ ...data, bellSchedule: schedule });
                           }}
-                          className="w-full text-center text-gray-700"
+                          className="w-full text-center font-semibold text-gray-900"
                         />
                       </td>
                       <td className="border border-cyan-200 p-3">
@@ -761,8 +726,8 @@ export default function DiaryPage() {
                               type="text"
                               value={grade[field as keyof typeof grade]}
                               onChange={e => updateGrade(i, field, e.target.value)}
-                              className={`w-full text-center font-semibold ${
-                                fi >= 4 ? "bg-rose-50 text-rose-700" : "text-gray-700"
+                              className={`w-full text-center font-bold text-gray-900 ${
+                                fi >= 4 ? "bg-rose-100" : ""
                               }`}
                             />
                           </td>
@@ -821,32 +786,6 @@ export default function DiaryPage() {
                   />
                 </div>
               ))}
-            </div>
-
-            <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl shadow-lg p-6 border border-violet-100 mb-8">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl">📝</span>
-                <h3 className="text-2xl font-bold text-violet-800">Замечания классного руководителя и учителей</h3>
-              </div>
-              <textarea
-                value={data.teacherNotes}
-                onChange={e => setData({ ...data, teacherNotes: e.target.value })}
-                placeholder="Записывайте здесь замечания, рекомендации, важные заметки..."
-                className="w-full h-64 border-2 border-violet-200 rounded-xl p-4 focus:border-violet-500 focus:outline-none resize-y text-gray-700 text-base leading-relaxed bg-white"
-              />
-            </div>
-
-            <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl shadow-lg p-6 border border-amber-100">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl">🏆</span>
-                <h3 className="text-2xl font-bold text-amber-800">Рекомендации, благодарности и награды</h3>
-              </div>
-              <textarea
-                value={data.awardsNotes}
-                onChange={e => setData({ ...data, awardsNotes: e.target.value })}
-                placeholder="Записывайте здесь достижения, награды, благодарности, похвалы..."
-                className="w-full h-64 border-2 border-amber-200 rounded-xl p-4 focus:border-amber-500 focus:outline-none resize-y text-gray-700 text-base leading-relaxed bg-white"
-              />
             </div>
           </div>
         )}
