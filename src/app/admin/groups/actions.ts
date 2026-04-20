@@ -29,25 +29,34 @@ export async function assignClassTeacher(formData: FormData) {
   revalidatePath("/admin/groups");
 }
 
-export async function assignStudentToGroup(formData: FormData) {
-  const studentId = formData.get("studentId") as string;
-  const groupId = formData.get("groupId");
+export async function removeClassTeacher(formData: FormData) {
+  const groupId = Number(formData.get("groupId"));
 
-  if (!groupId) {
-    await db
-      .update(user)
-      .set({ groupId: null })
-      .where(eq(user.id, studentId));
-    await setFlash("Ученик удалён из класса");
-  } else {
-    const groupIdNum = Number(groupId);
-    await db
-      .update(user)
-      .set({ groupId: groupIdNum })
-      .where(eq(user.id, studentId));
-    await setFlash("Ученик назначен в класс");
+  await db
+    .update(groups)
+    .set({ teacherId: null })
+    .where(eq(groups.id, groupId));
+
+  await setFlash("Классный руководитель удалён");
+  revalidatePath("/admin/groups");
+}
+
+export async function assignStudentToGroup(formData: FormData) {
+  const entries = Array.from(formData.entries());
+  
+  for (const [key, value] of entries) {
+    if (key.startsWith("student-") && value) {
+      const studentId = key.replace("student-", "");
+      const groupId = Number(value);
+      
+      await db
+        .update(user)
+        .set({ groupId })
+        .where(eq(user.id, studentId));
+    }
   }
 
+  await setFlash("Ученики распределены по классам");
   revalidatePath("/admin/groups");
 }
 

@@ -6,17 +6,68 @@ import { user, groups } from "@/db/schema/auth_schema";
 import { changeRole } from "./actions";
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
-import { roles, type Role } from "@/db/schema/auth_schema";
 
-// Перевод ролей на русский
-const roleNames: Record<Role, string> = {
-  admin: "Администратор",
-  principal: "Директор",
-  teacher: "Учитель",
-  student: "Ученик",
-  parent: "Родитель",
+// Перевод ролей на русский с цветами
+const roleConfig: Record<string, { name: string; color: string }> = {
+  admin: { name: "Администратор", color: "bg-red-100 text-red-700" },
+  principal: { name: "Директор", color: "bg-blue-100 text-blue-700" },
+  teacher: { name: "Учитель", color: "bg-emerald-100 text-emerald-700" },
+  student: { name: "Ученик", color: "bg-purple-100 text-purple-700" },
+  parent: { name: "Родитель", color: "bg-orange-100 text-orange-700" },
 };
 
+// Иконки SVG для кнопок
+const icons = {
+  users: (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+    </svg>
+  ),
+  subjects: (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+      <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+    </svg>
+  ),
+  diary: (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+      <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+    </svg>
+  ),
+  classes: (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+    </svg>
+  ),
+  teacherClasses: (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.356 2.522 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+    </svg>
+  ),
+  links: (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+    </svg>
+  ),
+  posts: (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+    </svg>
+  ),
+};
+
+// Цвета для кнопок меню - точно как на скриншоте
+const menuButtons = [
+  { href: "/admin/users", label: "Пользователи", icon: icons.users, color: "bg-rose-600 hover:bg-rose-700" },
+  { href: "/admin/subjects", label: "Предметы", icon: icons.subjects, color: "bg-indigo-600 hover:bg-indigo-700" },
+  { href: "/diary", label: "Дневник", icon: icons.diary, color: "bg-emerald-600 hover:bg-emerald-700" },
+  { href: "/admin/groups", label: "Классы", icon: icons.classes, color: "bg-blue-600 hover:bg-blue-700" },
+  { href: "/admin/teacher-classes", label: "Классы учителей", icon: icons.teacherClasses, color: "bg-cyan-600 hover:bg-cyan-700" },
+  { href: "/admin/parent-student-links", label: "Связи", icon: icons.links, color: "bg-amber-600 hover:bg-amber-700" },
+  { href: "/admin/posts", label: "Посты", icon: icons.posts, color: "bg-teal-600 hover:bg-teal-700" },
+];
 
 export default async function AdminPage() {
   noStore();
@@ -31,234 +82,145 @@ export default async function AdminPage() {
   const allUsers = await db.select().from(user);
   const groupsList = await db.select().from(groups);
 
-return (
-  <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 p-6">
-    <div className="relative max-w-6xl mx-auto">
+  // Получаем инициалы для аватара
+  const getInitials = (name: string) => {
+    const parts = name.split(" ").filter(p => p.length > 0);
+    if (parts.length >= 2) {
+      return parts[0][0] + parts[1][0];
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
 
-      {/* ЗАГОЛОВОК ПО ЦЕНТРУ */}
-      <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-        Админ панель
-      </h1>
+  // Цвета для аватаров
+  const avatarColors = [
+    "bg-gradient-to-br from-rose-400 to-rose-600",
+    "bg-gradient-to-br from-emerald-400 to-emerald-600",
+    "bg-gradient-to-br from-blue-400 to-blue-600",
+    "bg-gradient-to-br from-purple-400 to-purple-600",
+    "bg-gradient-to-br from-orange-400 to-orange-600",
+    "bg-gradient-to-br from-pink-400 to-pink-600",
+  ];
 
-      {/* КНОПКИ УПРАВЛЕНИЯ */}
-      <div className="flex justify-center gap-4 mb-10 flex-wrap">
-        <Link
-          href="/admin/users"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-all shadow-md hover:shadow-lg font-medium"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-4 0 3 3 0 014 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-          </svg>
-          Пользователи
-        </Link>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6">
+      <div className="relative max-w-6xl mx-auto">
+        
+        {/* ЗАГОЛОВОК ПО ЦЕНТРУ */}
+        <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
+          Админ панель
+        </h1>
 
-        <Link
-          href="/admin/subjects"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg font-medium"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-            <path
-              fillRule="evenodd"
-              d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Предметы
-        </Link>
+        {/* КНОПКИ МЕНЮ - точно как на скриншоте */}
+        <div className="flex justify-center gap-3 mb-10 flex-wrap">
+          {menuButtons.map((btn) => (
+            <Link
+              key={btn.label}
+              href={btn.href}
+              className={`inline-flex items-center gap-2 px-5 py-3 ${btn.color} text-white rounded-lg transition-all shadow-md hover:shadow-lg font-medium text-sm`}
+            >
+              {btn.icon}
+              {btn.label}
+            </Link>
+          ))}
+        </div>
 
-        <Link
-          href="/admin/schedule/class"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all shadow-md hover:shadow-lg font-medium"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fillRule="evenodd"
-              d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Расписание
-        </Link>
-
-        <Link
-          href="/admin/diary"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-md hover:shadow-lg font-medium"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-            <path
-              fillRule="evenodd"
-              d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Дневник
-        </Link>
-
-        <Link
-          href="/admin/academic-periods"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-all shadow-md hover:shadow-lg font-medium"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fillRule="evenodd"
-              d="M6 2a1 1 0 011-1h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h1V2zM7 4h6v1H7V4zm0 3a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1zm4 0a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Четверти
-        </Link>
-
-        <Link
-          href="/admin/groups"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg font-medium"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-          </svg>
-          Классы
-        </Link>
-
-        <Link
-          href="/admin/parent-student-links"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all shadow-md hover:shadow-lg font-medium"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fillRule="evenodd"
-              d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Связи
-        </Link>
-      </div>
-
-      {/* СПИСОК ПОЛЬЗОВАТЕЛЕЙ */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 text-blue-600"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
+        {/* ЗАГОЛОВОК РАЗДЕЛА */}
+        <div className="flex items-center gap-3 mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
             <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
           </svg>
-          Пользователи
-        </h2>
-        {allUsers.map((u) => {
-          const userGroup = u.groupId ? groupsList.find(g => g.id === u.groupId) : null;
-          return (
-            <div
-              key={u.id}
-              className="p-4 border border-gray-200 rounded-lg bg-white hover:border-blue-300 hover:bg-blue-50 transition-all flex justify-between items-center"
-            >
-              <div>
-                <p className="font-medium text-gray-800">{u.name}</p>
-                <p className="text-sm text-gray-500">{u.email}</p>
-                <p className="text-xs mt-1 text-gray-600">
-                  ФИО: <span className="font-medium text-gray-800">{u.fullName || "—"}</span>
-                </p>
-                <p className="text-xs mt-1 text-gray-600">
-                  Роль: <span className="font-medium text-blue-600">{roleNames[u.role as Role]}</span>
-                  {userGroup && u.role === "student" && (
-                    <span className="ml-2 text-emerald-600">• Класс: {userGroup.name}</span>
-                  )}
-                </p>
-              </div>
+          <h2 className="text-2xl font-bold text-gray-800">Пользователи</h2>
+        </div>
 
-              <div className="flex gap-2 items-center">
-                {/* КНОПКА ПРОСМОТРА ДНЕВНИКА ДЛЯ УЧЕНИКОВ */}
-                {u.role === "student" && (
-                  <Link
-                    href={`/admin/student/${u.id}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-md"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                      <path
-                        fillRule="evenodd"
-                        d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    Дневник
-                  </Link>
-                )}
+        {/* СПИСОК ПОЛЬЗОВАТЕЛЕЙ */}
+        <div className="space-y-3">
+          {allUsers.map((u, index) => {
+            const userGroup = u.groupId ? groupsList.find(g => g.id === u.groupId) : null;
+            const userRole = u.role as string;
+            const roleInfo = roleConfig[userRole] || { name: userRole, color: "bg-gray-100 text-gray-700" };
+            const avatarColor = avatarColors[index % avatarColors.length];
+            
+            return (
+              <div
+                key={u.id}
+                className="p-5 border border-gray-200 rounded-xl bg-white hover:border-blue-300 hover:shadow-md transition-all"
+              >
+                <div className="flex justify-between items-center">
+                  {/* Левая часть: Аватар + Информация */}
+                  <div className="flex items-center gap-4">
+                    {/* Аватар */}
+                    <div className={`w-14 h-14 ${avatarColor} rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md`}>
+                      {getInitials(u.fullName)}
+                    </div>
+                    
+                    {/* Информация */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-bold text-gray-800 text-lg">{u.fullName}</p>
+                      </div>
+                      <p className="text-sm text-gray-600">{u.email}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-500">Роль:</span>
+                        <span className={`px-2 py-1 rounded-md text-xs font-bold ${roleInfo.color}`}>
+                          {roleInfo.name}
+                        </span>
+                        {userGroup && userRole === "student" && (
+                          <span className="text-xs text-emerald-600 font-medium">
+                            • Класс: {userGroup.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-                {/* НЕЛЬЗЯ МЕНЯТЬ СЕБЯ */}
-                {u.id !== session.user.id ? (
-                  <form action={changeRole} className="flex gap-2 items-center">
-                    <input type="hidden" name="userId" value={u.id} />
-                    <select
-                      name="role"
-                      defaultValue={u.role as Role}
-                      className="border-2 border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-500 bg-white"
-                    >
-                      {roles.map((r) => (
-                        <option key={r} value={r}>
-                          {roleNames[r]}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium shadow-md"
-                    >
-                      Обновить
-                    </button>
-                  </form>
-                ) : (
-                  <span className="text-xs text-gray-400 italic">Это вы</span>
-                )}
+                  {/* Правая часть: Действия */}
+                  <div className="flex gap-2 items-center">
+                    {/* КНОПКА ДНЕВНИКА ДЛЯ УЧЕНИКОВ */}
+                    {userRole === "student" && (
+                      <Link
+                        href={`/diary?id=${u.id}`}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-md"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                        </svg>
+                        Дневник
+                      </Link>
+                    )}
+
+                    {/* ВЫПАДАЮЩИЙ СПИСОК РОЛИ + КНОПКА ОБНОВИТЬ */}
+                    {u.id !== session.user.id ? (
+                      <form action={changeRole} className="flex gap-2 items-center">
+                        <input type="hidden" name="userId" value={u.id} />
+                        <select
+                          name="role"
+                          defaultValue={u.role as string}
+                          className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-500 bg-white"
+                        >
+                          <option value="admin">Администратор</option>
+                          <option value="principal">Директор</option>
+                          <option value="teacher">Учитель</option>
+                          <option value="student">Ученик</option>
+                          <option value="parent">Родитель</option>
+                        </select>
+                        <button
+                          type="submit"
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium shadow-md"
+                        >
+                          Обновить
+                        </button>
+                      </form>
+                    ) : (
+                      <span className="text-sm text-gray-400 italic">Это вы</span>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 }

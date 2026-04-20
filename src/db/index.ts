@@ -4,8 +4,15 @@ import * as postsSchema from "./schema/posts";
 import * as usersSchema from "./schema/auth_schema";
 import * as diarySchema from "./schema/diary";
 import * as schoolSchema from "./schema/school";
+import * as diaryExtraSchema from "./schema/diary-extra";
 
 const sqlite = new Database("sqlite.db");
 export const db = drizzle(sqlite, {
-  schema: { ...postsSchema, ...usersSchema, ...diarySchema, ...schoolSchema }
+  schema: {
+    ...postsSchema,
+    ...usersSchema,
+    ...diarySchema,
+    ...schoolSchema,
+    ...diaryExtraSchema,
+  }
 });
