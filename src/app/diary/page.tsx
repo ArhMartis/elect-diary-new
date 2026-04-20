@@ -6,6 +6,7 @@ import { user, groups, grades, schedule, subjects } from "@/db/schema/auth_schem
 import { eq, and } from "drizzle-orm";
 import StudentDiaryPage from "@/components/StudentDiaryPage";
 import { isTeacherHomeroomTeacher, isUserParentOfStudent } from "@/app/student/actions";
+import Link from "next/link";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
@@ -32,7 +33,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     targetStudentId = params.studentId || "";
 
     if (!targetStudentId) {
-      return <StudentSelector currentUserId={currentUserId} userRole={userRole} />;
+      return <StudentSelector />;
     }
 
     const student = await db.query.user.findFirst({
@@ -43,7 +44,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     });
 
     if (!student) {
-      return <StudentSelector currentUserId={currentUserId} userRole={userRole} />;
+      return <StudentSelector />;
     }
 
     targetStudentName = student.fullName;
@@ -89,7 +90,6 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     const teacherIds = [...new Set(allSchedule.map((s) => s.teacherId).filter(Boolean))];
 
     if (subjectIds.length > 0) {
-      const subs = await db.select({ id: subjects.id, name: subjects.name }).from(subjects).where(eq(subjects.id, subjectIds[0]));
       for (const id of subjectIds) {
         const found = await db.query.subjects.findFirst({ where: eq(subjects.id, id) });
         if (found) subjectMap.set(id, found.name);
@@ -136,23 +136,105 @@ export default async function DiaryPage({ searchParams }: PageProps) {
   );
 }
 
-function StudentSelector({ currentUserId, userRole }: { currentUserId: string; userRole: string }) {
+async function StudentSelector() {
+  const allGroups = await db.select().from(groups);
+  const allStudents = await db.select().from(user).where(eq(user.role, "student"));
+
+  // Группируем учеников по классам
+  const studentsByGroup = allGroups.map(group => ({
+    ...group,
+    students: allStudents.filter(s => s.groupId === group.id),
+  }));
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center border-2 border-emerald-200">
         <div className="text-6xl mb-4">🎓</div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Выберите ученика</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Выбор ученика</h2>
         <p className="text-gray-600 mb-6">
-          {userRole === "admin"
-            ? "Выберите класс и ученика для просмотра дневника"
-            : "Выберите ученика из вашего класса"}
+          Выберите класс и ученика для заполнения дневника
         </p>
-        <a
-          href={`/admin/diary`}
-          className="block w-full py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md"
-        >
-          Перейти к выбору
-        </a>
+        
+        <form action="/diary" method="GET" className="space-y-4 text-left">
+          {/* Выбор класса */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Класс</label>
+            <select 
+              name="groupId" 
+              id="groupSelect"
+              className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all bg-white"
+              onChange={(e) => {
+                const groupId = e.target.value;
+                const studentSelect = document.getElementById('studentSelect') as HTMLSelectElement;
+                const options = studentSelect.options;
+                
+                // Показываем только учеников выбранного класса
+                for (let i = 0; i < options.length; i++) {
+                  const option = options[i];
+                  if (option.value === '') {
+                    option.style.display = '';
+                    continue;
+                  }
+                  const studentGroupId = option.getAttribute('data-group');
+                  if (studentGroupId === groupId) {
+                    option.style.display = '';
+                  } else {
+                    option.style.display = 'none';
+                  }
+                }
+                
+                // Сбрасываем выбор ученика
+                studentSelect.value = '';
+              }}
+            >
+              <option value="">Выберите класс</option>
+              {studentsByGroup.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Выбор ученика */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Ученик</label>
+            <select 
+              name="studentId" 
+              id="studentSelect"
+              required
+              className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all bg-white"
+            >
+              <option value="">Выберите ученика</option>
+              {allStudents.map((student) => (
+                <option 
+                  key={student.id} 
+                  value={student.id}
+                  data-group={student.groupId || ''}
+                  style={{ display: student.groupId ? '' : 'none' }}
+                >
+                  {student.fullName}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Кнопки */}
+          <div className="flex gap-3 pt-2">
+            <Link
+              href="/admin"
+              className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all text-center"
+            >
+              ← Назад
+            </Link>
+            <button 
+              type="submit"
+              className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md"
+            >
+              Продолжить
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

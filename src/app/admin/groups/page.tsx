@@ -11,9 +11,7 @@ import { unstable_noStore as noStore } from "next/cache";
 export default async function GroupsPage() {
   noStore();
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session || session.user.role !== "admin") {
     redirect("/");
@@ -35,116 +33,129 @@ export default async function GroupsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Заголовок и кнопка назад */}
+        {/* Заголовок и кнопка назад с фоном */}
         <div className="flex items-center gap-4 mb-6">
           <Link
             href="/admin"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all shadow-sm hover:shadow"
+            className="inline-flex items-center gap-2 px-5 py-3 bg-white border-2 border-blue-200 text-blue-700 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all shadow-md hover:shadow-lg font-medium"
           >
-            ← Назад
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            Назад в админ-панель
           </Link>
-          <h1 className="text-3xl font-bold text-gray-800">Классы</h1>
+          <h1 className="text-3xl font-bold text-gray-800">🎓 Классы</h1>
         </div>
 
         {/* Список классов */}
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Список классов</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">📋 Список классов</h2>
           
           {groupsList.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">Классы ещё не созданы</p>
+            <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-gray-100">
+              <div className="text-6xl mb-4">🎓</div>
+              <p className="text-gray-500 text-lg">Классы ещё не созданы</p>
+            </div>
           ) : (
             <div className="grid gap-4">
               {groupsList.map((group) => {
-                const homeroomTeacher = teachers.find(t => t.id === group.homeroomTeacherId);
+                const homeroomTeacher = teachers.find(t => t.id === group.teacherId);
                 const classStudents = students.filter(s => s.groupId === group.id);
                 
                 return (
                   <div
                     key={group.id}
-                    className="p-5 bg-white border-2 border-blue-100 rounded-xl hover:border-blue-300 hover:shadow-md transition-all"
+                    className="bg-white rounded-2xl shadow-lg border-2 border-blue-100 overflow-hidden hover:border-blue-300 hover:shadow-xl transition-all"
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-2xl font-bold text-blue-700">{group.name}</h3>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Учеников: <span className="font-semibold text-blue-600">{classStudents.length}</span>
+                    {/* Шапка карточки класса */}
+                    <div className="bg-gradient-to-r from-blue-500 to-cyan-500 px-6 py-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl">🎓</span>
+                          <h3 className="text-2xl font-bold text-white">{group.name}</h3>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-3 py-1 bg-white/20 text-white rounded-full text-sm font-medium">
+                            👥 {classStudents.length} учеников
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-6 space-y-4">
+                      {/* Классный руководитель */}
+                      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200">
+                        <p className="text-sm font-semibold text-emerald-800 mb-2 flex items-center gap-2">
+                          <span>🍎</span> Классный руководитель
                         </p>
+                        {homeroomTeacher ? (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">👨‍🏫</span>
+                              <span className="font-bold text-emerald-700">{homeroomTeacher.fullName}</span>
+                            </div>
+                            <form action={removeClassTeacher}>
+                              <input type="hidden" name="groupId" value={group.id} />
+                              <button
+                                type="submit"
+                                className="inline-flex items-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all text-sm font-medium"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                                Удалить
+                              </button>
+                            </form>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="text-amber-600 italic mb-3">⚠️ Классный руководитель не назначен</p>
+                            <form action={assignClassTeacher} className="flex gap-2 items-center">
+                              <input type="hidden" name="groupId" value={group.id} />
+                              <select
+                                name="teacherId"
+                                className="border-2 border-emerald-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500 bg-white flex-1"
+                                defaultValue=""
+                              >
+                                <option value="" disabled>Выберите учителя</option>
+                                {teachers.map((teacher) => (
+                                  <option key={teacher.id} value={teacher.id}>
+                                    👨‍🏫 {teacher.fullName}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="submit"
+                                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all text-sm font-medium"
+                              >
+                                Назначить
+                              </button>
+                            </form>
+                          </div>
+                        )}
                       </div>
                       
-                      {/* Кнопка удаления классного руководителя */}
-                      {homeroomTeacher && (
-                        <form action={removeClassTeacher} className="inline-block">
-                          <input type="hidden" name="groupId" value={group.id} />
-                          <button
-                            type="submit"
-                            className="inline-flex items-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all text-sm font-medium"
-                            title="Удалить классного руководителя"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                            Удалить
-                          </button>
-                        </form>
-                      )}
-                    </div>
-                    
-                    {/* Классный руководитель */}
-                    <div className="mb-4">
-                      <p className="text-sm font-semibold text-gray-700 mb-2">Классный руководитель:</p>
-                      {homeroomTeacher ? (
-                        <div className="flex items-center gap-2 bg-emerald-50 px-3 py-2 rounded-lg inline-block">
-                          <span className="text-lg">👨‍🏫</span>
-                          <span className="font-medium text-emerald-700">{homeroomTeacher.fullName}</span>
-                        </div>
-                      ) : (
-                        <p className="text-gray-400 text-sm italic">Не назначен</p>
-                      )}
-                    </div>
-                    
-                    {/* Назначить классного руководителя */}
-                    <form action={assignClassTeacher} className="mb-4">
-                      <input type="hidden" name="groupId" value={group.id} />
-                      <div className="flex gap-2 items-center">
-                        <label className="text-sm font-medium text-gray-700">Назначить:</label>
-                        <select
-                          name="teacherId"
-                          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                          defaultValue=""
-                        >
-                          <option value="" disabled>Выберите учителя</option>
-                          {teachers.map((teacher) => (
-                            <option key={teacher.id} value={teacher.id}>
-                              {teacher.fullName}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="submit"
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium"
-                        >
-                          Назначить
-                        </button>
+                      {/* Ученики класса */}
+                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
+                        <p className="text-sm font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                          <span>🎒</span> Ученики класса
+                        </p>
+                        {classStudents.length > 0 ? (
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                            {classStudents.map((student) => (
+                              <div
+                                key={student.id}
+                                className="flex items-center gap-2 px-3 py-2 bg-white text-purple-700 rounded-lg text-sm font-medium border border-purple-100 shadow-sm"
+                              >
+                                <span>👤</span>
+                                {student.fullName}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-purple-500 italic">В классе пока нет учеников</p>
+                        )}
                       </div>
-                    </form>
-                    
-                    {/* Ученики класса */}
-                    <div>
-                      <p className="text-sm font-semibold text-gray-700 mb-2">Ученики:</p>
-                      {classStudents.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {classStudents.map((student) => (
-                            <span
-                              key={student.id}
-                              className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"
-                            >
-                              {student.fullName}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-gray-400 text-sm italic">Нет учеников</p>
-                      )}
                     </div>
                   </div>
                 );
@@ -154,8 +165,10 @@ export default async function GroupsPage() {
         </div>
 
         {/* Создать новый класс */}
-        <div className="bg-white border-2 border-blue-200 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-blue-700 mb-4">Создать новый класс</h3>
+        <div className="bg-white rounded-2xl shadow-lg border-2 border-blue-200 p-6">
+          <h3 className="text-xl font-bold text-blue-700 mb-4 flex items-center gap-2">
+            <span>➕</span> Создать новый класс
+          </h3>
           <form action={createGroup} className="flex gap-3 items-end">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -165,13 +178,13 @@ export default async function GroupsPage() {
                 type="text"
                 name="name"
                 placeholder="Например: 5-А"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                className="w-full border-2 border-blue-200 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 transition-all"
                 required
               />
             </div>
             <button
               type="submit"
-              className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md"
+              className="px-8 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg"
             >
               Создать
             </button>
@@ -180,23 +193,27 @@ export default async function GroupsPage() {
 
         {/* Распределить учеников без класса */}
         {studentsWithoutGroup.length > 0 && (
-          <div className="bg-white border-2 border-blue-200 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-blue-700 mb-4">
-              Распределить учеников без класса ({studentsWithoutGroup.length})
+          <div className="bg-white rounded-2xl shadow-lg border-2 border-amber-200 p-6">
+            <h3 className="text-xl font-bold text-amber-700 mb-4 flex items-center gap-2">
+              <span>⚠️</span> Распределить учеников без класса 
+              <span className="ml-2 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm">
+                {studentsWithoutGroup.length}
+              </span>
             </h3>
-            <form action={assignStudentToGroup} className="space-y-4">
+            <form action={assignStudentToGroup} className="space-y-3">
               {studentsWithoutGroup.map((student) => (
-                <div key={student.id} className="flex gap-3 items-center">
-                  <span className="font-medium text-gray-800 w-48">{student.fullName}</span>
+                <div key={student.id} className="flex gap-3 items-center bg-amber-50 rounded-lg p-3">
+                  <span className="text-lg">👤</span>
+                  <span className="font-medium text-gray-800 flex-1">{student.fullName}</span>
                   <select
                     name={`student-${student.id}`}
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    className="border-2 border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 bg-white"
                     defaultValue=""
                   >
                     <option value="" disabled>Выберите класс</option>
                     {groupsList.map((group) => (
                       <option key={group.id} value={group.id}>
-                        {group.name}
+                        🎓 {group.name}
                       </option>
                     ))}
                   </select>
@@ -204,9 +221,9 @@ export default async function GroupsPage() {
               ))}
               <button
                 type="submit"
-                className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md"
+                className="w-full px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all shadow-md hover:shadow-lg"
               >
-                Распределить
+                Распределить всех
               </button>
             </form>
           </div>

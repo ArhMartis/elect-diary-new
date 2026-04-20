@@ -2,21 +2,30 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { user, groups } from "@/db/schema/auth_schema";
+import { user, groups, subjects, teacherSubjects, parentsToStudents } from "@/db/schema/auth_schema";
 import Link from "next/link";
+import { eq } from "drizzle-orm";
+import Image from "next/image";
 
-const roleConfig: Record<string, { name: string; color: string }> = {
-  admin: { name: "Администратор", color: "bg-red-100 text-red-700" },
-  principal: { name: "Директор", color: "bg-blue-100 text-blue-700" },
-  teacher: { name: "Учитель", color: "bg-emerald-100 text-emerald-700" },
-  student: { name: "Ученик", color: "bg-purple-100 text-purple-700" },
-  parent: { name: "Родитель", color: "bg-orange-100 text-orange-700" },
+// Иконки ролей
+const roleIcons: Record<string, { icon: string; color: string; bgColor: string }> = {
+  admin: { icon: "👑", color: "text-red-600", bgColor: "bg-red-100" },
+  principal: { icon: "🎓", color: "text-blue-600", bgColor: "bg-blue-100" },
+  teacher: { icon: "👨‍🏫", color: "text-emerald-600", bgColor: "bg-emerald-100" },
+  student: { icon: "🎒", color: "text-purple-600", bgColor: "bg-purple-100" },
+  parent: { icon: "👨‍👩‍👧", color: "text-orange-600", bgColor: "bg-orange-100" },
+};
+
+const roleNames: Record<string, string> = {
+  admin: "Администратор",
+  principal: "Директор",
+  teacher: "Учитель",
+  student: "Ученик",
+  parent: "Родитель",
 };
 
 export default async function UsersPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session || session.user.role !== "admin") {
     redirect("/");
@@ -24,66 +33,148 @@ export default async function UsersPage() {
 
   const allUsers = await db.select().from(user);
   const groupsList = await db.select().from(groups);
-
-  const getInitials = (name: string) => {
-    const parts = name.split(" ").filter(p => p.length > 0);
-    if (parts.length >= 2) {
-      return parts[0][0] + parts[1][0];
-    }
-    return name.slice(0, 2).toUpperCase();
-  };
-
-  const avatarColors = [
-    "bg-gradient-to-br from-rose-400 to-rose-600",
-    "bg-gradient-to-br from-emerald-400 to-emerald-600",
-    "bg-gradient-to-br from-blue-400 to-blue-600",
-    "bg-gradient-to-br from-purple-400 to-purple-600",
-    "bg-gradient-to-br from-orange-400 to-orange-600",
-  ];
+  const subjectsList = await db.select().from(subjects);
+  const teacherSubjectsList = await db.select().from(teacherSubjects);
+  const parentLinksList = await db.select().from(parentsToStudents);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
+        {/* Кнопка назад с фоном */}
         <div className="mb-6">
-          <Link href="/admin" className="text-gray-600 hover:text-gray-800">
-            ← Назад в админ-панель
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-2 px-5 py-3 bg-white border-2 border-rose-200 text-rose-700 rounded-xl hover:bg-rose-50 hover:border-rose-300 transition-all shadow-md hover:shadow-lg font-medium"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            Назад в админ-панель
           </Link>
         </div>
 
         <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-          Пользователи
+          👥 Пользователи
         </h1>
 
-        <div className="space-y-3">
-          {allUsers.map((u, index) => {
-            const userGroup = u.groupId ? groupsList.find(g => g.id === u.groupId) : null;
-            const roleInfo = roleConfig[u.role] || { name: u.role, color: "bg-gray-100 text-gray-700" };
-            const avatarColor = avatarColors[index % avatarColors.length];
+        {/* Таблица пользователей */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-rose-500 to-pink-500 text-white">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Аватар</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Логин / Email</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">ФИО</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Роль</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Информация</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {allUsers.map((u) => {
+                  const roleInfo = (u.role && roleIcons[u.role]) || { icon: "👤", color: "text-gray-600", bgColor: "bg-gray-100" };
+                  const userGroup = u.groupId ? groupsList.find(g => g.id === u.groupId) : null;
+                  
+                  // Информация для учителя
+                  let teacherInfo = "";
+                  if (u.role === "teacher") {
+                    const teacherSubjectIds = teacherSubjectsList
+                      .filter(ts => ts.teacherId === u.id)
+                      .map(ts => ts.subjectId);
+                    const teacherSubjectsData = subjectsList.filter(s => teacherSubjectIds.includes(s.id));
+                    const teacherClass = groupsList.find(g => g.teacherId === u.id);
+                    
+                    const parts = [];
+                    if (teacherSubjectsData.length > 0) {
+                      parts.push(`Предметы: ${teacherSubjectsData.map(s => s.name).join(", ")}`);
+                    }
+                    if (teacherClass) {
+                      parts.push(`Классное руководство: ${teacherClass.name}`);
+                    }
+                    teacherInfo = parts.join(" | ");
+                  }
+                  
+                  // Информация для ученика
+                  let studentInfo = "";
+                  if (u.role === "student" && userGroup) {
+                    studentInfo = `Класс: ${userGroup.name}`;
+                  }
+                  
+                  // Информация для родителя
+                  let parentInfo = "";
+                  if (u.role === "parent") {
+                    const linkedStudents = parentLinksList
+                      .filter(link => link.parentId === u.id)
+                      .map(link => {
+                        const student = allUsers.find(s => s.id === link.studentId);
+                        const studentGroup = student?.groupId ? groupsList.find(g => g.id === student.groupId) : null;
+                        return student ? `${student.fullName}${studentGroup ? ` (${studentGroup.name})` : ""}` : "";
+                      })
+                      .filter(Boolean);
+                    
+                    if (linkedStudents.length > 0) {
+                      parentInfo = `Дети: ${linkedStudents.join(", ")}`;
+                    } else {
+                      parentInfo = "Связи не установлены";
+                    }
+                  }
 
-            return (
-              <div key={u.id} className="p-5 border border-gray-200 rounded-xl bg-white hover:border-blue-300 hover:shadow-md transition-all">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-14 h-14 ${avatarColor} rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md`}>
-                      {getInitials(u.fullName)}
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-800 text-lg">{u.fullName}</p>
-                      <p className="text-sm text-gray-600">{u.email}</p>
-                      <span className={`px-2 py-1 rounded-md text-xs font-bold ${roleInfo.color}`}>
-                        {roleInfo.name}
-                      </span>
-                      {userGroup && u.role === "student" && (
-                        <span className="ml-2 text-xs text-emerald-600 font-medium">
-                          • Класс: {userGroup.name}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                  return (
+                    <tr key={u.id} className="hover:bg-rose-50/50 transition-colors">
+                      {/* Аватар */}
+                      <td className="px-4 py-3">
+                        {u.avatar || u.image ? (
+                          <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-rose-200">
+                            <Image
+                              src={u.avatar || u.image || ""}
+                              alt={u.fullName}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className={`w-12 h-12 ${roleInfo.bgColor} rounded-full flex items-center justify-center text-2xl border-2 border-gray-200`}>
+                            {roleInfo.icon}
+                          </div>
+                        )}
+                      </td>
+                      
+                      {/* Логин / Email */}
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-medium text-gray-900">{u.email}</p>
+                        <p className="text-xs text-gray-500">{u.name}</p>
+                      </td>
+                      
+                      {/* ФИО */}
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-gray-800">{u.fullName}</p>
+                      </td>
+                      
+                      {/* Роль с иконкой */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{roleInfo.icon}</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${roleInfo.bgColor} ${roleInfo.color}`}>
+                            {(u.role && roleNames[u.role]) || u.role || "Неизвестно"}
+                          </span>
+                        </div>
+                      </td>
+                      
+                      {/* Информация */}
+                      <td className="px-4 py-3">
+                        <p className="text-sm text-gray-600">
+                          {u.role === "teacher" && teacherInfo}
+                          {u.role === "student" && studentInfo}
+                          {u.role === "parent" && parentInfo}
+                          {(u.role === "admin" || u.role === "principal") && "—"}
+                        </p>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

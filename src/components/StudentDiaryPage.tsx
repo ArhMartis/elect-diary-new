@@ -1,17 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { 
-  saveDiaryNote, 
-  getDiaryNote, 
-  verifyDiaryWeek, 
-  getDiaryVerification, 
-  verifyDiaryByParent, 
-  getParentVerification, 
-  getDiarySettings, 
-  getHomeroomTeacherByGroup, 
-  getDirector 
-} from "@/app/student/actions";
 
 // ============================================================================
 // ТИПЫ ДАННЫХ
@@ -148,14 +137,6 @@ const DAYS_OF_WEEK = [
   { name: "Суббота", short: "Сб", dayOfWeek: 6 },
 ];
 
-const SUBJECTS_LIST = [
-  "Математика", "Русский язык", "Белорусский язык", "Английский язык", "Физика",
-  "Химия", "Биология", "География", "История", "Обществоведение", "Информатика",
-  "Физкультура", "Музыка", "ИЗО", "Трудовое обучение", "ОБЖ", "Литература",
-  "Алгебра", "Геометрия", "Немецкий язык", "Французский язык", "Польский язык",
-  "Черчение", "Экономика", "Право", "Психология", "Астрономия", "Экология"
-];
-
 const DEFAULT_DATA: DiaryData = {
   academicYear: "", surname: "", name: "", grade: "", schoolName: "", schoolAddress: "",
   subjects: [], electives: [], bellSchedule: [],
@@ -215,32 +196,28 @@ function getApproxStartOfWeekForQuarter(quarter: string, academicYear: string): 
 }
 
 // ============================================================================
-// LOCALSTORAGE ФУНКЦИИ (Клиентские)
+// LOCALSTORAGE ФУНКЦИИ
 // ============================================================================
 
 function saveDiaryNoteLocal(studentId: string, weekStart: string, note: string): void {
   if (typeof window === 'undefined') return;
-  const key = `diary_note_${studentId}_${weekStart}`;
-  localStorage.setItem(key, note);
+  localStorage.setItem(`diary_note_${studentId}_${weekStart}`, note);
 }
 
 function getDiaryNoteLocal(studentId: string, weekStart: string): string {
   if (typeof window === 'undefined') return "";
-  const key = `diary_note_${studentId}_${weekStart}`;
-  return localStorage.getItem(key) || "";
+  return localStorage.getItem(`diary_note_${studentId}_${weekStart}`) || "";
 }
 
-function verifyDiaryWeekLocal(teacherId: string, studentId: string, weekStart: string): { success: boolean } {
+function verifyDiaryWeekLocal(teacherId: string, studentId: string, weekStart: string) {
   if (typeof window === 'undefined') return { success: false };
-  const key = `diary_verification_${studentId}_${weekStart}`;
-  localStorage.setItem(key, JSON.stringify({ teacherId, verifiedAt: new Date().toISOString() }));
+  localStorage.setItem(`diary_verification_${studentId}_${weekStart}`, JSON.stringify({ teacherId, verifiedAt: new Date().toISOString() }));
   return { success: true };
 }
 
-function getDiaryVerificationLocal(studentId: string, weekStart: string): { teacherId: string; verifiedAt: Date } | null {
+function getDiaryVerificationLocal(studentId: string, weekStart: string) {
   if (typeof window === 'undefined') return null;
-  const key = `diary_verification_${studentId}_${weekStart}`;
-  const data = localStorage.getItem(key);
+  const data = localStorage.getItem(`diary_verification_${studentId}_${weekStart}`);
   if (data) {
     const parsed = JSON.parse(data);
     return { teacherId: parsed.teacherId, verifiedAt: new Date(parsed.verifiedAt) };
@@ -248,17 +225,15 @@ function getDiaryVerificationLocal(studentId: string, weekStart: string): { teac
   return null;
 }
 
-function verifyDiaryByParentLocal(parentId: string, studentId: string, weekStart: string): { success: boolean } {
+function verifyDiaryByParentLocal(parentId: string, studentId: string, weekStart: string) {
   if (typeof window === 'undefined') return { success: false };
-  const key = `diary_parent_verification_${studentId}_${weekStart}`;
-  localStorage.setItem(key, JSON.stringify({ parentId, verifiedAt: new Date().toISOString() }));
+  localStorage.setItem(`diary_parent_verification_${studentId}_${weekStart}`, JSON.stringify({ parentId, verifiedAt: new Date().toISOString() }));
   return { success: true };
 }
 
-function getParentVerificationLocal(studentId: string, weekStart: string): { parentId: string; verifiedAt: Date } | null {
+function getParentVerificationLocal(studentId: string, weekStart: string) {
   if (typeof window === 'undefined') return null;
-  const key = `diary_parent_verification_${studentId}_${weekStart}`;
-  const data = localStorage.getItem(key);
+  const data = localStorage.getItem(`diary_parent_verification_${studentId}_${weekStart}`);
   if (data) {
     const parsed = JSON.parse(data);
     return { parentId: parsed.parentId, verifiedAt: new Date(parsed.verifiedAt) };
@@ -266,93 +241,26 @@ function getParentVerificationLocal(studentId: string, weekStart: string): { par
   return null;
 }
 
-function getDiarySettingsLocal() {
-  if (typeof window === 'undefined') return null;
-  const key = "diary_settings";
-  const data = localStorage.getItem(key);
-  if (data) {
-    return JSON.parse(data);
-  }
-  return {
-    academicYear: "2024/2025",
-    schoolName: "Средняя школа №1",
-    schoolAddress: "г. Минск, ул. Школьная, 1",
-    director: "Иванов Иван Иванович",
-    directorPhone: "+375 (17) 123-45-67",
-    vicePrincipal: "Петрова Мария Сергеевна",
-    vicePrincipalPhone: "+375 (17) 123-45-68",
-    vicePrincipalEdu: "Сидоров Алексей Петрович",
-    vicePrincipalEduPhone: "+375 (17) 123-45-69",
-    homeroomTeacher: "",
-    homeroomTeacherPhone: "",
-    psychologist: "Козлова Анна Владимировна",
-    psychologistPhone: "+375 (17) 123-45-70",
-    socialPedagogue: "Новиков Дмитрий Александрович",
-    socialPedagoguePhone: "+375 (17) 123-45-71",
-    holidays: {
-      autumn: "28.10 - 03.11",
-      winter: "25.12 - 08.01",
-      spring: "24.03 - 30.03",
-      summer: "01.06 - 31.08"
-    }
-  };
-}
-
-function saveDiarySettingsLocal(settings: unknown): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem("diary_settings", JSON.stringify(settings));
-}
-
-function getDirectorLocal() {
-  if (typeof window === 'undefined') return null;
-  const key = "school_director";
-  const data = localStorage.getItem(key);
-  if (data) {
-    return JSON.parse(data);
-  }
-  return { fullName: "Иванов Иван Иванович", phone: "+375 (17) 123-45-67" };
-}
-
-function saveDirectorLocal(director: { fullName: string; phone: string }): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem("school_director", JSON.stringify(director));
-}
-
 function getClassScheduleLocal(groupId: number): Record<string, string> {
   if (typeof window === 'undefined') return {};
-  const key = `diaryData_class_${groupId}`;
-  const data = localStorage.getItem(key);
-  if (data) {
-    try {
-      const parsed = JSON.parse(data);
-      return parsed.scheduleData || {};
-    } catch (e) {
-      return {};
-    }
-  }
-  return {};
+  const data = localStorage.getItem(`diary_schedule_${groupId}`);
+  return data ? JSON.parse(data) : {};
 }
 
-function saveClassScheduleLocal(groupId: number, scheduleData: Record<string, string>): void {
+function saveClassScheduleLocal(groupId: number, schedule: Record<string, string>) {
   if (typeof window === 'undefined') return;
-  const key = `diaryData_class_${groupId}`;
-  localStorage.setItem(key, JSON.stringify({ scheduleData }));
+  localStorage.setItem(`diary_schedule_${groupId}`, JSON.stringify(schedule));
 }
 
-function getWeeklyAbsenceLocal(studentId: string): Record<string, { absent: string; absentUnexcused: string }> {
-  if (typeof window === 'undefined') return {};
-  const key = `weekly_absence_${studentId}`;
-  const data = localStorage.getItem(key);
-  if (data) {
-    return JSON.parse(data);
-  }
-  return {};
+function getWeeklyAbsenceLocal(studentId: string): { absent: string; absentUnexcused: string } {
+  if (typeof window === 'undefined') return { absent: "", absentUnexcused: "" };
+  const data = localStorage.getItem(`diary_absence_${studentId}`);
+  return data ? JSON.parse(data) : { absent: "", absentUnexcused: "" };
 }
 
-function saveWeeklyAbsenceLocal(studentId: string, absences: Record<string, { absent: string; absentUnexcused: string }>): void {
+function saveWeeklyAbsenceLocal(studentId: string, absence: { absent: string; absentUnexcused: string }) {
   if (typeof window === 'undefined') return;
-  const key = `weekly_absence_${studentId}`;
-  localStorage.setItem(key, JSON.stringify(absences));
+  localStorage.setItem(`diary_absence_${studentId}`, JSON.stringify(absence));
 }
 
 // ============================================================================
@@ -360,9 +268,19 @@ function saveWeeklyAbsenceLocal(studentId: string, absences: Record<string, { ab
 // ============================================================================
 
 export default function StudentDiaryPage({
-  studentId, studentFullName, studentGrade, studentGroupId, grades, schedule, currentUserId, isHomeroomTeacher = false, isParent = false,
+  studentId,
+  studentFullName,
+  studentGrade,
+  studentGroupId,
+  grades,
+  schedule,
+  currentUserId,
+  isHomeroomTeacher = false,
+  isParent = false,
   userRole = "",
-  initialDirectorName = "", initialHomeroomTeacherName = "", initialHomeroomTeacherPhone = "",
+  initialDirectorName = "",
+  initialHomeroomTeacherName = "",
+  initialHomeroomTeacherPhone = "",
 }: StudentDiaryPageProps) {
   // Состояния
   const [data, setData] = useState<DiaryData>(DEFAULT_DATA);
@@ -375,27 +293,43 @@ export default function StudentDiaryPage({
   const [isVerifying, setIsVerifying] = useState(false);
   const [isParentVerifying, setIsParentVerifying] = useState(false);
   
-  // Общие данные (учреждение)
   const [sharedData, setSharedData] = useState({
-    academicYear: "", schoolName: "", schoolAddress: "", institution: "",
-    director: initialDirectorName, directorPhone: "",
-    vicePrincipal: "", vicePrincipalPhone: "", vicePrincipalEdu: "", vicePrincipalEduPhone: "",
-    psychologist: "", psychologistPhone: "", socialPedagogue: "", socialPedagoguePhone: "",
+    academicYear: "2024/2025",
+    schoolName: "",
+    schoolAddress: "",
+    institution: "",
+    director: initialDirectorName || "",
+    directorPhone: "",
+    vicePrincipal: "",
+    vicePrincipalPhone: "",
+    vicePrincipalEdu: "",
+    vicePrincipalEduPhone: "",
+    psychologist: "",
+    psychologistPhone: "",
+    socialPedagogue: "",
+    socialPedagoguePhone: "",
     holidays: { autumn: "", winter: "", spring: "", summer: "" },
   });
   
-  // Контакты
   const [contacts, setContacts] = useState({
-    director: initialDirectorName, directorPhone: "",
-    vicePrincipal: "", vicePrincipalPhone: "", vicePrincipalEdu: "", vicePrincipalEduPhone: "",
-    homeroomTeacher: initialHomeroomTeacherName, homeroomTeacherPhone: initialHomeroomTeacherPhone,
-    psychologist: "", psychologistPhone: "", socialPedagogue: "", socialPedagoguePhone: "",
+    director: initialDirectorName || "",
+    directorPhone: "",
+    vicePrincipal: "",
+    vicePrincipalPhone: "",
+    vicePrincipalEdu: "",
+    vicePrincipalEduPhone: "",
+    homeroomTeacher: initialHomeroomTeacherName || "",
+    homeroomTeacherPhone: initialHomeroomTeacherPhone || "",
+    psychologist: "",
+    psychologistPhone: "",
+    socialPedagogue: "",
+    socialPedagoguePhone: "",
   });
   
   const [showNoClassModal, setShowNoClassModal] = useState(false);
   const [selectedQuarter, setSelectedQuarter] = useState<string>(() => getQuarterNumber(new Date()));
   const [scheduleData, setScheduleData] = useState<Record<string, string>>({});
-  const [weeklyAbsence, setWeeklyAbsence] = useState<Record<string, { absent: string; absentUnexcused: string }>>({});
+  const [absence, setAbsence] = useState({ absent: "", absentUnexcused: "" });
   
   // Модальное окно редактирования расписания
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -409,33 +343,13 @@ export default function StudentDiaryPage({
 
   const effectiveUserRole = tempUserRole || userRole;
 
-  const canEditAbsence = useCallback((): boolean => {
-    return effectiveUserRole === "admin" || effectiveUserRole === "teacher";
-  }, [effectiveUserRole]);
-
-  const canEditSchedule = useCallback((): boolean => {
-    return effectiveUserRole === "admin";
-  }, [effectiveUserRole]);
-
-  const canEditInstitution = useCallback((): boolean => {
-    return effectiveUserRole === "admin";
-  }, [effectiveUserRole]);
-
-  const canEditContacts = useCallback((): boolean => {
-    return effectiveUserRole === "admin";
-  }, [effectiveUserRole]);
-
-  const canVerifyAsTeacher = useCallback((): boolean => {
-    return isHomeroomTeacher || effectiveUserRole === "admin" || effectiveUserRole === "homeroomTeacher";
-  }, [isHomeroomTeacher, effectiveUserRole]);
-
-  const canVerifyAsParent = useCallback((): boolean => {
-    return isParent && teacherVerification !== null;
-  }, [isParent, teacherVerification]);
-
-  const isReadOnly = useCallback((): boolean => {
-    return effectiveUserRole === "student";
-  }, [effectiveUserRole]);
+  const canEditAbsence = useCallback(() => effectiveUserRole === "admin" || effectiveUserRole === "teacher", [effectiveUserRole]);
+  const canEditSchedule = useCallback(() => effectiveUserRole === "admin", [effectiveUserRole]);
+  const canEditInstitution = useCallback(() => effectiveUserRole === "admin", [effectiveUserRole]);
+  const canEditContacts = useCallback(() => effectiveUserRole === "admin", [effectiveUserRole]);
+  const canVerifyAsTeacher = useCallback(() => isHomeroomTeacher || effectiveUserRole === "admin" || effectiveUserRole === "teacher", [isHomeroomTeacher, effectiveUserRole]);
+  const canVerifyAsParent = useCallback(() => isParent && teacherVerification !== null, [isParent, teacherVerification]);
+  const isReadOnly = useCallback(() => effectiveUserRole === "student", [effectiveUserRole]);
 
   // ============================================================================
   // РАБОТА С РАСПИСАНИЕМ
@@ -444,12 +358,11 @@ export default function StudentDiaryPage({
   const getScheduleForQuarter = useCallback((quarter: string): Record<string, string> => {
     const result: Record<string, string> = {};
     Object.entries(scheduleData).forEach(([key, value]) => {
-      const match = key.match(/^([1-4])-(.+)-(\d+)$/);
-      if (match) {
-        const [, q, day, num] = match;
-        if (q === quarter) result[`${day}-${num}`] = value;
-      } else if (quarter === "1" && !key.match(/^[2-4]-/)) {
-        result[key] = value;
+      if (key.startsWith(`${quarter}-`)) {
+        const parts = key.split('-');
+        if (parts.length >= 3) {
+          result[`${parts[1]}-${parts[2]}`] = value;
+        }
       }
     });
     return result;
@@ -460,13 +373,15 @@ export default function StudentDiaryPage({
   const updateScheduleItem = (quarter: string, day: string, lessonNum: number, subject: string) => {
     if (!canEditSchedule()) return;
     const key = `${quarter}-${day}-${lessonNum}`;
-    const newScheduleData = { ...scheduleData, [key]: subject };
-    if (!subject) {
-      delete newScheduleData[key];
+    const newSchedule = { ...scheduleData };
+    if (subject) {
+      newSchedule[key] = subject;
+    } else {
+      delete newSchedule[key];
     }
-    setScheduleData(newScheduleData);
+    setScheduleData(newSchedule);
     if (studentGroupId) {
-      saveClassScheduleLocal(studentGroupId, newScheduleData);
+      saveClassScheduleLocal(studentGroupId, newSchedule);
     }
   };
 
@@ -479,137 +394,36 @@ export default function StudentDiaryPage({
   }, [isLoaded, studentGrade]);
 
   useEffect(() => {
-    const loadData = async () => {
-      // Загрузка настроек из localStorage
-      const settings = getDiarySettingsLocal();
-      const academicYear = settings?.academicYear || "";
-      const now = new Date();
-      const startYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
-      const autoYear = `${startYear}/${startYear + 1}`;
-      const finalYear = academicYear || autoYear;
-
-      // Инициализация контактов из localStorage
-      const directorData = getDirectorLocal();
-
-      const dbContacts = {
-        director: settings?.director || directorData?.fullName || "",
-        directorPhone: settings?.directorPhone || directorData?.phone || "",
-        vicePrincipal: settings?.vicePrincipal || "",
-        vicePrincipalPhone: settings?.vicePrincipalPhone || "",
-        vicePrincipalEdu: settings?.vicePrincipalEdu || "",
-        vicePrincipalEduPhone: settings?.vicePrincipalEduPhone || "",
-        homeroomTeacher: initialHomeroomTeacherName || "",
-        homeroomTeacherPhone: initialHomeroomTeacherPhone || "",
-        psychologist: settings?.psychologist || "",
-        psychologistPhone: settings?.psychologistPhone || "",
-        socialPedagogue: settings?.socialPedagogue || "",
-        socialPedagoguePhone: settings?.socialPedagoguePhone || "",
-      };
-
-      // Загрузка общих данных
-      const savedShared = localStorage.getItem("diarySharedData");
-      if (savedShared) {
-        try {
-          const parsed = JSON.parse(savedShared);
-          setSharedData({ ...parsed, academicYear: parsed.academicYear || finalYear });
-          setContacts({
-            director: parsed.director || dbContacts.director,
-            directorPhone: parsed.directorPhone || dbContacts.directorPhone,
-            vicePrincipal: parsed.vicePrincipal || dbContacts.vicePrincipal,
-            vicePrincipalPhone: parsed.vicePrincipalPhone || dbContacts.vicePrincipalPhone,
-            vicePrincipalEdu: parsed.vicePrincipalEdu || dbContacts.vicePrincipalEdu,
-            vicePrincipalEduPhone: parsed.vicePrincipalEduPhone || dbContacts.vicePrincipalEduPhone,
-            homeroomTeacher: parsed.homeroomTeacher || dbContacts.homeroomTeacher,
-            homeroomTeacherPhone: parsed.homeroomTeacherPhone || dbContacts.homeroomTeacherPhone,
-            psychologist: parsed.psychologist || dbContacts.psychologist,
-            psychologistPhone: parsed.psychologistPhone || dbContacts.psychologistPhone,
-            socialPedagogue: parsed.socialPedagogue || dbContacts.socialPedagogue,
-            socialPedagoguePhone: parsed.socialPedagoguePhone || dbContacts.socialPedagoguePhone,
-          });
-        } catch (e) { 
-          setSharedData(prev => ({ ...prev, academicYear: finalYear })); 
-          setContacts(dbContacts); 
-        }
-      } else {
-        setSharedData(prev => ({ 
-          ...prev, 
-          academicYear: finalYear,
-          schoolName: settings?.schoolName || "",
-          schoolAddress: settings?.schoolAddress || "",
-          institution: settings?.schoolName || "",
-          director: dbContacts.director,
-          directorPhone: dbContacts.directorPhone,
-          vicePrincipal: dbContacts.vicePrincipal,
-          vicePrincipalPhone: dbContacts.vicePrincipalPhone,
-          vicePrincipalEdu: dbContacts.vicePrincipalEdu,
-          vicePrincipalEduPhone: dbContacts.vicePrincipalEduPhone,
-          psychologist: dbContacts.psychologist,
-          psychologistPhone: dbContacts.psychologistPhone,
-          socialPedagogue: dbContacts.socialPedagogue,
-          socialPedagoguePhone: dbContacts.socialPedagoguePhone,
-          holidays: settings?.holidays || { autumn: "", winter: "", spring: "", summer: "" }
-        }));
-        setContacts(dbContacts);
-      }
-
-      // Загрузка данных ученика
-      const saved = localStorage.getItem("diaryData");
-      if (saved) {
-        try {
-          const parsedData = JSON.parse(saved);
-          const defaultContacts = { director: "", directorPhone: "", vicePrincipal: "", vicePrincipalPhone: "", vicePrincipalEdu: "", vicePrincipalEduPhone: "", homeroomTeacher: "", homeroomTeacherPhone: "", psychologist: "", psychologistPhone: "", socialPedagogue: "", socialPedagoguePhone: "" };
-          if (!parsedData.contacts) {
-            parsedData.contacts = defaultContacts;
-          } else {
-            parsedData.contacts = { ...defaultContacts, ...parsedData.contacts };
-          }
-          setData(parsedData);
-        } catch (e) { console.error(e); }
-      }
-      
-      // Загрузка расписания класса
-      if (studentGroupId) {
-        const classSchedule = getClassScheduleLocal(studentGroupId);
-        setScheduleData(classSchedule);
-      }
-      
-      // Загрузка пропусков
-      const absences = getWeeklyAbsenceLocal(studentId);
-      setWeeklyAbsence(absences);
-      
-      setData(prev => ({ 
-        ...prev, 
-        surname: studentFullName.split(" ")[0] || "", 
-        name: studentFullName.split(" ")[1] || studentFullName, 
-        grade: studentGrade 
-      }));
-      setIsLoaded(true);
-    };
-    loadData();
+    // Загрузка расписания
+    if (studentGroupId) {
+      const saved = getClassScheduleLocal(studentGroupId);
+      setScheduleData(saved);
+    }
+    
+    // Загрузка пропусков
+    const savedAbsence = getWeeklyAbsenceLocal(studentId);
+    setAbsence(savedAbsence);
+    
+    setData(prev => ({
+      ...prev,
+      surname: studentFullName.split(" ")[0] || "",
+      name: studentFullName.split(" ").slice(1).join(" ") || studentFullName,
+      grade: studentGrade,
+    }));
+    
+    setIsLoaded(true);
   }, [studentFullName, studentGrade, studentGroupId, studentId]);
 
-  // Загрузка заметки
   useEffect(() => {
-    const loadNote = async () => {
-      const weekStartStr = selectedWeek.toISOString().split("T")[0];
-      const savedNote = getDiaryNoteLocal(studentId, weekStartStr);
-      setStudentNote(savedNote || "");
-    };
-    loadNote();
-  }, [selectedWeek, studentId]);
-
-  // Загрузка верификаций
-  useEffect(() => {
-    const loadVerifications = async () => {
-      const weekStartStr = selectedWeek.toISOString().split("T")[0];
-      setTeacherVerification(getDiaryVerificationLocal(studentId, weekStartStr));
-      setParentVerification(getParentVerificationLocal(studentId, weekStartStr));
-    };
-    loadVerifications();
+    const weekStartStr = selectedWeek.toISOString().split("T")[0];
+    const savedNote = getDiaryNoteLocal(studentId, weekStartStr);
+    setStudentNote(savedNote);
+    setTeacherVerification(getDiaryVerificationLocal(studentId, weekStartStr));
+    setParentVerification(getParentVerificationLocal(studentId, weekStartStr));
   }, [selectedWeek, studentId]);
 
   // ============================================================================
-  // ОБРАБОТЧИКИ СОБЫТИЙ
+  // ОБРАБОТЧИКИ
   // ============================================================================
 
   const handleSaveNote = () => {
@@ -639,71 +453,25 @@ export default function StudentDiaryPage({
 
   const updateContact = (field: keyof typeof contacts, value: string) => {
     if (!canEditContacts()) return;
-    setContacts(prev => {
-      const updated = { ...prev, [field]: value };
-      const sharedDataToSave = {
-        ...sharedData,
-        director: updated.director,
-        directorPhone: updated.directorPhone,
-        vicePrincipal: updated.vicePrincipal,
-        vicePrincipalPhone: updated.vicePrincipalPhone,
-        vicePrincipalEdu: updated.vicePrincipalEdu,
-        vicePrincipalEduPhone: updated.vicePrincipalEduPhone,
-        homeroomTeacher: updated.homeroomTeacher,
-        homeroomTeacherPhone: updated.homeroomTeacherPhone,
-        psychologist: updated.psychologist,
-        psychologistPhone: updated.psychologistPhone,
-        socialPedagogue: updated.socialPedagogue,
-        socialPedagoguePhone: updated.socialPedagoguePhone,
-      };
-      localStorage.setItem("diarySharedData", JSON.stringify(sharedDataToSave));
-      saveDirectorLocal({ fullName: updated.director, phone: updated.directorPhone });
-      return updated;
-    });
+    const updated = { ...contacts, [field]: value };
+    setContacts(updated);
+    localStorage.setItem("diary_shared_data", JSON.stringify({ ...sharedData, ...updated }));
   };
 
   const updateSharedData = (field: keyof typeof sharedData, value: string) => {
     if (!canEditInstitution()) return;
-    setSharedData(prev => {
-      const updated = { ...prev, [field]: value };
-      localStorage.setItem("diarySharedData", JSON.stringify(updated));
-      saveDiarySettingsLocal({
-        academicYear: updated.academicYear,
-        schoolName: updated.schoolName || updated.institution,
-        schoolAddress: updated.schoolAddress,
-        director: contacts.director,
-        directorPhone: contacts.directorPhone,
-        vicePrincipal: contacts.vicePrincipal,
-        vicePrincipalPhone: contacts.vicePrincipalPhone,
-        vicePrincipalEdu: contacts.vicePrincipalEdu,
-        vicePrincipalEduPhone: contacts.vicePrincipalEduPhone,
-        psychologist: contacts.psychologist,
-        psychologistPhone: contacts.psychologistPhone,
-        socialPedagogue: contacts.socialPedagogue,
-        socialPedagoguePhone: contacts.socialPedagoguePhone,
-        holidays: updated.holidays
-      });
-      return updated;
-    });
+    const updated = { ...sharedData, [field]: value };
+    setSharedData(updated);
+    localStorage.setItem("diary_shared_data", JSON.stringify(updated));
   };
 
-  const updateWeeklyAbsence = (quarter: string, weekNum: number, field: 'absent' | 'absentUnexcused', value: string) => {
+  const updateAbsence = (field: 'absent' | 'absentUnexcused', value: string) => {
     if (!canEditAbsence()) return;
-    const weekKey = `Q${quarter}-W${weekNum}`;
-    setWeeklyAbsence(prev => {
-      const updated = {
-        ...prev,
-        [weekKey]: { 
-          ...prev[weekKey], 
-          [field]: value 
-        }
-      };
-      saveWeeklyAbsenceLocal(studentId, updated);
-      return updated;
-    });
+    const updated = { ...absence, [field]: value };
+    setAbsence(updated);
+    saveWeeklyAbsenceLocal(studentId, updated);
   };
 
-  // Навигация по неделям
   const navigateWeek = (direction: "prev" | "next") => {
     const newWeek = new Date(selectedWeek);
     newWeek.setDate(newWeek.getDate() + (direction === "prev" ? -7 : 7));
@@ -727,25 +495,25 @@ export default function StudentDiaryPage({
     return `${startMonth} — ${endMonth}`;
   })();
   const weekNumber = getWeekNumber(selectedWeek);
-  const weekStartOnlyDate = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
-  const weekEndOnlyDate = new Date(weekEnd.getFullYear(), weekEnd.getMonth(), weekEnd.getDate());
-  const weekGrades = grades.filter((g) => {
-    if (!g.date) return false;
-    const gradeDate = new Date(g.date + "T00:00:00");
-    return gradeDate >= weekStartOnlyDate && gradeDate <= weekEndOnlyDate;
-  });
 
-  // Секции навигации (одинаковые для всех ролей)
-  const sections = [
-    { id: "week", label: "Расписание" },
-    { id: "title", label: "Титульный лист" },
-    { id: "contacts", label: "Контакты" },
-    { id: "subjects", label: "Предметы" },
-    ...MONTHS.map((m, i) => ({ id: `month-${i}`, label: m })),
-    { id: "grades", label: "Аттестация" },
-    { id: "holidays", label: "Каникулы" },
-    { id: "official", label: "Праздники" },
+  // Секции навигации (без месяцев для ученика и родителя)
+  const baseSections = [
+    { id: "week", label: "📅 Расписание" },
+    { id: "title", label: "📝 Титульный лист" },
+    { id: "contacts", label: "📞 Контакты" },
+    { id: "subjects", label: "📚 Предметы" },
+    { id: "grades", label: "📊 Аттестация" },
+    { id: "holidays", label: "🏖️ Каникулы" },
+    { id: "official", label: "🇧🇾 Праздники" },
   ];
+
+  const sections = (effectiveUserRole === "student" || effectiveUserRole === "parent")
+    ? baseSections
+    : [
+        ...baseSections.slice(0, 4),
+        ...MONTHS.map((m, i) => ({ id: `month-${i}`, label: m })),
+        ...baseSections.slice(4),
+      ];
 
   // ============================================================================
   // РЕНДЕРИНГ МОДАЛЬНЫХ ОКОН
@@ -756,14 +524,14 @@ export default function StudentDiaryPage({
     
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="flex justify-between items-center mb-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-emerald-800">
               Редактирование расписания — {selectedQuarter} четверть
             </h2>
             <button 
               onClick={() => setShowScheduleModal(false)}
-              className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+              className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600"
             >
               ✕
             </button>
@@ -771,25 +539,22 @@ export default function StudentDiaryPage({
           
           <div className="space-y-4">
             {DAYS_OF_WEEK.map((day) => (
-              <div key={day.name} className="border border-emerald-200 rounded-lg p-3">
-                <h3 className="font-bold text-emerald-700 mb-2">{day.name}</h3>
-                <div className="grid grid-cols-4 gap-2">
-                  {Array(8).fill(null).map((_, lessonNum) => {
+              <div key={day.name} className="border border-emerald-200 rounded-lg p-4">
+                <h3 className="font-bold text-emerald-700 mb-3">{day.name}</h3>
+                <div className="grid grid-cols-4 gap-3">
+                  {Array.from({ length: 8 }, (_, i) => i).map((lessonNum) => {
                     const key = `${selectedQuarter}-${day.name}-${lessonNum}`;
-                    const currentValue = scheduleData[key] || "";
+                    const value = scheduleData[key] || "";
                     return (
                       <div key={lessonNum} className="flex flex-col gap-1">
-                        <label className="text-xs text-gray-500">Урок {lessonNum + 1}</label>
-                        <select
-                          value={currentValue}
+                        <label className="text-xs text-gray-500 font-medium">Урок {lessonNum + 1}</label>
+                        <input
+                          type="text"
+                          value={value}
                           onChange={(e) => updateScheduleItem(selectedQuarter, day.name, lessonNum, e.target.value)}
-                          className="text-xs border border-emerald-300 rounded px-1 py-1"
-                        >
-                          <option value="">—</option>
-                          {SUBJECTS_LIST.map(subject => (
-                            <option key={subject} value={subject}>{subject}</option>
-                          ))}
-                        </select>
+                          placeholder="Предмет"
+                          className="text-sm border border-emerald-300 rounded px-2 py-1 focus:outline-none focus:border-emerald-500"
+                        />
                       </div>
                     );
                   })}
@@ -798,10 +563,10 @@ export default function StudentDiaryPage({
             ))}
           </div>
           
-          <div className="mt-4 flex justify-end gap-2">
+          <div className="mt-6 flex justify-end">
             <button 
               onClick={() => setShowScheduleModal(false)}
-              className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600"
+              className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium"
             >
               Готово
             </button>
@@ -828,23 +593,6 @@ export default function StudentDiaryPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 font-sans">
-      {/* Временный селектор ролей для тестирования */}
-      <div className="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-lg p-2 border border-emerald-200">
-        <label className="text-xs text-gray-500 block mb-1">Тест: Роль пользователя</label>
-        <select 
-          value={tempUserRole} 
-          onChange={(e) => setTempUserRole(e.target.value)}
-          className="text-sm border border-emerald-300 rounded px-2 py-1"
-        >
-          <option value="">Текущая: {userRole || "не задана"}</option>
-          <option value="admin">Администратор</option>
-          <option value="teacher">Учитель</option>
-          <option value="homeroomTeacher">Классный руководитель</option>
-          <option value="parent">Родитель</option>
-          <option value="student">Ученик</option>
-        </select>
-      </div>
-
       {/* Модальное окно: ученик без класса */}
       {showNoClassModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -861,11 +609,36 @@ export default function StudentDiaryPage({
       {renderScheduleModal()}
 
       <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-0 print:my-0 print:shadow-none rounded-xl overflow-hidden pt-0">
+        {/* Тестовый переключатель ролей */}
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-2 border-b border-indigo-100">
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-sm font-bold text-indigo-800">🎭 Тест: Роль пользователя</span>
+            <select 
+              value={tempUserRole} 
+              onChange={(e) => setTempUserRole(e.target.value)}
+              className="text-sm border-2 border-indigo-300 rounded-lg px-3 py-1.5 bg-white text-indigo-700 font-medium focus:outline-none focus:border-indigo-500"
+            >
+              <option value="">Текущая: {userRole || "не задана"}</option>
+              <option value="admin">👑 Администратор</option>
+              <option value="teacher">👨‍🏫 Учитель</option>
+              <option value="homeroomTeacher">🍎 Классный руководитель</option>
+              <option value="parent">👨‍👩‍👧 Родитель</option>
+              <option value="student">🎒 Ученик</option>
+            </select>
+          </div>
+        </div>
+
         {/* Навигация */}
-        <div className="bg-white shadow-md border-b-2 border-emerald-300 px-4 py-3 mb-4">
-          <div className="flex gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-emerald-300 scrollbar-track-emerald-50">
+        <div className="bg-white shadow-md border-b-2 border-emerald-300 px-4 py-4 mb-4">
+          <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'transparent transparent' }}>
             {sections.map(section => (
-              <button key={section.id} onClick={() => setActiveSection(section.id)} className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all font-medium text-sm flex-shrink-0 ${activeSection === section.id ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md" : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"}`}>{section.label}</button>
+              <button 
+                key={section.id} 
+                onClick={() => setActiveSection(section.id)} 
+                className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all font-medium text-sm flex-shrink-0 ${activeSection === section.id ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md" : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"}`}
+              >
+                {section.label}
+              </button>
             ))}
           </div>
         </div>
@@ -1070,50 +843,38 @@ export default function StudentDiaryPage({
               </div>
             </div>
 
-            {/* Пропуски по неделям - только для учителей и админа */}
+            {/* Пропуски - упрощенная форма */}
             {canEditAbsence() && (
               <div className="mt-6 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border-2 border-orange-200">
                 <h3 className="font-bold text-orange-800 mb-4 flex items-center gap-2">
                   <span className="text-xl">📊</span>
-                  Пропуски учебных занятий по неделям
+                  Пропуски учебных занятий
                 </h3>
-                <p className="text-sm text-orange-700 mb-4">
-                  Укажите количество пропущенных уроков для каждой недели.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {["1", "2", "3", "4"].map(quarter => (
-                    <div key={quarter} className="bg-white rounded-lg p-3 border border-orange-200">
-                      <h4 className="font-bold text-orange-900 mb-2">Четверть {quarter}</h4>
-                      {Array(8).fill(null).map((_, weekNum) => {
-                        const weekKey = `Q${quarter}-W${weekNum + 1}`;
-                        const weekData = weeklyAbsence[weekKey] || { absent: "", absentUnexcused: "" };
-                        return (
-                          <div key={weekNum} className="flex items-center gap-2 mb-2 text-xs">
-                            <span className="font-medium text-gray-700 w-16">Неделя {weekNum + 1}:</span>
-                            <input
-                              type="number"
-                              placeholder="Всего"
-                              min="0"
-                              value={weekData.absent}
-                              onChange={e => updateWeeklyAbsence(quarter, weekNum + 1, 'absent', e.target.value)}
-                              className="w-14 border border-gray-300 rounded px-1 py-0.5 text-center"
-                              title="Всего пропущено"
-                            />
-                            <span className="text-gray-400">/</span>
-                            <input
-                              type="number"
-                              placeholder="Неув."
-                              min="0"
-                              value={weekData.absentUnexcused}
-                              onChange={e => updateWeeklyAbsence(quarter, weekNum + 1, 'absentUnexcused', e.target.value)}
-                              className="w-14 border border-gray-300 rounded px-1 py-0.5 text-center"
-                              title="По неуважительным причинам"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white rounded-lg p-4 border border-orange-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Количество пропущенных учебных занятий
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={absence.absent}
+                      onChange={(e) => updateAbsence('absent', e.target.value)}
+                      className="w-full border-2 border-orange-300 rounded-lg px-3 py-2 text-center text-lg font-bold text-orange-700 focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-orange-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      в том числе по неуважительным причинам
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={absence.absentUnexcused}
+                      onChange={(e) => updateAbsence('absentUnexcused', e.target.value)}
+                      className="w-full border-2 border-red-300 rounded-lg px-3 py-2 text-center text-lg font-bold text-red-700 focus:outline-none focus:border-red-500"
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -1144,7 +905,6 @@ export default function StudentDiaryPage({
                 <label className="text-lg font-bold text-gray-800">Просмотр дневника</label>
               </div>
               <div className="grid md:grid-cols-2 gap-3">
-                {/* Классный руководитель */}
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -1180,7 +940,6 @@ export default function StudentDiaryPage({
                     )}
                   </div>
                 </div>
-                {/* Родитель */}
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -1227,32 +986,135 @@ export default function StudentDiaryPage({
         {/* Предметы */}
         {activeSection === "subjects" && (
           <div className="min-h-[297mm] p-12 bg-gradient-to-b from-emerald-50/50 to-white">
-            <div className="text-center mb-10"><div className="text-4xl mb-2">📐</div><h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">Учебные предметы и учителя</h2></div>
+            <div className="text-center mb-10">
+              <div className="text-4xl mb-2">📖</div>
+              <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">Учебные предметы и учителя</h2>
+            </div>
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-10 border border-emerald-100">
-              <table className="w-full"><thead><tr className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white"><th className="border border-emerald-400 p-4 font-semibold w-1/2">📖 Учебный предмет</th><th className="border border-emerald-400 p-4 font-semibold w-1/2">👨‍🏫 Учитель (ФИО)</th></tr></thead>
-                <tbody>{data.subjects.map((subject, i) => (<tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-emerald-50"}><td className="border border-emerald-200 p-3"><input type="text" value={subject.name} readOnly className="w-full text-black font-medium bg-transparent" /></td><td className="border border-emerald-200 p-3"><span className="text-black font-medium">{subject.teacher || "—"}</span></td></tr>))}</tbody>
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white">
+                    <th className="border border-emerald-400 p-4 font-semibold w-1/2">📖 Учебный предмет</th>
+                    <th className="border border-emerald-400 p-4 font-semibold w-1/2">👨‍🏫 Учитель (ФИО)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.subjects.length > 0 ? data.subjects.map((subject, i) => (
+                    <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-emerald-50"}>
+                      <td className="border border-emerald-200 p-3">
+                        <input type="text" value={subject.name} readOnly className="w-full text-black font-medium bg-transparent" />
+                      </td>
+                      <td className="border border-emerald-200 p-3">
+                        <span className="text-black font-medium">{subject.teacher || "—"}</span>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={2} className="border border-emerald-200 p-8 text-center text-gray-500">
+                        Предметы не назначены. Обратитесь к администратору.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
               </table>
             </div>
           </div>
         )}
 
         {/* Месяцы */}
-        {activeSection.startsWith("month-") && (<div className="min-h-[297mm] p-8"><div className="flex items-center gap-4 mb-6"><h2 className="text-2xl font-bold text-green-800">Месяц:</h2><input type="text" value={data.months[parseInt(activeSection.split("-")[1])].name} readOnly className="text-2xl font-bold border-b-2 border-green-800 focus:outline-none w-48 bg-transparent" /></div></div>)}
+        {activeSection.startsWith("month-") && (
+          <div className="min-h-[297mm] p-8">
+            <div className="flex items-center gap-4 mb-6">
+              <h2 className="text-2xl font-bold text-green-800">Месяц:</h2>
+              <input 
+                type="text" 
+                value={data.months[parseInt(activeSection.split("-")[1])]?.name || ""} 
+                readOnly 
+                className="text-2xl font-bold border-b-2 border-green-800 focus:outline-none w-48 bg-transparent" 
+              />
+            </div>
+          </div>
+        )}
 
         {/* Аттестация */}
         {activeSection === "grades" && (
           <div className="min-h-[297mm] p-12 bg-gradient-to-b from-rose-50/50 to-white">
-            <div className="text-center mb-10"><div className="text-4xl mb-2">📊</div><h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">Сведения о результатах аттестации</h2></div>
+            <div className="text-center mb-10">
+              <div className="text-4xl mb-2">📊</div>
+              <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">Сведения о результатах аттестации</h2>
+            </div>
             <div className="bg-white rounded-2xl shadow-lg mb-8 border border-rose-100">
               <table className="w-full text-xs table-fixed">
-                <thead><tr className="bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-t-2xl"><th className="border border-rose-400 px-2 py-2 text-left font-semibold w-[35%]">📖 Учебный предмет</th><th className="border border-rose-400 px-1 py-2 font-semibold">I</th><th className="border border-rose-400 px-1 py-2 font-semibold">II</th><th className="border border-rose-400 px-1 py-2 font-semibold">III</th><th className="border border-rose-400 px-1 py-2 font-semibold">IV</th><th className="border border-rose-400 px-1 py-2 font-semibold bg-rose-600/50">Годовая</th><th className="border border-rose-400 px-1 py-2 font-semibold bg-rose-600/50">Экзамен</th><th className="border border-rose-400 px-1 py-2 font-semibold bg-rose-600/30">Итоговая</th></tr></thead>
-                <tbody>{data.grades.map((grade, i) => (<tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-rose-50"}><td className="border border-rose-200 px-2 py-1.5"><span className="text-black font-medium">{grade.subject}</span></td>{["q1", "q2", "q3", "q4", "year", "exam", "final"].map((field) => (<td key={field} className="border border-rose-200 px-1 py-1.5 text-center"><span className="font-bold text-black">{grade[field as keyof typeof grade] || "—"}</span></td>))}</tr>))}</tbody>
+                <thead>
+                  <tr className="bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-t-2xl">
+                    <th className="border border-rose-400 px-2 py-2 text-left font-semibold w-[35%]">📖 Учебный предмет</th>
+                    <th className="border border-rose-400 px-1 py-2 font-semibold">I</th>
+                    <th className="border border-rose-400 px-1 py-2 font-semibold">II</th>
+                    <th className="border border-rose-400 px-1 py-2 font-semibold">III</th>
+                    <th className="border border-rose-400 px-1 py-2 font-semibold">IV</th>
+                    <th className="border border-rose-400 px-1 py-2 font-semibold bg-rose-600/50">Годовая</th>
+                    <th className="border border-rose-400 px-1 py-2 font-semibold bg-rose-600/50">Экзамен</th>
+                    <th className="border border-rose-400 px-1 py-2 font-semibold bg-rose-600/30">Итоговая</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.grades.map((grade, i) => (
+                    <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-rose-50"}>
+                      <td className="border border-rose-200 px-2 py-1.5">
+                        <span className="text-black font-medium">{grade.subject}</span>
+                      </td>
+                      {["q1", "q2", "q3", "q4", "year", "exam", "final"].map((field) => (
+                        <td key={field} className="border border-rose-200 px-1 py-1.5 text-center">
+                          <span className="font-bold text-black">{grade[field as keyof typeof grade] || "—"}</span>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
             <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl shadow-lg p-6 border-2 border-emerald-300">
-              <h3 className="text-xl font-bold text-emerald-800 mb-4 flex items-center gap-2"><span className="text-2xl">📋</span>Поведение по четвертям</h3>
+              <h3 className="text-xl font-bold text-emerald-800 mb-4 flex items-center gap-2">
+                <span className="text-2xl">📋</span>Поведение по четвертям
+              </h3>
               <div className="grid md:grid-cols-4 gap-4">
-                {(['q1', 'q2', 'q3', 'q4'] as const).map((q, i) => (<div key={q} className="bg-white rounded-xl p-4 border-2 border-emerald-200"><h4 className="font-bold text-emerald-800 mb-3 text-center text-sm">{i + 1} четв.</h4><div className="space-y-1 text-xs"><label className="flex items-center gap-1 cursor-pointer"><input type="radio" name={`behavior-${q}`} checked={data.behavior[q] === 'example'} onChange={() => updateBehavior(q, 'example')} className="w-3 h-3 text-emerald-600" /><span className="text-gray-700">Примерное</span></label><label className="flex items-center gap-1 cursor-pointer"><input type="radio" name={`behavior-${q}`} checked={data.behavior[q] === 'satisfactory'} onChange={() => updateBehavior(q, 'satisfactory')} className="w-3 h-3 text-emerald-600" /><span className="text-gray-700">Удовлет.</span></label><label className="flex items-center gap-1 cursor-pointer"><input type="radio" name={`behavior-${q}`} checked={data.behavior[q] === 'unsatisfactory'} onChange={() => updateBehavior(q, 'unsatisfactory')} className="w-3 h-3 text-emerald-600" /><span className="text-gray-700">Неудовл.</span></label></div></div>))}
+                {(['q1', 'q2', 'q3', 'q4'] as const).map((q, i) => (
+                  <div key={q} className="bg-white rounded-xl p-4 border-2 border-emerald-200">
+                    <h4 className="font-bold text-emerald-800 mb-3 text-center text-sm">{i + 1} четв.</h4>
+                    <div className="space-y-1 text-xs">
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input 
+                          type="radio" 
+                          name={`behavior-${q}`} 
+                          checked={data.behavior[q] === 'example'} 
+                          onChange={() => updateBehavior(q, 'example')} 
+                          className="w-3 h-3 text-emerald-600" 
+                        />
+                        <span className="text-gray-700">Примерное</span>
+                      </label>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input 
+                          type="radio" 
+                          name={`behavior-${q}`} 
+                          checked={data.behavior[q] === 'satisfactory'} 
+                          onChange={() => updateBehavior(q, 'satisfactory')} 
+                          className="w-3 h-3 text-emerald-600" 
+                        />
+                        <span className="text-gray-700">Удовлет.</span>
+                      </label>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input 
+                          type="radio" 
+                          name={`behavior-${q}`} 
+                          checked={data.behavior[q] === 'unsatisfactory'} 
+                          onChange={() => updateBehavior(q, 'unsatisfactory')} 
+                          className="w-3 h-3 text-emerald-600" 
+                        />
+                        <span className="text-gray-700">Неудовл.</span>
+                      </label>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -1261,10 +1123,21 @@ export default function StudentDiaryPage({
         {/* Каникулы */}
         {activeSection === "holidays" && (
           <div className="min-h-[297mm] p-12 bg-gradient-to-b from-sky-50/50 to-white">
-            <div className="text-center mb-10"><div className="text-4xl mb-2">🏖️</div><h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-blue-600">Каникулы</h2></div>
+            <div className="text-center mb-10">
+              <div className="text-4xl mb-2">🏖️</div>
+              <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-blue-600">Каникулы</h2>
+            </div>
             <div className="grid md:grid-cols-2 gap-6 mb-10">
-              {[["🍂 Осенние каникулы", sharedData.holidays.autumn], ["❄️ Зимние каникулы", sharedData.holidays.winter], ["🌸 Весенние каникулы", sharedData.holidays.spring], ["☀️ Летние каникулы", sharedData.holidays.summer]].map(([label, value], i) => (
-                <div key={i} className="bg-gradient-to-br from-white to-sky-50 rounded-2xl shadow-lg p-6 border-2 border-sky-200"><label className="block text-lg font-bold text-sky-800 mb-3">{label}</label><p className="text-gray-700 text-lg">{value || "Не указаны"}</p></div>
+              {[
+                ["🍂 Осенние каникулы", sharedData.holidays.autumn], 
+                ["❄️ Зимние каникулы", sharedData.holidays.winter], 
+                ["🌸 Весенние каникулы", sharedData.holidays.spring], 
+                ["☀️ Летние каникулы", sharedData.holidays.summer]
+              ].map(([label, value], i) => (
+                <div key={i} className="bg-gradient-to-br from-white to-sky-50 rounded-2xl shadow-lg p-6 border-2 border-sky-200">
+                  <label className="block text-lg font-bold text-sky-800 mb-3">{label}</label>
+                  <p className="text-gray-700 text-lg">{value || "Не указаны"}</p>
+                </div>
               ))}
             </div>
           </div>
@@ -1274,9 +1147,15 @@ export default function StudentDiaryPage({
         {activeSection === "official" && (
           <div className="min-h-[297mm] p-12 bg-gradient-to-b from-indigo-50/50 to-white">
             <div className="text-center mb-10">
-              <div className="inline-block text-4xl mb-2">🇧🇾</div>
-              <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-600">Государственные праздники и памятные даты</h2>
-              <p className="text-gray-700 mt-2 font-bold italic">Республики <span className="text-red-600 font-extrabold text-lg bg-gradient-to-r from-red-600 via-green-600 to-red-600 bg-clip-text text-transparent">БЕЛАРУСЬ</span></p>
+              <div className="text-5xl mb-2 font-bold">
+                <span className="text-green-600">B</span><span className="text-red-600">Y</span>
+              </div>
+              <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-600">
+                Государственные праздники и памятные даты
+              </h2>
+              <p className="text-gray-700 mt-2 font-bold italic">
+                Республики <span className="text-red-600 font-extrabold text-lg bg-gradient-to-r from-red-600 via-green-600 to-red-600 bg-clip-text text-transparent">БЕЛАРУСЬ</span>
+              </p>
             </div>
             <div className="grid md:grid-cols-2 gap-8 mb-8">
               <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-2xl shadow-lg p-6 border-2 border-red-200">
