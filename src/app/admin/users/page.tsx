@@ -68,6 +68,7 @@ export default async function UsersPage() {
                   <th className="px-4 py-3 text-left text-sm font-semibold">ФИО</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Роль</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Информация</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Действия</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -119,14 +120,17 @@ export default async function UsersPage() {
                     }
                   }
 
+                  // Проверяем аватар (image или avatar поле)
+                  const avatarUrl = u.avatar || u.image;
+
                   return (
                     <tr key={u.id} className="hover:bg-rose-50/50 transition-colors">
                       {/* Аватар */}
                       <td className="px-4 py-3">
-                        {u.avatar || u.image ? (
+                        {avatarUrl ? (
                           <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-rose-200">
                             <Image
-                              src={u.avatar || u.image || ""}
+                              src={avatarUrl}
                               alt={u.fullName}
                               fill
                               className="object-cover"
@@ -141,13 +145,24 @@ export default async function UsersPage() {
                       
                       {/* Логин / Email */}
                       <td className="px-4 py-3">
-                        <p className="text-sm font-medium text-gray-900">{u.email}</p>
-                        <p className="text-xs text-gray-500">{u.name}</p>
+                        <p className="text-sm font-bold text-gray-900">{u.email}</p>
+                        <p className="text-xs text-gray-600">{u.name}</p>
                       </td>
                       
-                      {/* ФИО */}
+                      {/* ФИО с кнопкой редактирования */}
                       <td className="px-4 py-3">
-                        <p className="font-semibold text-gray-800">{u.fullName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-gray-800">{u.fullName}</p>
+                          <Link
+                            href={`/admin/users/${u.id}/edit`}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                            title="Редактировать ФИО"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            </svg>
+                          </Link>
+                        </div>
                       </td>
                       
                       {/* Роль с иконкой */}
@@ -162,12 +177,22 @@ export default async function UsersPage() {
                       
                       {/* Информация */}
                       <td className="px-4 py-3">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-700 font-medium">
                           {u.role === "teacher" && teacherInfo}
                           {u.role === "student" && studentInfo}
                           {u.role === "parent" && parentInfo}
                           {(u.role === "admin" || u.role === "principal") && "—"}
                         </p>
+                      </td>
+
+                      {/* Действия */}
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/admin/users/${u.id}`}
+                          className="px-3 py-1.5 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition-all text-sm font-medium"
+                        >
+                          Подробнее
+                        </Link>
                       </td>
                     </tr>
                   );

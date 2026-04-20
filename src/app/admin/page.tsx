@@ -6,14 +6,15 @@ import { user, groups } from "@/db/schema/auth_schema";
 import { changeRole } from "./actions";
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
+import Image from "next/image";
 
 // Перевод ролей на русский с цветами
-const roleConfig: Record<string, { name: string; color: string }> = {
-  admin: { name: "Администратор", color: "bg-red-100 text-red-700" },
-  principal: { name: "Директор", color: "bg-blue-100 text-blue-700" },
-  teacher: { name: "Учитель", color: "bg-emerald-100 text-emerald-700" },
-  student: { name: "Ученик", color: "bg-purple-100 text-purple-700" },
-  parent: { name: "Родитель", color: "bg-orange-100 text-orange-700" },
+const roleConfig: Record<string, { name: string; color: string; icon: string }> = {
+  admin: { name: "Администратор", color: "bg-red-100 text-red-700", icon: "👑" },
+  principal: { name: "Директор", color: "bg-blue-100 text-blue-700", icon: "🎓" },
+  teacher: { name: "Учитель", color: "bg-emerald-100 text-emerald-700", icon: "👨‍🏫" },
+  student: { name: "Ученик", color: "bg-purple-100 text-purple-700", icon: "🎒" },
+  parent: { name: "Родитель", color: "bg-orange-100 text-orange-700", icon: "👨‍👩‍👧" },
 };
 
 // Иконки SVG для кнопок
@@ -81,25 +82,6 @@ export default async function AdminPage() {
   const allUsers = await db.select().from(user);
   const groupsList = await db.select().from(groups);
 
-  // Получаем инициалы для аватара
-  const getInitials = (name: string) => {
-    const parts = name.split(" ").filter(p => p.length > 0);
-    if (parts.length >= 2) {
-      return parts[0][0] + parts[1][0];
-    }
-    return name.slice(0, 2).toUpperCase();
-  };
-
-  // Цвета для аватаров
-  const avatarColors = [
-    "bg-gradient-to-br from-rose-400 to-rose-600",
-    "bg-gradient-to-br from-emerald-400 to-emerald-600",
-    "bg-gradient-to-br from-blue-400 to-blue-600",
-    "bg-gradient-to-br from-purple-400 to-purple-600",
-    "bg-gradient-to-br from-orange-400 to-orange-600",
-    "bg-gradient-to-br from-pink-400 to-pink-600",
-  ];
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6">
       <div className="relative max-w-6xl mx-auto">
@@ -109,7 +91,7 @@ export default async function AdminPage() {
           Админ панель
         </h1>
 
-        {/* КНОПКИ МЕНЮ - точно как на скриншоте */}
+        {/* КНОПКИ МЕНЮ */}
         <div className="flex justify-center gap-3 mb-10 flex-wrap">
           {menuButtons.map((btn) => (
             <Link
@@ -133,11 +115,11 @@ export default async function AdminPage() {
 
         {/* СПИСОК ПОЛЬЗОВАТЕЛЕЙ */}
         <div className="space-y-3">
-          {allUsers.map((u, index) => {
+          {allUsers.map((u) => {
             const userGroup = u.groupId ? groupsList.find(g => g.id === u.groupId) : null;
             const userRole = u.role as string;
-            const roleInfo = roleConfig[userRole] || { name: userRole, color: "bg-gray-100 text-gray-700" };
-            const avatarColor = avatarColors[index % avatarColors.length];
+            const roleInfo = roleConfig[userRole] || { name: userRole, color: "bg-gray-100 text-gray-700", icon: "👤" };
+            const avatarUrl = u.avatar || u.image;
             
             return (
               <div
@@ -148,23 +130,34 @@ export default async function AdminPage() {
                   {/* Левая часть: Аватар + Информация */}
                   <div className="flex items-center gap-4">
                     {/* Аватар */}
-                    <div className={`w-14 h-14 ${avatarColor} rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md`}>
-                      {getInitials(u.fullName)}
-                    </div>
+                    {avatarUrl ? (
+                      <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200">
+                        <Image
+                          src={avatarUrl}
+                          alt={u.fullName}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
+                        {roleInfo.icon}
+                      </div>
+                    )}
                     
                     {/* Информация */}
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-bold text-gray-800 text-lg">{u.fullName}</p>
+                        <span className="text-xl">{roleInfo.icon}</span>
                       </div>
-                      <p className="text-sm text-gray-600">{u.email}</p>
+                      <p className="text-sm text-gray-700 font-medium">{u.email}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-gray-500">Роль:</span>
                         <span className={`px-2 py-1 rounded-md text-xs font-bold ${roleInfo.color}`}>
                           {roleInfo.name}
                         </span>
                         {userGroup && userRole === "student" && (
-                          <span className="text-xs text-emerald-600 font-medium">
+                          <span className="text-sm font-bold text-emerald-600">
                             • Класс: {userGroup.name}
                           </span>
                         )}
@@ -177,7 +170,7 @@ export default async function AdminPage() {
                     {/* КНОПКА ДНЕВНИКА ДЛЯ УЧЕНИКОВ */}
                     {userRole === "student" && (
                       <Link
-                        href={`/diary?id=${u.id}`}
+                        href={`/diary?studentId=${u.id}`}
                         className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-md"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -197,11 +190,11 @@ export default async function AdminPage() {
                           defaultValue={u.role as string}
                           className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-500 bg-white"
                         >
-                          <option value="admin">Администратор</option>
-                          <option value="principal">Директор</option>
-                          <option value="teacher">Учитель</option>
-                          <option value="student">Ученик</option>
-                          <option value="parent">Родитель</option>
+                          <option value="admin">👑 Администратор</option>
+                          <option value="principal">🎓 Директор</option>
+                          <option value="teacher">👨‍🏫 Учитель</option>
+                          <option value="student">🎒 Ученик</option>
+                          <option value="parent">👨‍👩‍👧 Родитель</option>
                         </select>
                         <button
                           type="submit"
@@ -211,7 +204,7 @@ export default async function AdminPage() {
                         </button>
                       </form>
                     ) : (
-                      <span className="text-sm text-gray-400 italic">Это вы</span>
+                      <span className="text-sm text-gray-500 font-medium">Это вы</span>
                     )}
                   </div>
                 </div>

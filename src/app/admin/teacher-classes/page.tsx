@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { user, groups, subjects, teacherSubjects } from "@/db/schema/auth_schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
-import { assignSubjectToTeacher, removeSubjectFromTeacher, assignClassToTeacher, removeClassFromTeacher } from "./actions";
+import { assignSubjectToTeacher, removeSubjectFromTeacher, assignClassToTeacher } from "./actions";
 
 // Иконки ролей
 const roleIcons: Record<string, string> = {
@@ -57,7 +57,7 @@ export default async function TeacherClassesPage() {
           {teachers.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-gray-100">
               <div className="text-6xl mb-4">👨‍🏫</div>
-              <p className="text-gray-500 text-lg">Учителя ещё не добавлены</p>
+              <p className="text-gray-700 text-lg font-medium">Учителя ещё не добавлены</p>
             </div>
           ) : (
             teachers.map((teacher) => {
@@ -92,7 +92,7 @@ export default async function TeacherClassesPage() {
                   </div>
 
                   <div className="p-6 space-y-6">
-                    {/* Классное руководство */}
+                    {/* Классное руководство - ТОЛЬКО ПРОСМОТР, без удаления */}
                     <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
                       <h3 className="text-lg font-bold text-emerald-800 mb-3 flex items-center gap-2">
                         <span className="text-2xl">🍎</span>
@@ -104,26 +104,17 @@ export default async function TeacherClassesPage() {
                           {teacherClasses.map((group) => (
                             <div
                               key={group.id}
-                              className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg font-medium"
+                              className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-800 rounded-lg font-bold"
                             >
                               <span>🎓 {group.name}</span>
-                              <form action={removeClassFromTeacher}>
-                                <input type="hidden" name="groupId" value={group.id} />
-                                <button
-                                  type="submit"
-                                  className="text-emerald-500 hover:text-emerald-700 ml-2"
-                                  title="Удалить классное руководство"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                  </svg>
-                                </button>
-                              </form>
+                              <span className="text-xs text-emerald-600 bg-white px-2 py-0.5 rounded-full">
+                                Назначено в разделе &quot;Классы&quot;
+                              </span>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-gray-500 italic mb-3">Классное руководство не назначено</p>
+                        <p className="text-emerald-700 italic mb-3 font-medium">Классное руководство не назначено</p>
                       )}
 
                       {/* Назначить класс */}
@@ -131,7 +122,7 @@ export default async function TeacherClassesPage() {
                         <input type="hidden" name="teacherId" value={teacher.id} />
                         <select
                           name="groupId"
-                          className="border-2 border-emerald-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500 bg-white flex-1"
+                          className="border-2 border-emerald-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-emerald-500 bg-white flex-1 font-medium"
                           defaultValue=""
                         >
                           <option value="" disabled>Выберите класс</option>
@@ -143,7 +134,7 @@ export default async function TeacherClassesPage() {
                         </select>
                         <button
                           type="submit"
-                          className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all text-sm font-medium"
+                          className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all text-sm font-bold"
                         >
                           Назначить
                         </button>
@@ -162,7 +153,7 @@ export default async function TeacherClassesPage() {
                           {teacherSubjectsData.map((subject) => (
                             <div
                               key={subject.id}
-                              className="flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg font-medium"
+                              className="flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-800 rounded-lg font-bold"
                             >
                               <span>📖 {subject.name}</span>
                               <form action={removeSubjectFromTeacher}>
@@ -170,7 +161,7 @@ export default async function TeacherClassesPage() {
                                 <input type="hidden" name="subjectId" value={subject.id} />
                                 <button
                                   type="submit"
-                                  className="text-indigo-500 hover:text-indigo-700 ml-2"
+                                  className="text-indigo-600 hover:text-indigo-900 ml-2"
                                   title="Удалить предмет"
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -182,7 +173,7 @@ export default async function TeacherClassesPage() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-gray-500 italic mb-3">Предметы не назначены</p>
+                        <p className="text-indigo-700 italic mb-3 font-medium">Предметы не назначены</p>
                       )}
 
                       {/* Назначить предмет */}
@@ -190,7 +181,7 @@ export default async function TeacherClassesPage() {
                         <input type="hidden" name="teacherId" value={teacher.id} />
                         <select
                           name="subjectId"
-                          className="border-2 border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 bg-white flex-1"
+                          className="border-2 border-indigo-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-indigo-500 bg-white flex-1 font-medium"
                           defaultValue=""
                         >
                           <option value="" disabled>Выберите предмет</option>
@@ -204,7 +195,7 @@ export default async function TeacherClassesPage() {
                         </select>
                         <button
                           type="submit"
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all text-sm font-medium"
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all text-sm font-bold"
                         >
                           Добавить
                         </button>

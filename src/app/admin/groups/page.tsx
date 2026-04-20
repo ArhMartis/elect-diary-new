@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { groups, user } from "@/db/schema/auth_schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
-import { createGroup, assignClassTeacher, assignStudentToGroup, removeClassTeacher } from "./actions";
+import { createGroup, assignClassTeacher, assignStudentToGroup, removeClassTeacher, removeStudentFromGroup } from "./actions";
 import { unstable_noStore as noStore } from "next/cache";
 
 export default async function GroupsPage() {
@@ -54,7 +54,7 @@ export default async function GroupsPage() {
           {groupsList.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-gray-100">
               <div className="text-6xl mb-4">🎓</div>
-              <p className="text-gray-500 text-lg">Классы ещё не созданы</p>
+              <p className="text-gray-700 text-lg font-medium">Классы ещё не созданы</p>
             </div>
           ) : (
             <div className="grid gap-4">
@@ -75,7 +75,7 @@ export default async function GroupsPage() {
                           <h3 className="text-2xl font-bold text-white">{group.name}</h3>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="px-3 py-1 bg-white/20 text-white rounded-full text-sm font-medium">
+                          <span className="px-3 py-1 bg-white/20 text-white rounded-full text-sm font-bold">
                             👥 {classStudents.length} учеников
                           </span>
                         </div>
@@ -84,21 +84,21 @@ export default async function GroupsPage() {
                     
                     <div className="p-6 space-y-4">
                       {/* Классный руководитель */}
-                      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200">
-                        <p className="text-sm font-semibold text-emerald-800 mb-2 flex items-center gap-2">
+                      <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+                        <p className="text-sm font-bold text-emerald-800 mb-2 flex items-center gap-2">
                           <span>🍎</span> Классный руководитель
                         </p>
                         {homeroomTeacher ? (
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className="text-2xl">👨‍🏫</span>
-                              <span className="font-bold text-emerald-700">{homeroomTeacher.fullName}</span>
+                              <span className="font-bold text-emerald-800">{homeroomTeacher.fullName}</span>
                             </div>
                             <form action={removeClassTeacher}>
                               <input type="hidden" name="groupId" value={group.id} />
                               <button
                                 type="submit"
-                                className="inline-flex items-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all text-sm font-medium"
+                                className="inline-flex items-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all text-sm font-bold"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -109,12 +109,12 @@ export default async function GroupsPage() {
                           </div>
                         ) : (
                           <div>
-                            <p className="text-amber-600 italic mb-3">⚠️ Классный руководитель не назначен</p>
+                            <p className="text-amber-700 font-bold mb-3">⚠️ Классный руководитель не назначен</p>
                             <form action={assignClassTeacher} className="flex gap-2 items-center">
                               <input type="hidden" name="groupId" value={group.id} />
                               <select
                                 name="teacherId"
-                                className="border-2 border-emerald-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500 bg-white flex-1"
+                                className="border-2 border-emerald-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-emerald-500 bg-white flex-1"
                                 defaultValue=""
                               >
                                 <option value="" disabled>Выберите учителя</option>
@@ -126,7 +126,7 @@ export default async function GroupsPage() {
                               </select>
                               <button
                                 type="submit"
-                                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all text-sm font-medium"
+                                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all text-sm font-bold"
                               >
                                 Назначить
                               </button>
@@ -136,24 +136,38 @@ export default async function GroupsPage() {
                       </div>
                       
                       {/* Ученики класса */}
-                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
-                        <p className="text-sm font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                      <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                        <p className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
                           <span>🎒</span> Ученики класса
                         </p>
                         {classStudents.length > 0 ? (
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                             {classStudents.map((student) => (
                               <div
                                 key={student.id}
-                                className="flex items-center gap-2 px-3 py-2 bg-white text-purple-700 rounded-lg text-sm font-medium border border-purple-100 shadow-sm"
+                                className="flex items-center justify-between gap-2 px-3 py-2 bg-white text-purple-800 rounded-lg text-sm font-bold border border-purple-200 shadow-sm"
                               >
-                                <span>👤</span>
-                                {student.fullName}
+                                <div className="flex items-center gap-2">
+                                  <span>👤</span>
+                                  <span>{student.fullName}</span>
+                                </div>
+                                <form action={removeStudentFromGroup}>
+                                  <input type="hidden" name="studentId" value={student.id} />
+                                  <button
+                                    type="submit"
+                                    className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded transition-all"
+                                    title="Удалить из класса"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                  </button>
+                                </form>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <p className="text-purple-500 italic">В классе пока нет учеников</p>
+                          <p className="text-purple-700 font-bold">В классе пока нет учеников</p>
                         )}
                       </div>
                     </div>
@@ -171,7 +185,7 @@ export default async function GroupsPage() {
           </h3>
           <form action={createGroup} className="flex gap-3 items-end">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-700 mb-2">
                 Название класса
               </label>
               <input
@@ -196,7 +210,7 @@ export default async function GroupsPage() {
           <div className="bg-white rounded-2xl shadow-lg border-2 border-amber-200 p-6">
             <h3 className="text-xl font-bold text-amber-700 mb-4 flex items-center gap-2">
               <span>⚠️</span> Распределить учеников без класса 
-              <span className="ml-2 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm">
+              <span className="ml-2 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-bold">
                 {studentsWithoutGroup.length}
               </span>
             </h3>
@@ -204,10 +218,10 @@ export default async function GroupsPage() {
               {studentsWithoutGroup.map((student) => (
                 <div key={student.id} className="flex gap-3 items-center bg-amber-50 rounded-lg p-3">
                   <span className="text-lg">👤</span>
-                  <span className="font-medium text-gray-800 flex-1">{student.fullName}</span>
+                  <span className="font-bold text-gray-800 flex-1">{student.fullName}</span>
                   <select
                     name={`student-${student.id}`}
-                    className="border-2 border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 bg-white"
+                    className="border-2 border-amber-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-amber-500 bg-white"
                     defaultValue=""
                   >
                     <option value="" disabled>Выберите класс</option>

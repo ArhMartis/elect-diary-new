@@ -2,15 +2,50 @@
 
 import { useState } from "react";
 import { useAccountSwitcher } from "@/hooks/useAccountSwitcher";
+import Image from "next/image";
+
+// Иконки ролей
+const roleIcons: Record<string, string> = {
+  admin: "👑",
+  principal: "🎓",
+  teacher: "👨‍🏫",
+  student: "🎒",
+  parent: "👨‍👩‍👧",
+};
+
+const roleNames: Record<string, string> = {
+  admin: "Админ",
+  principal: "Директор",
+  teacher: "Учитель",
+  student: "Ученик",
+  parent: "Родитель",
+};
+
+const roleColors: Record<string, string> = {
+  admin: "badge-error",
+  principal: "badge-info",
+  teacher: "badge-success",
+  student: "badge-primary",
+  parent: "badge-warning",
+};
 
 export default function AccountSwitcher() {
   const { accounts, isSwitching, error, switchToAccount, deleteAccount } =
     useAccountSwitcher();
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<string>("");
 
   if (accounts.length === 0) {
     return null;
   }
+
+  // Фильтруем аккаунты по роли
+  const filteredAccounts = selectedRole
+    ? accounts.filter((account) => account.role === selectedRole)
+    : accounts;
+
+  // Получаем уникальные роли
+  const availableRoles = [...new Set(accounts.map((a) => a.role))];
 
   return (
     <div className="relative">
@@ -50,10 +85,10 @@ export default function AccountSwitcher() {
             onClick={() => setIsOpen(false)}
           />
 
-          <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl z-50 overflow-hidden border border-gray-100">
+          <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl z-50 overflow-hidden border border-gray-100">
             {/* Заголовок */}
             <div className="px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600">
-              <h3 className="text-white font-semibold text-sm">
+              <h3 className="text-white font-bold text-sm">
                 Переключить аккаунт
               </h3>
               <p className="text-white/70 text-xs mt-0.5">
@@ -61,62 +96,114 @@ export default function AccountSwitcher() {
               </p>
             </div>
 
-            {/* Список аккаунтов */}
-            <div className="max-h-64 overflow-y-auto">
-              {accounts.map((account) => (
-                <div
-                  key={account.id}
-                  className="group flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+            {/* Фильтр ролей DaisyUI */}
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+              <p className="text-xs font-bold text-gray-600 mb-2">Фильтр по роли:</p>
+              <div className="flex flex-wrap gap-1">
+                <button
+                  onClick={() => setSelectedRole("")}
+                  className={`badge badge-sm cursor-pointer transition-all ${
+                    selectedRole === "" ? "badge-primary" : "badge-outline"
+                  }`}
                 >
+                  Все
+                </button>
+                {availableRoles.map((role) => (
                   <button
-                    onClick={async () => {
-                      await switchToAccount(account.email);
-                      setIsOpen(false);
-                    }}
-                    disabled={isSwitching}
-                    className="flex items-center gap-3 flex-1 text-left"
+                    key={role}
+                    onClick={() => setSelectedRole(role)}
+                    className={`badge badge-sm cursor-pointer transition-all ${
+                      selectedRole === role ? roleColors[role] || "badge-primary" : "badge-outline"
+                    }`}
                   >
-                    <img
-                      src={account.avatar ?? "/default-avatar.png"}
-                      alt={account.fullName}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-800 text-sm truncate">
-                        {account.fullName}
-                      </div>
-                      <div className="text-gray-500 text-xs truncate">
-                        {account.email}
-                      </div>
-                    </div>
+                    {roleIcons[role] || "👤"} {roleNames[role] || role}
                   </button>
+                ))}
+              </div>
+            </div>
 
-                  {/* Кнопка удаления аккаунта */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteAccount(account.email);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                    title="Удалить аккаунт из списка"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
+            {/* Список аккаунтов */}
+            <div className="max-h-80 overflow-y-auto">
+              {filteredAccounts.length === 0 ? (
+                <div className="px-4 py-8 text-center text-gray-500">
+                  Нет аккаунтов с выбранной ролью
                 </div>
-              ))}
+              ) : (
+                filteredAccounts.map((account) => (
+                  <div
+                    key={account.id}
+                    className="group flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                  >
+                    <button
+                      onClick={async () => {
+                        await switchToAccount(account.email);
+                        setIsOpen(false);
+                        // Обновляем страницу для применения нового профиля
+                        window.location.reload();
+                      }}
+                      disabled={isSwitching}
+                      className="flex items-center gap-3 flex-1 text-left"
+                    >
+                      <div className="relative">
+                        {account.avatar ? (
+                          <Image
+                            src={account.avatar}
+                            alt={account.fullName}
+                            width={40}
+                            height={40}
+                            className="rounded-full object-cover border-2 border-gray-200"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold border-2 border-gray-200">
+                            {roleIcons[account.role] || "👤"}
+                          </div>
+                        )}
+                        <span className="absolute -bottom-1 -right-1 text-xs">
+                          {roleIcons[account.role] || "👤"}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-gray-800 text-sm truncate">
+                          {account.fullName}
+                        </div>
+                        <div className="text-gray-500 text-xs truncate">
+                          {account.email}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className={`badge badge-xs ${roleColors[account.role] || "badge-primary"}`}>
+                            {roleNames[account.role] || account.role}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Кнопка удаления аккаунта */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteAccount(account.email);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      title="Удалить аккаунт из списка"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Сообщение об ошибке */}

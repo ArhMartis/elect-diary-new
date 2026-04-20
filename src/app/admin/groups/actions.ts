@@ -60,3 +60,15 @@ export async function assignStudentToGroup(formData: FormData) {
   revalidatePath("/admin/groups");
 }
 
+export async function removeStudentFromGroup(formData: FormData) {
+  const studentId = formData.get("studentId") as string;
+
+  await db
+    .update(user)
+    .set({ groupId: null })
+    .where(eq(user.id, studentId));
+
+  await setFlash("Ученик удалён из класса");
+  revalidatePath("/admin/groups");
+}
+
