@@ -56,13 +56,16 @@ export default async function PostsPage() {
         {/* Список постов */}
         <div className="space-y-4">
           {allPosts.length === 0 ? (
-            <div className="card bg-base-100 shadow-xl">
-              <div className="card-body items-center text-center py-12">
-                <div className="text-6xl mb-4">📝</div>
-                <h2 className="card-title text-2xl">Постов пока нет</h2>
-                <p className="text-gray-500">Создайте первый пост, чтобы начать</p>
-                <div className="card-actions mt-4">
-                  <Link href="/posts/newpost" className="btn btn-primary">
+            <div className="card bg-gradient-to-br from-indigo-50 to-purple-50 shadow-xl border-2 border-indigo-100">
+              <div className="card-body items-center text-center py-16">
+                <div className="text-8xl mb-6">📝</div>
+                <h2 className="card-title text-3xl text-indigo-800">Постов пока нет</h2>
+                <p className="text-indigo-600 text-lg mt-2">Создайте первый пост, чтобы начать</p>
+                <div className="card-actions mt-6">
+                  <Link href="/posts/newpost" className="btn btn-primary btn-lg gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
                     Создать пост
                   </Link>
                 </div>
@@ -80,11 +83,7 @@ export default async function PostsPage() {
                         <div className="badge badge-outline">
                           {new Date(post.createdAt).toLocaleDateString("ru-RU")}
                         </div>
-                        {post.published ? (
-                          <div className="badge badge-success">✅ Опубликован</div>
-                        ) : (
-                          <div className="badge badge-warning">📝 Черновик</div>
-                        )}
+                        <div className="badge badge-success">✅ Опубликован</div>
                       </div>
                     </div>
                     <div className="card-actions ml-4">
@@ -130,9 +129,9 @@ export default async function PostsPage() {
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <div className="stat-title">Опубликовано</div>
+                <div className="stat-title">Всего постов</div>
                 <div className="stat-value text-success">
-                  {allPosts.filter((p) => p.published).length}
+                  {allPosts.length}
                 </div>
               </div>
             </div>
@@ -144,10 +143,7 @@ export default async function PostsPage() {
                     <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <div className="stat-title">Черновиков</div>
-                <div className="stat-value text-warning">
-                  {allPosts.filter((p) => !p.published).length}
-                </div>
+
               </div>
             </div>
           </div>

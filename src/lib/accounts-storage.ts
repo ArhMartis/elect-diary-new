@@ -9,6 +9,7 @@ export interface SavedAccount {
   password: string;
   fullName: string;
   avatar?: string;
+  role?: string;
   lastUsed?: number;
 }
 

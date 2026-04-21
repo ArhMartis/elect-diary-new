@@ -232,8 +232,7 @@ export const groups = sqliteTable("groups", {
 export const subjects = sqliteTable("subjects", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
-  // Учитель, закреплённый за предметом (может быть null для общих предметов)
-  // Поле устарело, используется teacherSubjects для связи многие-ко-многим
+  type: text("type").default("regular"),
   teacherId: text("teacher_id").references(() => user.id, { onDelete: "set null" }),
 });
 
@@ -534,6 +533,30 @@ export const teacherSubjectsRelations = relations(teacherSubjects, ({ one }) => 
 
 export const subjectsRelations = relations(subjects, ({ many }) => ({
   teacherAssignments: many(teacherSubjects),
+  groupAssignments: many(groupSubjects),
+}));
+
+export const groupSubjects = sqliteTable("group_subjects", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  groupId: integer("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  subjectId: integer("subject_id")
+    .notNull()
+    .references(() => subjects.id, { onDelete: "cascade" }),
+}, (table) => [
+  index("group_subjects_unique_idx").on(table.groupId, table.subjectId),
+]);
+
+export const groupSubjectsRelations = relations(groupSubjects, ({ one }) => ({
+  group: one(groups, {
+    fields: [groupSubjects.groupId],
+    references: [groups.id],
+  }),
+  subject: one(subjects, {
+    fields: [groupSubjects.subjectId],
+    references: [subjects.id],
+  }),
 }));
 
 

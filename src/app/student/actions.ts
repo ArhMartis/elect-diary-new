@@ -171,6 +171,61 @@ export async function getDiarySettings() {
   }
 }
 
+export async function saveDiarySettings(settings: {
+  schoolName?: string;
+  schoolAddress?: string;
+  director?: string;
+  directorPhone?: string;
+  vicePrincipal?: string;
+  vicePrincipalPhone?: string;
+  vicePrincipalEdu?: string;
+  vicePrincipalEduPhone?: string;
+  homeroomTeacher?: string;
+  homeroomTeacherPhone?: string;
+  psychologist?: string;
+  psychologistPhone?: string;
+  socialPedagogue?: string;
+  socialPedagoguePhone?: string;
+}) {
+  try {
+    const existing = await db.query.schoolContacts.findFirst();
+    const values = {
+      schoolName: settings.schoolName || "Школа",
+      schoolAddress: settings.schoolAddress || "",
+      schoolPhone: "",
+      director: settings.director || "",
+      vicePrincipal: settings.vicePrincipal || "",
+      vicePrincipalEdu: settings.vicePrincipalEdu || "",
+      homeroomTeacher: settings.homeroomTeacher || "",
+      psychologist: settings.psychologist || "",
+      socialPedagogue: settings.socialPedagogue || "",
+    };
+
+    if (existing) {
+      await db.update(schoolContacts).set(values).where(eq(schoolContacts.id, existing.id));
+    } else {
+      await db.insert(schoolContacts).values(values);
+    }
+
+    const existingSchool = await db.query.schoolInfo.findFirst();
+    const schoolValues = {
+      name: settings.schoolName || "Школа",
+      address: settings.schoolAddress || "",
+      phone: settings.directorPhone || "",
+    };
+    if (existingSchool) {
+      await db.update(schoolInfo).set(schoolValues).where(eq(schoolInfo.id, existingSchool.id));
+    } else {
+      await db.insert(schoolInfo).values(schoolValues);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error saving diary settings:", error);
+    return { success: false, error: "Failed to save settings" };
+  }
+}
+
 // ============================================================================
 // HOMEROOM TEACHER (Классный руководитель)
 // ============================================================================
@@ -241,12 +296,21 @@ export async function isUserParentOfStudent(userId: string, studentId: string) {
 
 export async function getDirector() {
   try {
-    const director = await db.query.user.findFirst({
+    const principal = await db.query.user.findFirst({
+      where: eq(user.role, "principal"),
+    });
+    if (principal) {
+      return {
+        fullName: principal.fullName || "",
+        phone: "",
+      };
+    }
+    const admin = await db.query.user.findFirst({
       where: eq(user.role, "admin"),
     });
-    if (director) {
+    if (admin) {
       return {
-        fullName: director.fullName || "",
+        fullName: admin.fullName || "",
         phone: "",
       };
     }

@@ -2,10 +2,10 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { user, groups, grades, schedule, subjects } from "@/db/schema/auth_schema";
+import { user, groups, grades, schedule, subjects, groupSubjects } from "@/db/schema/auth_schema";
 import { eq, and } from "drizzle-orm";
 import StudentDiaryPage from "@/components/StudentDiaryPage";
-import { isTeacherHomeroomTeacher, isUserParentOfStudent } from "@/app/student/actions";
+import { isTeacherHomeroomTeacher, isUserParentOfStudent, getDirector, getHomeroomTeacherByGroup, getDiarySettings } from "@/app/student/actions";
 import StudentSelectorForm from "./StudentSelectorForm";
 
 interface PageProps {
@@ -27,6 +27,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
   let targetStudentName = "";
   let targetStudentGrade = "";
   let targetStudentGroupId: number | null = null;
+  let targetStudentAvatar = "";
 
   if (userRole === "admin" || userRole === "teacher") {
     const params = await searchParams;
@@ -74,6 +75,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     targetStudentName = student.fullName;
     targetStudentGrade = student.group?.name || "";
     targetStudentGroupId = student.groupId || null;
+    targetStudentAvatar = student.avatar || student.image || "";
   } else {
     targetStudentId = currentUserId;
     targetStudentName = currentUser.fullName || "";
@@ -83,6 +85,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     });
     targetStudentGrade = studentRecord?.group?.name || "";
     targetStudentGroupId = studentRecord?.groupId || null;
+    targetStudentAvatar = studentRecord?.avatar || studentRecord?.image || "";
   }
 
   const isHomeroomTeacher = userRole === "teacher"
@@ -144,6 +147,39 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     dayOfWeek: s.dayOfWeek,
   }));
 
+  const directorData = await getDirector();
+  const homeroomTeacherData = targetStudentGroupId
+    ? await getHomeroomTeacherByGroup(targetStudentGroupId)
+    : null;
+  const diarySettings = await getDiarySettings();
+
+  const effectiveDirector = directorData?.fullName || diarySettings?.director || "";
+  const effectiveHomeroomTeacher = homeroomTeacherData?.fullName || diarySettings?.homeroomTeacher || "";
+  const effectiveHomeroomTeacherPhone = homeroomTeacherData?.phone || diarySettings?.homeroomTeacherPhone || "";
+
+  const classSubjectNames = [...new Set(
+    allSchedule
+      .map(s => subjectMap.get(s.subjectId))
+      .filter(Boolean) as string[]
+  )];
+
+  let filteredSubjectNames: string[] = [];
+  if (targetStudentGroupId) {
+    const groupSubjectRows = await db.select().from(groupSubjects).where(eq(groupSubjects.groupId, targetStudentGroupId));
+    const groupSubjectIds = groupSubjectRows.map(gs => gs.subjectId);
+    if (groupSubjectIds.length > 0) {
+      filteredSubjectNames = [];
+      for (const sid of groupSubjectIds) {
+        const found = await db.query.subjects.findFirst({ where: eq(subjects.id, sid) });
+        if (found) filteredSubjectNames.push(found.name);
+      }
+    } else {
+      filteredSubjectNames = classSubjectNames;
+    }
+  } else {
+    filteredSubjectNames = classSubjectNames;
+  }
+
   return (
     <StudentDiaryPage
       studentId={targetStudentId}
@@ -156,6 +192,28 @@ export default async function DiaryPage({ searchParams }: PageProps) {
       isHomeroomTeacher={isHomeroomTeacher}
       isParent={isParent}
       userRole={userRole}
+      initialDirectorName={effectiveDirector}
+      initialHomeroomTeacherName={effectiveHomeroomTeacher}
+      initialHomeroomTeacherPhone={effectiveHomeroomTeacherPhone}
+      initialSchoolName={diarySettings?.schoolName || ""}
+      initialSchoolAddress={diarySettings?.schoolAddress || ""}
+      classSubjectNames={filteredSubjectNames}
+      initialContacts={diarySettings ? {
+        director: effectiveDirector || diarySettings.director,
+        directorPhone: diarySettings.directorPhone,
+        vicePrincipal: diarySettings.vicePrincipal,
+        vicePrincipalPhone: diarySettings.vicePrincipalPhone,
+        vicePrincipalEdu: diarySettings.vicePrincipalEdu,
+        vicePrincipalEduPhone: diarySettings.vicePrincipalEduPhone,
+        homeroomTeacher: effectiveHomeroomTeacher || diarySettings.homeroomTeacher,
+        homeroomTeacherPhone: effectiveHomeroomTeacherPhone || diarySettings.homeroomTeacherPhone,
+        psychologist: diarySettings.psychologist,
+        psychologistPhone: diarySettings.psychologistPhone,
+        socialPedagogue: diarySettings.socialPedagogue,
+        socialPedagoguePhone: diarySettings.socialPedagoguePhone,
+      } : undefined}
+      initialHolidays={diarySettings?.holidays}
+      userAvatar={targetStudentAvatar}
     />
   );
 }

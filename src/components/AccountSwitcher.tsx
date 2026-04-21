@@ -22,11 +22,11 @@ const roleNames: Record<string, string> = {
 };
 
 const roleColors: Record<string, string> = {
-  admin: "badge-error",
-  principal: "badge-info",
-  teacher: "badge-success",
-  student: "badge-primary",
-  parent: "badge-warning",
+  admin: "bg-red-500 text-white",
+  principal: "bg-blue-500 text-white",
+  teacher: "bg-emerald-500 text-white",
+  student: "bg-indigo-500 text-white",
+  parent: "bg-amber-500 text-white",
 };
 
 export default function AccountSwitcher() {
@@ -44,8 +44,8 @@ export default function AccountSwitcher() {
     ? accounts.filter((account) => account.role === selectedRole)
     : accounts;
 
-  // Получаем уникальные роли
-  const availableRoles = [...new Set(accounts.map((a) => a.role))];
+  // Получаем уникальные роли (фильтруем undefined)
+  const availableRoles = [...new Set(accounts.map((a) => a.role).filter((r): r is string => !!r))];
 
   return (
     <div className="relative">
@@ -102,8 +102,8 @@ export default function AccountSwitcher() {
               <div className="flex flex-wrap gap-1">
                 <button
                   onClick={() => setSelectedRole("")}
-                  className={`badge badge-sm cursor-pointer transition-all ${
-                    selectedRole === "" ? "badge-primary" : "badge-outline"
+                  className={`px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer transition-all ${
+                    selectedRole === "" ? "bg-indigo-500 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                   }`}
                 >
                   Все
@@ -112,8 +112,8 @@ export default function AccountSwitcher() {
                   <button
                     key={role}
                     onClick={() => setSelectedRole(role)}
-                    className={`badge badge-sm cursor-pointer transition-all ${
-                      selectedRole === role ? roleColors[role] || "badge-primary" : "badge-outline"
+                    className={`px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer transition-all ${
+                      selectedRole === role ? (roleColors[role] || "bg-indigo-500 text-white") : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                     }`}
                   >
                     {roleIcons[role] || "👤"} {roleNames[role] || role}
@@ -155,23 +155,23 @@ export default function AccountSwitcher() {
                           />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold border-2 border-gray-200">
-                            {roleIcons[account.role] || "👤"}
+                            {(account.role && roleIcons[account.role]) || "👤"}
                           </div>
                         )}
                         <span className="absolute -bottom-1 -right-1 text-xs">
-                          {roleIcons[account.role] || "👤"}
+                          {(account.role && roleIcons[account.role]) || "👤"}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-gray-800 text-sm truncate">
                           {account.fullName}
                         </div>
-                        <div className="text-gray-500 text-xs truncate">
+                        <div className="text-gray-400 text-xs truncate">
                           {account.email}
                         </div>
                         <div className="flex items-center gap-1 mt-0.5">
-                          <span className={`badge badge-xs ${roleColors[account.role] || "badge-primary"}`}>
-                            {roleNames[account.role] || account.role}
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${(account.role && roleColors[account.role]) || "bg-indigo-500 text-white"}`}>
+                            {(account.role && roleIcons[account.role]) || "👤"} {(account.role && roleNames[account.role]) || account.role || "Пользователь"}
                           </span>
                         </div>
                       </div>

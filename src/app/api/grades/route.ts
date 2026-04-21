@@ -47,15 +47,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Формируем условие WHERE
-    let whereCondition = eq(grades.studentId, studentId);
+    const conditions: (ReturnType<typeof eq> | ReturnType<typeof gte> | ReturnType<typeof lte>)[] = [
+      eq(grades.studentId, studentId),
+    ];
 
     if (academicPeriodId) {
-      whereCondition = and(whereCondition, eq(grades.academicPeriodId, parseInt(academicPeriodId)));
+      conditions.push(eq(grades.academicPeriodId, parseInt(academicPeriodId)));
     }
 
     if (startDate && endDate) {
-      whereCondition = and(whereCondition, gte(grades.date, startDate), lte(grades.date, endDate));
+      conditions.push(gte(grades.date, startDate));
+      conditions.push(lte(grades.date, endDate));
     }
+
+    const whereCondition = and(...conditions);
 
     // Получаем оценки с связанными данными
     const gradesList = await db

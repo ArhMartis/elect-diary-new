@@ -6,6 +6,7 @@ interface Subject {
   id: number;
   name: string;
   teacherId: string | null;
+  type?: string | null;
 }
 
 interface Teacher {
@@ -79,6 +80,7 @@ export function SubjectItem({
       </div>
 
       {/* Справочник учителей для этого предмета */}
+      {subject.type !== 'event' && subject.type !== 'class_hour' && subject.type !== 'olympiad' && (
       <div className="bg-gray-50 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-gray-600 mb-3 flex items-center gap-2">
           <svg
@@ -180,6 +182,7 @@ export function SubjectItem({
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }

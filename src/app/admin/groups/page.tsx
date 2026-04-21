@@ -6,6 +6,7 @@ import { groups, user } from "@/db/schema/auth_schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { createGroup, assignClassTeacher, assignStudentToGroup, removeClassTeacher, removeStudentFromGroup } from "./actions";
+import AssignTeacherForm from "./AssignTeacherForm";
 import { unstable_noStore as noStore } from "next/cache";
 
 export default async function GroupsPage() {
@@ -29,6 +30,10 @@ export default async function GroupsPage() {
 
   const groupsList = await db.select().from(groups);
   const studentsWithoutGroup = students.filter((s) => !s.groupId);
+
+  const assignedTeacherIds = new Set(
+    groupsList.filter(g => g.teacherId).map(g => g.teacherId!)
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-6">
@@ -110,27 +115,10 @@ export default async function GroupsPage() {
                         ) : (
                           <div>
                             <p className="text-amber-700 font-bold mb-3">⚠️ Классный руководитель не назначен</p>
-                            <form action={assignClassTeacher} className="flex gap-2 items-center">
-                              <input type="hidden" name="groupId" value={group.id} />
-                              <select
-                                name="teacherId"
-                                className="border-2 border-emerald-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-emerald-500 bg-white flex-1"
-                                defaultValue=""
-                              >
-                                <option value="" disabled>Выберите учителя</option>
-                                {teachers.map((teacher) => (
-                                  <option key={teacher.id} value={teacher.id}>
-                                    👨‍🏫 {teacher.fullName}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                type="submit"
-                                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all text-sm font-bold"
-                              >
-                                Назначить
-                              </button>
-                            </form>
+                            <AssignTeacherForm
+                              groupId={group.id}
+                              availableTeachers={teachers.filter(t => !assignedTeacherIds.has(t.id)).map(t => ({ id: t.id, fullName: t.fullName }))}
+                            />
                           </div>
                         )}
                       </div>

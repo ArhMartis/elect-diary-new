@@ -8,7 +8,7 @@ export default function AvatarUploader({ current }: { current?: string }) {
   const [showModal, setShowModal] = useState(false);
 
   // Проверяем, является ли аватар кастомным (не дефолтным)
-  const isCustomAvatar = current && current !== "/default-avatar.png" && current.startsWith("http");
+  const isCustomAvatar = current && current !== "/default-avatar.png";
 
   async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -38,11 +38,18 @@ export default function AvatarUploader({ current }: { current?: string }) {
   return (
     <>
       <div className="flex items-center gap-3 shrink-0">
-        <div className="relative">
+        <div className="relative cursor-pointer" onClick={() => isCustomAvatar && setShowModal(true)}>
           <img
             src={preview ?? "/default-avatar.png"}
-            className="w-24 h-24 rounded-full object-cover border-4 border-indigo-100 shadow-lg"
+            className="w-24 h-24 rounded-full object-cover border-4 border-indigo-100 shadow-lg hover:opacity-90 transition-opacity"
           />
+          {isCustomAvatar && (
+            <div className="absolute inset-0 rounded-full bg-black/0 hover:bg-black/10 flex items-center justify-center transition-all">
+              <svg className="w-6 h-6 text-white opacity-0 hover:opacity-100 drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+              </svg>
+            </div>
+          )}
         </div>
 
         <label className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-medium rounded-lg cursor-pointer hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg active:scale-95">

@@ -5,16 +5,15 @@ import { teacherSubjects, groups } from "@/db/schema/auth_schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-export async function assignSubjectToTeacher(formData: FormData) {
+export async function assignSubjectToTeacher(formData: FormData): Promise<void> {
   const teacherId = formData.get("teacherId") as string;
   const subjectId = parseInt(formData.get("subjectId") as string);
   
   if (!teacherId || isNaN(subjectId)) {
-    return { success: false, error: "Неверные данные" };
+    return;
   }
 
   try {
-    // Проверяем, не назначен ли уже этот предмет
     const existing = await db.query.teacherSubjects.findFirst({
       where: and(
         eq(teacherSubjects.teacherId, teacherId),
@@ -23,7 +22,7 @@ export async function assignSubjectToTeacher(formData: FormData) {
     });
 
     if (existing) {
-      return { success: false, error: "Предмет уже назначен этому учителю" };
+      return;
     }
 
     await db.insert(teacherSubjects).values({
@@ -32,19 +31,17 @@ export async function assignSubjectToTeacher(formData: FormData) {
     });
 
     revalidatePath("/admin/teacher-classes");
-    return { success: true };
   } catch (error) {
     console.error("Error assigning subject:", error);
-    return { success: false, error: "Ошибка при назначении предмета" };
   }
 }
 
-export async function removeSubjectFromTeacher(formData: FormData) {
+export async function removeSubjectFromTeacher(formData: FormData): Promise<void> {
   const teacherId = formData.get("teacherId") as string;
   const subjectId = parseInt(formData.get("subjectId") as string);
   
   if (!teacherId || isNaN(subjectId)) {
-    return { success: false, error: "Неверные данные" };
+    return;
   }
 
   try {
@@ -58,10 +55,8 @@ export async function removeSubjectFromTeacher(formData: FormData) {
       );
 
     revalidatePath("/admin/teacher-classes");
-    return { success: true };
   } catch (error) {
     console.error("Error removing subject:", error);
-    return { success: false, error: "Ошибка при удалении предмета" };
   }
 }
 

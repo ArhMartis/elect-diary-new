@@ -5,7 +5,8 @@ import { db } from "@/db";
 import { user, groups, subjects, teacherSubjects } from "@/db/schema/auth_schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
-import { assignSubjectToTeacher, removeSubjectFromTeacher, assignClassToTeacher } from "./actions";
+import { assignSubjectToTeacher, removeSubjectFromTeacher } from "./actions";
+import AssignClassForm from "./AssignClassForm";
 
 // Иконки ролей
 const roleIcons: Record<string, string> = {
@@ -71,9 +72,9 @@ export default async function TeacherClassesPage() {
               const teacherClasses = allGroups.filter(g => g.teacherId === teacher.id);
               
               // Доступные классы (без классного руководителя или текущего учителя)
-              const availableGroups = allGroups.filter(g => !g.teacherId || g.teacherId === teacher.id);
+              const availableGroups = allGroups.filter(g => !g.teacherId);
 
-              return (
+               return (
                 <div
                   key={teacher.id}
                   className="bg-white rounded-2xl shadow-lg border-2 border-cyan-100 overflow-hidden hover:shadow-xl transition-all"
@@ -118,27 +119,16 @@ export default async function TeacherClassesPage() {
                       )}
 
                       {/* Назначить класс */}
-                      <form action={assignClassToTeacher} className="flex gap-2 items-center">
-                        <input type="hidden" name="teacherId" value={teacher.id} />
-                        <select
-                          name="groupId"
-                          className="border-2 border-emerald-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-emerald-500 bg-white flex-1 font-medium"
-                          defaultValue=""
-                        >
-                          <option value="" disabled>Выберите класс</option>
-                          {availableGroups.map((group) => (
-                            <option key={group.id} value={group.id}>
-                              🎓 {group.name} {group.teacherId && group.teacherId !== teacher.id ? "(уже имеет классного руководителя)" : "(свободен)"}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="submit"
-                          className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all text-sm font-bold"
-                        >
-                          Назначить
-                        </button>
-                      </form>
+                      {teacherClasses.length > 0 ? (
+                        <div className="text-amber-700 font-medium">
+                          ⚠️ Учитель уже является классным руководителем. Если произошла ошибка в выборе классного руководителя — смените его в <Link href="/admin/groups" className="text-emerald-600 hover:text-emerald-800 underline">Классы</Link>.
+                        </div>
+                      ) : (
+                        <AssignClassForm
+                          teacherId={teacher.id}
+                          availableGroups={availableGroups.map(g => ({ id: g.id, name: g.name }))}
+                        />
+                      )}
                     </div>
 
                     {/* Предметы */}
@@ -186,7 +176,7 @@ export default async function TeacherClassesPage() {
                         >
                           <option value="" disabled>Выберите предмет</option>
                           {allSubjects
-                            .filter(s => !teacherSubjectIds.includes(s.id))
+                            .filter(s => !teacherSubjectIds.includes(s.id) && s.type !== 'event' && s.type !== 'class_hour' && s.type !== 'olympiad')
                             .map((subject) => (
                               <option key={subject.id} value={subject.id}>
                                 📖 {subject.name}

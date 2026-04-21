@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import LogoutButton from "./LogoutButton";
 import AccountSwitcher from "./AccountSwitcher";
+import Avatar from "./Avatar";
 import { unstable_noStore as noStore } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,14 @@ export default async function Navbar() {
   });
 
   const role = session?.user.role;
+
+  const roleNames: Record<string, string> = {
+    admin: "Админ",
+    principal: "Директор",
+    teacher: "Учитель",
+    student: "Ученик",
+    parent: "Родитель",
+  };
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 shadow-lg">
@@ -70,10 +79,10 @@ export default async function Navbar() {
                 {/* Профиль */}
                 <Link href="/profile">
                   <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-xl hover:bg-white/20 transition-all cursor-pointer">
-                    <img
-                      src={session.user.avatar ?? "/default-avatar.png"}
+                    <Avatar
+                      src={session.user.avatar}
                       alt="avatar"
-                      className="w-9 h-9 rounded-full object-cover border-2 border-white/50"
+                      fallbackText={session.user.fullName || session.user.name || "U"}
                     />
                     <div className="text-sm leading-tight text-white hidden sm:block">
                       <div className="font-medium">
@@ -82,9 +91,11 @@ export default async function Navbar() {
                       <div className="opacity-75 text-xs max-w-[150px] truncate">
                         {session.user.email}
                       </div>
-                      <div className="opacity-90 text-xs font-medium text-white/90 mt-0.5">
-                        {session.user.fullName || "ФИО не указано"}
-                      </div>
+                      {session.user.role && (
+                        <div className="opacity-60 text-xs text-gray-200 mt-0.5">
+                          {roleNames[session.user.role] || session.user.role}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Link>
