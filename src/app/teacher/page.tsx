@@ -2,19 +2,12 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { user, groups, schedule, subjects as subjectsSchema } from "@/db/schema/auth_schema";
-import { grades, subjects } from "@/db/schema/auth_schema";
-import { eq, desc } from "drizzle-orm";
+import { user, groups } from "@/db/schema/auth_schema";
+import { eq } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
-import StudentDiary from "@/components/StudentDiary";
 import Link from "next/link";
-import { isTeacherHomeroomTeacher } from "@/app/student/actions";
 
-export default async function TeacherPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ studentId?: string }>;
-}) {
+export default async function TeacherPage() {
   noStore();
 
   const session = await auth.api.getSession({
@@ -25,81 +18,18 @@ export default async function TeacherPage({
     redirect("/");
   }
 
-  const params = await searchParams;
-  const selectedStudentId = params.studentId;
-
   const teacherGroup = await db.query.groups.findFirst({
     where: eq(groups.teacherId, session.user.id),
   });
 
   let students: typeof user.$inferSelect[] = [];
-  let selectedStudent: typeof user.$inferSelect | null = null;
-  let studentGrades: {
-    id: number;
-    value: string;
-    subjectName: string | null;
-    date: string | null;
-    comment: string | null;
-    teacherName: string | null;
-  }[] = [];
-
-  // Получаем расписание для классов этого учителя
-  const scheduleList = teacherGroup
-    ? await db
-        .select({
-          id: schedule.id,
-          groupId: schedule.groupId,
-          subjectId: schedule.subjectId,
-          teacherId: schedule.teacherId,
-          lessonDate: schedule.lessonDate,
-          dayOfWeek: schedule.dayOfWeek,
-          lessonNumber: schedule.lessonNumber,
-          subjectName: subjectsSchema.name,
-          teacherName: user.name,
-          groupName: groups.name,
-        })
-        .from(schedule)
-        .leftJoin(subjectsSchema, eq(schedule.subjectId, subjectsSchema.id))
-        .leftJoin(user, eq(schedule.teacherId, user.id))
-        .leftJoin(groups, eq(schedule.groupId, groups.id))
-        .orderBy(schedule.lessonDate, schedule.dayOfWeek, schedule.lessonNumber)
-    : [];
 
   if (teacherGroup) {
     students = await db
       .select()
       .from(user)
       .where(eq(user.groupId, teacherGroup.id));
-
-    if (selectedStudentId) {
-      selectedStudent = students.find((s) => s.id === selectedStudentId) || null;
-
-      if (selectedStudent) {
-        studentGrades = await db
-          .select({
-            id: grades.id,
-            value: grades.value,
-            subjectName: subjects.name,
-            date: grades.date,
-            comment: grades.comment,
-            teacherName: user.name,
-          })
-          .from(grades)
-          .leftJoin(subjects, eq(grades.subjectId, subjects.id))
-          .leftJoin(user, eq(grades.teacherId, user.id))
-          .where(eq(grades.studentId, selectedStudent.id));
-      }
-    }
   }
-
-  const numericGrades = studentGrades
-    .map((g) => Number(g.value))
-    .filter((v) => !isNaN(v));
-
-  const average =
-    numericGrades.length > 0
-      ? numericGrades.reduce((a, b) => a + b, 0) / numericGrades.length
-      : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6">
@@ -128,6 +58,11 @@ export default async function TeacherPage({
                   )}
                   <span className="text-gray-600 text-sm">
                     Вы классный руководитель этого класса
+                  </span>
+                </div>
+                <div className="mt-2">
+                  <span className="text-purple-700 font-medium">
+                    {session.user.fullName}
                   </span>
                 </div>
               </div>
@@ -196,79 +131,37 @@ export default async function TeacherPage({
               У вас пока нет учеников в классе
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {students.map((student) => (
                 <Link
                   key={student.id}
-                  href={`/teacher?studentId=${student.id}`}
-                  className={`px-4 py-2.5 rounded-lg font-semibold transition-all shadow-sm ${
-                    selectedStudentId === student.id
-                      ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md"
-                      : "bg-white text-purple-700 hover:bg-purple-50 border border-purple-200"
-                  }`}
+                  href={`/diary?studentId=${student.id}`}
+                  className="flex items-center justify-between p-4 bg-white rounded-xl border border-purple-200 hover:border-purple-400 hover:shadow-md transition-all group"
                 >
-                  {student.fullName}
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                      {student.fullName?.charAt(0) || "?"}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 group-hover:text-purple-700 transition-colors">
+                        {student.fullName}
+                      </p>
+                      <p className="text-xs text-gray-500">{teacherGroup.name}</p>
+                    </div>
+                  </div>
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    className="h-5 w-5 text-gray-400 group-hover:text-purple-600 transition-colors" 
+                    viewBox="0 0 20 20" 
+                    fill="currentColor"
+                  >
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
                 </Link>
               ))}
             </div>
           )}
         </div>
-
-        {/* Дневник выбранного ученика */}
-        {selectedStudent && (
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
-              <h2 className="text-2xl font-bold text-gray-800">{selectedStudent.fullName}</h2>
-              {average !== null && (
-                <div className="bg-gradient-to-br from-green-400 to-green-500 text-white px-5 py-3 rounded-xl shadow-lg">
-                  <div className="text-xs opacity-90">Средний балл</div>
-                  <div className="text-2xl font-bold">{average.toFixed(2)}</div>
-                  <div className="text-xs opacity-75">по {numericGrades.length} оценкам</div>
-                </div>
-              )}
-            </div>
-
-            <StudentDiary
-              grades={studentGrades}
-              studentId={selectedStudent.id}
-              currentUserId={session.user.id}
-              isTeacher={true}
-              isHomeroomTeacher={await isTeacherHomeroomTeacher(session.user.id, selectedStudent.id)}
-              showScheduleTable={false}
-              schedule={scheduleList
-                .filter((s) => s.groupId === selectedStudent.groupId)
-                .map((s) => ({
-                  id: s.id,
-                  lessonNumber: s.lessonNumber,
-                  subjectName: s.subjectName,
-                  teacherName: s.teacherName,
-                  lessonDate: s.lessonDate,
-                  dayOfWeek: s.dayOfWeek,
-                }))}
-            />
-          </div>
-        )}
-
-        {!selectedStudent && students.length > 0 && (
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 text-center">
-            <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-8 w-8 text-purple-600"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                <path
-                  fillRule="evenodd"
-                  d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <p className="text-gray-600">Выберите ученика из списка выше для просмотра дневника</p>
-          </div>
-        )}
       </div>
     </div>
   );
