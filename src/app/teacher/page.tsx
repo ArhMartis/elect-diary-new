@@ -2,14 +2,13 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { user, groups, schedule, subjects as subjectsSchema, homework as homeworkSchema } from "@/db/schema/auth_schema";
+import { user, groups, schedule, subjects as subjectsSchema } from "@/db/schema/auth_schema";
 import { grades, subjects } from "@/db/schema/auth_schema";
-import { eq, inArray, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
 import StudentDiary from "@/components/StudentDiary";
 import Link from "next/link";
 import { isTeacherHomeroomTeacher } from "@/app/student/actions";
-import { addHomework, deleteHomework } from "./actions";
 
 export default async function TeacherPage({
   searchParams,
@@ -32,31 +31,6 @@ export default async function TeacherPage({
   const teacherGroup = await db.query.groups.findFirst({
     where: eq(groups.teacherId, session.user.id),
   });
-
-  // Получаем предметы учителя
-  const teacherSubjects = await db
-    .select()
-    .from(subjectsSchema)
-    .where(eq(subjectsSchema.teacherId, session.user.id));
-
-  // Получаем домашние задания учителя
-  const teacherHomework = teacherGroup
-    ? await db
-        .select({
-          id: homeworkSchema.id,
-          description: homeworkSchema.description,
-          lessonDate: homeworkSchema.lessonDate,
-          dueDate: homeworkSchema.dueDate,
-          createdAt: homeworkSchema.createdAt,
-          groupName: groups.name,
-          subjectName: subjectsSchema.name,
-        })
-        .from(homeworkSchema)
-        .leftJoin(groups, eq(homeworkSchema.groupId, groups.id))
-        .leftJoin(subjectsSchema, eq(homeworkSchema.subjectId, subjectsSchema.id))
-        .where(eq(homeworkSchema.teacherId, session.user.id))
-        .orderBy(desc(homeworkSchema.createdAt))
-    : [];
 
   let students: typeof user.$inferSelect[] = [];
   let selectedStudent: typeof user.$inferSelect | null = null;
@@ -146,18 +120,23 @@ export default async function TeacherPage({
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">Дневник класса</h1>
-                {teacherGroup && (
-                  <span className="inline-block mt-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                    {teacherGroup.name}
+                <div className="flex items-center gap-2 mt-1">
+                  {teacherGroup && (
+                    <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                      {teacherGroup.name}
+                    </span>
+                  )}
+                  <span className="text-gray-600 text-sm">
+                    Классный руководитель: {session.user.fullName}
                   </span>
-                )}
+                </div>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               <Link
-                href="/teacher/grades"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium shadow-md"
+                href="/diary"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-md"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -165,14 +144,9 @@ export default async function TeacherPage({
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
-                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                  <path
-                    fillRule="evenodd"
-                    d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                    clipRule="evenodd"
-                  />
+                  <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
                 </svg>
-                Оценки
+                Дневник класса
               </Link>
               <Link
                 href="/"
@@ -196,180 +170,6 @@ export default async function TeacherPage({
           </div>
         </div>
 
-        {/* Домашнее задание */}
-        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl shadow-lg p-6 border border-purple-100">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-purple-600"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-              <path
-                fillRule="evenodd"
-                d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Домашнее задание
-          </h2>
-
-          {/* Форма добавления ДЗ */}
-          <form action={addHomework} className="mb-6 p-5 bg-white rounded-xl shadow-sm border border-purple-100">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Класс *
-                </label>
-                <select
-                  name="groupId"
-                  required
-                  className="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500 shadow-sm"
-                >
-                  <option value="">Выберите класс</option>
-                  {teacherGroup && (
-                    <option value={teacherGroup.id}>{teacherGroup.name}</option>
-                  )}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Предмет *
-                </label>
-                <select
-                  name="subjectId"
-                  required
-                  className="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500 shadow-sm"
-                >
-                  <option value="">Выберите предмет</option>
-                  {teacherSubjects.map((subject) => (
-                    <option key={subject.id} value={subject.id}>
-                      {subject.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Дата урока *
-                </label>
-                <input
-                  type="date"
-                  name="lessonDate"
-                  required
-                  className="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500 shadow-sm"
-                />
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Задание *
-              </label>
-              <textarea
-                name="description"
-                required
-                rows={3}
-                className="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500 shadow-sm"
-                placeholder="Введите домашнее задание..."
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Срок выполнения
-              </label>
-              <input
-                type="date"
-                name="dueDate"
-                className="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500 shadow-sm"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all font-semibold shadow-md hover:shadow-lg"
-            >
-              Добавить ДЗ
-            </button>
-          </form>
-
-          {/* Список ДЗ */}
-          <div className="space-y-3">
-            {teacherHomework.length === 0 ? (
-              <div className="text-center text-gray-500 py-8 bg-white rounded-xl border border-dashed border-purple-200">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-12 w-12 mx-auto mb-3 text-purple-300"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                  <path
-                    fillRule="evenodd"
-                    d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Вы ещё не задавали домашние задания
-              </div>
-            ) : (
-              teacherHomework.map((hw) => (
-                <div
-                  key={hw.id}
-                  className="p-5 bg-white rounded-xl border border-purple-100 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-3 flex-wrap">
-                        <span className="px-3 py-1 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-full text-xs font-semibold">
-                          {hw.groupName}
-                        </span>
-                        <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-xs font-semibold">
-                          {hw.subjectName}
-                        </span>
-                        <span className="text-sm text-gray-600 font-medium">
-                          📅 Урок: {hw.lessonDate}
-                        </span>
-                        {hw.dueDate && (
-                          <span className="text-sm text-orange-600 font-semibold bg-orange-50 px-2 py-1 rounded">
-                            ⏰ Срок: {hw.dueDate}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-gray-800 text-base leading-relaxed">{hw.description}</p>
-                    </div>
-                    <form action={deleteHomework}>
-                      <input type="hidden" name="id" value={hw.id} />
-                      <button
-                        type="submit"
-                        className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-200"
-                        title="Удалить"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
         {/* Список учеников */}
         <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-lg p-6 border border-purple-100">
           <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -383,7 +183,15 @@ export default async function TeacherPage({
             </svg>
             Ученики класса
           </h2>
-          {students.length === 0 ? (
+          {!teacherGroup ? (
+            <div className="text-center text-gray-500 py-8 bg-white rounded-xl border border-dashed border-purple-200">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-3 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <p className="font-medium">У вас нет закрепленного класса!</p>
+              <p className="text-sm mt-1">Обратитесь к администратору для назначения класса</p>
+            </div>
+          ) : students.length === 0 ? (
             <div className="text-center text-gray-500 py-8 bg-white rounded-xl border border-dashed border-purple-200">
               У вас пока нет учеников в классе
             </div>
@@ -399,7 +207,7 @@ export default async function TeacherPage({
                       : "bg-white text-purple-700 hover:bg-purple-50 border border-purple-200"
                   }`}
                 >
-                  {student.name}
+                  {student.fullName}
                 </Link>
               ))}
             </div>
