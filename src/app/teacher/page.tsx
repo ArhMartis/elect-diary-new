@@ -127,7 +127,7 @@ export default async function TeacherPage({
                     </span>
                   )}
                   <span className="text-gray-600 text-sm">
-                    Классный руководитель: {session.user.fullName}
+                    Вы классный руководитель этого класса
                   </span>
                 </div>
               </div>
@@ -218,7 +218,7 @@ export default async function TeacherPage({
         {selectedStudent && (
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
             <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
-              <h2 className="text-2xl font-bold text-gray-800">{selectedStudent.name}</h2>
+              <h2 className="text-2xl font-bold text-gray-800">{selectedStudent.fullName}</h2>
               {average !== null && (
                 <div className="bg-gradient-to-br from-green-400 to-green-500 text-white px-5 py-3 rounded-xl shadow-lg">
                   <div className="text-xs opacity-90">Средний балл</div>
@@ -234,6 +234,7 @@ export default async function TeacherPage({
               currentUserId={session.user.id}
               isTeacher={true}
               isHomeroomTeacher={await isTeacherHomeroomTeacher(session.user.id, selectedStudent.id)}
+              showScheduleTable={false}
               schedule={scheduleList
                 .filter((s) => s.groupId === selectedStudent.groupId)
                 .map((s) => ({
