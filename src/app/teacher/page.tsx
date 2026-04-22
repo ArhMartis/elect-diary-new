@@ -61,24 +61,16 @@ export default async function TeacherPage() {
                   </span>
                 </div>
                 <div className="mt-2">
-                  {(() => {
-                    const names = session.user.fullName?.split(' ') || [''];
-                    const lastName = names[0];
-                    const restNames = names.slice(1).join(' ');
-                    return (
-                      <span className="text-purple-700">
-                        <span className="font-bold">{lastName}</span>
-                        {restNames ? ' ' + restNames : ''}
-                      </span>
-                    );
-                  })()}
+                  <span className="text-purple-700 font-bold">
+                    {session.user.fullName}
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               <Link
-                href="/diary"
+                href="/teacher/select-class"
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-md"
               >
                 <svg

@@ -145,7 +145,6 @@ const MEMORIAL_DATES = [
 ];
 
 const PROFESSIONAL_HOLIDAYS = [
-  { date: "Последнее воскресенье января", name: "День белорусской науки" },
   { date: "15 мая", name: "День семьи" },
   { date: "1 июня", name: "День защиты детей" },
   { date: "28 июня", name: "День молодежи" },
@@ -291,6 +290,61 @@ function getQuarterStartDate(quarter: string, academicYear: string): Date {
 
 function getApproxStartOfWeekForQuarter(quarter: string, academicYear: string): Date {
   return getStartOfWeek(getQuarterStartDate(quarter, academicYear));
+}
+
+// Получить название каникул по дате
+function getHolidayNameByDate(date: Date): string | null {
+  const month = date.getMonth();
+  const day = date.getDate();
+  
+  // Осенние каникулы: 28 окт - 3 нояб
+  if ((month === 9 && day >= 28) || (month === 10 && day <= 3)) {
+    return "🍂 Осенние каникулы";
+  }
+  // Зимние каникулы: 25 дек - 8 янв
+  if ((month === 11 && day >= 25) || (month === 0 && day <= 8)) {
+    return "❄️ Зимние каникулы";
+  }
+  // Весенние каникулы: 24 мар - 30 мар
+  if (month === 2 && day >= 24 && day <= 30) {
+    return "🌸 Весенние каникулы";
+  }
+  // Летние каникулы: 1 июн - 31 авг
+  if (month >= 5 && month <= 7) {
+    return "☀️ Летние каникулы";
+  }
+  
+  return null;
+}
+
+// Получить праздник по дате
+function getHolidayByDate(date: Date): string | null {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const dateStr = `${day} ${month === 1 ? 'января' : month === 2 ? 'февраля' : month === 3 ? 'марта' : month === 4 ? 'апреля' : month === 5 ? 'мая' : month === 6 ? 'июня' : month === 7 ? 'июля' : month === 8 ? 'августа' : month === 9 ? 'сентября' : month === 10 ? 'октября' : month === 11 ? 'ноября' : 'декабря'}`;
+  
+  // Проверяем государственные праздники
+  for (const holiday of HOLIDAYS_LIST) {
+    if (holiday.date === dateStr) {
+      return `🎉 ${holiday.name}`;
+    }
+  }
+  
+  // Проверяем памятные даты
+  for (const date of MEMORIAL_DATES) {
+    if (date.date === dateStr) {
+      return `🕯️ ${date.name}`;
+    }
+  }
+  
+  // Проверяем профессиональные праздники (только точные даты, не "последнее воскресенье")
+  for (const holiday of PROFESSIONAL_HOLIDAYS) {
+    if (holiday.date === dateStr) {
+      return `💼 ${holiday.name}`;
+    }
+  }
+  
+  return null;
 }
 
 function getCurrentAcademicYear(): string {
@@ -702,9 +756,21 @@ export default function StudentDiaryPage({
     let newWeek = new Date(selectedWeek);
     newWeek.setDate(newWeek.getDate() + (direction === "prev" ? -7 : 7));
     
-    // Если попали на каникулы, пропускаем их и переходим к следующей неделе
-    while (isDateInHolidays(newWeek, sharedData.academicYear)) {
+    // Проверяем границы учебного года
+    if (!isDateInAcademicYear(newWeek)) {
+      return; // Не выходим за границы учебного года
+    }
+    
+    // Если попали на каникулы, пропускаем только ОДНУ неделю каникул
+    if (isDateInHolidays(newWeek, sharedData.academicYear)) {
+      // Пропускаем каникулы, переходя ещё на одну неделю в том же направлении
       newWeek.setDate(newWeek.getDate() + (direction === "prev" ? -7 : 7));
+      
+      // Если после пропуска каникул снова попали на каникулы (длинные каникулы),
+      // пропускаем ещё одну неделю
+      if (isDateInHolidays(newWeek, sharedData.academicYear)) {
+        newWeek.setDate(newWeek.getDate() + (direction === "prev" ? -7 : 7));
+      }
     }
     
     if (isDateInAcademicYear(newWeek)) {
@@ -1165,6 +1231,40 @@ export default function StudentDiaryPage({
                 </div>
               </div>
 
+              {/* Информация о каникулах текущей четверти */}
+              <div className="mb-4 p-3 bg-gradient-to-r from-sky-100 to-blue-100 rounded-lg border-2 border-sky-300">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">🏖️</span>
+                  <span className="font-bold text-sky-800">Каникулы:</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                  {selectedQuarter === "1" && (
+                    <div className="bg-white/70 px-3 py-2 rounded-lg">
+                      <span className="font-semibold text-sky-700">Осенние:</span>{' '}
+                      <span className="text-sky-900 font-medium">{sharedData.holidays?.autumn || "28.10 - 03.11"}</span>
+                    </div>
+                  )}
+                  {selectedQuarter === "2" && (
+                    <div className="bg-white/70 px-3 py-2 rounded-lg">
+                      <span className="font-semibold text-sky-700">Зимние:</span>{' '}
+                      <span className="text-sky-900 font-medium">{sharedData.holidays?.winter || "25.12 - 08.01"}</span>
+                    </div>
+                  )}
+                  {selectedQuarter === "3" && (
+                    <div className="bg-white/70 px-3 py-2 rounded-lg">
+                      <span className="font-semibold text-sky-700">Весенние:</span>{' '}
+                      <span className="text-sky-900 font-medium">{sharedData.holidays?.spring || "24.03 - 30.03"}</span>
+                    </div>
+                  )}
+                  {selectedQuarter === "4" && (
+                    <div className="bg-white/70 px-3 py-2 rounded-lg">
+                      <span className="font-semibold text-sky-700">Летние:</span>{' '}
+                      <span className="text-sky-900 font-medium">{sharedData.holidays?.summer || "01.06 - 31.08"}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Расписание по дням */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {DAYS_OF_WEEK.map((day) => {
@@ -1176,10 +1276,40 @@ export default function StudentDiaryPage({
                     }))
                     .sort((a, b) => a.lessonNumber - b.lessonNumber);
                   
+                  // Вычисляем дату для этого дня
+                  const dayDate = new Date(selectedWeek);
+                  dayDate.setDate(dayDate.getDate() + (day.dayOfWeek - 1));
+                  
+                  // Проверяем каникулы и праздники
+                  const holidayName = getHolidayNameByDate(dayDate);
+                  const celebrationName = getHolidayByDate(dayDate);
+                  const isHoliday = holidayName !== null;
+                  
                   return (
-                    <div key={day.name} className="bg-white border-2 border-emerald-200 rounded-lg p-3">
-                      <h4 className="font-bold text-sm text-emerald-900 mb-2">{day.name}</h4>
-                      {dayLessons.length === 0 ? 
+                    <div key={day.name} className={`rounded-lg p-3 border-2 ${isHoliday ? 'bg-gradient-to-br from-sky-100 to-blue-100 border-sky-400' : 'bg-white border-emerald-200'}`}>
+                      <h4 className={`font-bold text-sm mb-2 ${isHoliday ? 'text-sky-900' : 'text-emerald-900'}`}>
+                        {day.name}
+                        <span className="block text-xs font-normal opacity-75 mt-1">
+                          {dayDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })}
+                        </span>
+                      </h4>
+                      
+                      {/* Отображение каникул */}
+                      {holidayName && (
+                        <div className="mb-2 p-2 bg-white/70 rounded-lg">
+                          <span className="text-xs font-bold text-sky-700 block">{holidayName}</span>
+                          <span className="text-xs text-sky-600">Каникулы!</span>
+                        </div>
+                      )}
+                      
+                      {/* Отображение праздника */}
+                      {celebrationName && !isHoliday && (
+                        <div className="mb-2 p-2 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-lg border border-amber-300">
+                          <span className="text-xs font-bold text-amber-800 block">{celebrationName}</span>
+                        </div>
+                      )}
+                      
+                      {!isHoliday && (dayLessons.length === 0 ? 
                         <p className="text-xs text-gray-400 italic">Нет уроков</p> : (
                         <div className="space-y-1">
                           {dayLessons.map(lesson => (
@@ -1189,7 +1319,7 @@ export default function StudentDiaryPage({
                             </div>
                           ))}
                         </div>
-                      )}
+                      ))}
                     </div>
                   );
                 })}
@@ -1572,8 +1702,8 @@ export default function StudentDiaryPage({
                 <ul className="space-y-3">
                   {MEMORIAL_DATES.map((date, i) => (
                     <li key={i} className="flex gap-3 items-start bg-white rounded-lg p-3 shadow-sm">
-                      <span className="flex-shrink-0 w-24 font-bold text-gray-600">{date.date}</span>
-                      <span className="text-gray-800 font-bold">{date.name}</span>
+                      <span className="flex-shrink-0 w-20 sm:w-24 font-bold text-gray-600 text-sm sm:text-base">{date.date}</span>
+                      <span className="text-gray-800 font-bold text-sm sm:text-base break-words flex-1 leading-tight">{date.name}</span>
                     </li>
                   ))}
                 </ul>
