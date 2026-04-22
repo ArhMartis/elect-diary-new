@@ -1288,21 +1288,21 @@ export default function StudentDiaryPage({
                       
                       {/* Отображение каникул */}
                       {holidayName && (
-                        <div className="mb-2 p-2 bg-white/70 rounded-lg">
+                        <div className="mb-2 p-2 bg-white/70 rounded-lg text-center">
                           <span className="text-xs font-bold text-sky-700 block">{holidayName}</span>
-                          <span className="text-xs text-sky-600">Каникулы!</span>
+                          <span className="text-xs text-sky-600 font-medium">Каникулы!</span>
                         </div>
                       )}
                       
                       {/* Отображение праздника */}
                       {celebrationName && !isHoliday && (
-                        <div className="mb-2 p-2 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-lg border border-amber-300">
+                        <div className="mb-2 p-2 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-lg border border-amber-300 text-center">
                           <span className="text-xs font-bold text-amber-800 block">{celebrationName}</span>
                         </div>
                       )}
                       
                       {!isHoliday && (dayLessons.length === 0 ? 
-                        <p className="text-xs text-gray-400 italic">Нет уроков</p> : (
+                        <p className="text-xs text-gray-400 italic text-center">Нет уроков</p> : (
                         <div className="space-y-1">
                           {dayLessons.map(lesson => (
                             <div key={lesson.lessonNumber} className="flex items-center gap-2 p-1.5 bg-emerald-50 rounded">
