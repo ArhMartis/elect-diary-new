@@ -49,7 +49,8 @@ export default async function ParentStudentLinksPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-6 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
       {/* Кнопка назад с фоном */}
       <div className="flex items-center gap-4">
         <Link
@@ -93,6 +94,7 @@ export default async function ParentStudentLinksPage() {
             ))
           )}
         </div>
+      </div>
       </div>
     </div>
   );

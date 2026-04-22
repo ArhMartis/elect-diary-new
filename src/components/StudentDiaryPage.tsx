@@ -1231,37 +1231,29 @@ export default function StudentDiaryPage({
                 </div>
               </div>
 
-              {/* Информация о каникулах текущей четверти */}
+              {/* Информация о каникулах всех четвертей */}
               <div className="mb-4 p-3 bg-gradient-to-r from-sky-100 to-blue-100 rounded-lg border-2 border-sky-300">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xl">🏖️</span>
                   <span className="font-bold text-sky-800">Каникулы:</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                  {selectedQuarter === "1" && (
-                    <div className="bg-white/70 px-3 py-2 rounded-lg">
-                      <span className="font-semibold text-sky-700">Осенние:</span>{' '}
-                      <span className="text-sky-900 font-medium">{sharedData.holidays?.autumn || "28.10 - 03.11"}</span>
-                    </div>
-                  )}
-                  {selectedQuarter === "2" && (
-                    <div className="bg-white/70 px-3 py-2 rounded-lg">
-                      <span className="font-semibold text-sky-700">Зимние:</span>{' '}
-                      <span className="text-sky-900 font-medium">{sharedData.holidays?.winter || "25.12 - 08.01"}</span>
-                    </div>
-                  )}
-                  {selectedQuarter === "3" && (
-                    <div className="bg-white/70 px-3 py-2 rounded-lg">
-                      <span className="font-semibold text-sky-700">Весенние:</span>{' '}
-                      <span className="text-sky-900 font-medium">{sharedData.holidays?.spring || "24.03 - 30.03"}</span>
-                    </div>
-                  )}
-                  {selectedQuarter === "4" && (
-                    <div className="bg-white/70 px-3 py-2 rounded-lg">
-                      <span className="font-semibold text-sky-700">Летние:</span>{' '}
-                      <span className="text-sky-900 font-medium">{sharedData.holidays?.summer || "01.06 - 31.08"}</span>
-                    </div>
-                  )}
+                  <div className="bg-white/70 px-3 py-2 rounded-lg">
+                    <span className="font-semibold text-sky-700">🍂 Осенние:</span>{' '}
+                    <span className="text-sky-900 font-medium">{sharedData.holidays?.autumn || "28.10 - 03.11"}</span>
+                  </div>
+                  <div className="bg-white/70 px-3 py-2 rounded-lg">
+                    <span className="font-semibold text-sky-700">❄️ Зимние:</span>{' '}
+                    <span className="text-sky-900 font-medium">{sharedData.holidays?.winter || "25.12 - 08.01"}</span>
+                  </div>
+                  <div className="bg-white/70 px-3 py-2 rounded-lg">
+                    <span className="font-semibold text-sky-700">🌸 Весенние:</span>{' '}
+                    <span className="text-sky-900 font-medium">{sharedData.holidays?.spring || "24.03 - 30.03"}</span>
+                  </div>
+                  <div className="bg-white/70 px-3 py-2 rounded-lg">
+                    <span className="font-semibold text-sky-700">☀️ Летние:</span>{' '}
+                    <span className="text-sky-900 font-medium">{sharedData.holidays?.summer || "01.06 - 31.08"}</span>
+                  </div>
                 </div>
               </div>
 
@@ -1701,9 +1693,9 @@ export default function StudentDiaryPage({
                 </div>
                 <ul className="space-y-3">
                   {MEMORIAL_DATES.map((date, i) => (
-                    <li key={i} className="flex gap-3 items-start bg-white rounded-lg p-3 shadow-sm">
-                      <span className="flex-shrink-0 w-20 sm:w-24 font-bold text-gray-600 text-sm sm:text-base">{date.date}</span>
-                      <span className="text-gray-800 font-bold text-sm sm:text-base break-words flex-1 leading-tight">{date.name}</span>
+                    <li key={i} className="flex gap-2 items-start bg-white rounded-lg p-3 shadow-sm overflow-hidden">
+                      <span className="flex-shrink-0 w-16 sm:w-20 font-bold text-gray-600 text-xs sm:text-sm">{date.date}</span>
+                      <span className="text-gray-800 font-bold text-xs sm:text-sm break-words flex-1 min-w-0 leading-snug">{date.name}</span>
                     </li>
                   ))}
                 </ul>
@@ -1727,7 +1719,7 @@ export default function StudentDiaryPage({
         )}
 
         {/* Кнопки сохранения и печати */}
-        <div className="p-4 bg-gray-50 border-t-2 border-gray-200 print:hidden">
+        <div className="-mt-6 p-4 bg-gray-50 border-t-2 border-gray-200 print:hidden">
           <div className="flex justify-center gap-4">
             <button
               onClick={handleSaveDiary}
