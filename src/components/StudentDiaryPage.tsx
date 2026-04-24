@@ -2144,30 +2144,81 @@ export default function StudentDiaryPage({
             
             <div className="grid md:grid-cols-2 gap-6 mb-6">
               {[
-                {label: "🍂 Осенние каникулы", key: "autumn" as const},
-                {label: "❄️ Зимние каникулы", key: "winter" as const},
-                {label: "🌸 Весенние каникулы", key: "spring" as const},
-                {label: "☀️ Летние каникулы", key: "summer" as const},
-              ].map((item, i) => (
-                <div key={i} className="bg-gradient-to-br from-white to-sky-50 rounded-2xl shadow-lg p-5 border-2 border-sky-200">
-                  <label className="block text-lg font-bold text-sky-800 mb-3">{item.label}</label>
-                  {canEditInstitution() ? (
-                    <input
-                      type="text"
-                      value={sharedData.holidays[item.key]}
-                      onChange={(e) => {
-                        const updated = { ...sharedData, holidays: { ...sharedData.holidays, [item.key]: e.target.value } };
-                        setSharedData(updated);
-                        localStorage.setItem("diary_shared_data", JSON.stringify(updated));
-                      }}
-                      placeholder="Например: 28.10 - 03.11"
-                      className="w-full border-2 border-sky-200 rounded-lg px-4 py-2 text-gray-800 font-bold bg-white focus:outline-none focus:border-sky-500"
-                    />
-                  ) : (
-                    <p className="text-gray-800 text-lg font-bold">{sharedData.holidays[item.key] || "Не указаны"}</p>
-                  )}
-                </div>
-              ))}
+                {label: "🍂 Осенние каникулы", key: "autumn" as const, color: "from-amber-50 to-orange-50", borderColor: "border-amber-200", labelColor: "text-amber-800"},
+                {label: "❄️ Зимние каникулы", key: "winter" as const, color: "from-sky-50 to-blue-50", borderColor: "border-sky-200", labelColor: "text-sky-800"},
+                {label: "🌸 Весенние каникулы", key: "spring" as const, color: "from-pink-50 to-rose-50", borderColor: "border-pink-200", labelColor: "text-pink-800"},
+                {label: "☀️ Летние каникулы", key: "summer" as const, color: "from-yellow-50 to-amber-50", borderColor: "border-yellow-200", labelColor: "text-yellow-800"},
+              ].map((item, i) => {
+                // Парсим текущее значение дат
+                const parseDates = (value: string) => {
+                  if (!value) return { start: "", end: "" };
+                  const match = value.match(/(\d{2})\.(\d{2})\.(\d{4})\s*-\s*(\d{2})\.(\d{2})\.(\d{4})/);
+                  if (match) {
+                    return {
+                      start: `${match[3]}-${match[2]}-${match[1]}`,
+                      end: `${match[6]}-${match[5]}-${match[4]}`
+                    };
+                  }
+                  return { start: "", end: "" };
+                };
+                
+                const dates = parseDates(sharedData.holidays[item.key]);
+                
+                const formatDateForDisplay = (dateStr: string) => {
+                  if (!dateStr) return "";
+                  const match = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+                  if (match) {
+                    return `${match[3]}.${match[2]}.${match[1]}`;
+                  }
+                  return dateStr;
+                };
+                
+                const updateHoliday = (start: string, end: string) => {
+                  if (start && end) {
+                    const value = `${formatDateForDisplay(start)} - ${formatDateForDisplay(end)}`;
+                    const updated = { ...sharedData, holidays: { ...sharedData.holidays, [item.key]: value } };
+                    setSharedData(updated);
+                    localStorage.setItem("diary_shared_data", JSON.stringify(updated));
+                  }
+                };
+                
+                return (
+                  <div key={i} className={`bg-gradient-to-br ${item.color} rounded-2xl shadow-lg p-5 border-2 ${item.borderColor}`}>
+                    <label className={`block text-lg font-bold ${item.labelColor} mb-3`}>{item.label}</label>
+                    {canEditInstitution() ? (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Начало периода:</label>
+                          <input
+                            type="date"
+                            value={dates.start}
+                            onChange={(e) => updateHoliday(e.target.value, dates.end)}
+                            className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 text-gray-900 font-bold bg-white focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Конец периода (включительно):</label>
+                          <input
+                            type="date"
+                            value={dates.end}
+                            onChange={(e) => updateHoliday(dates.start, e.target.value)}
+                            className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 text-gray-900 font-bold bg-white focus:outline-none focus:border-sky-500"
+                          />
+                        </div>
+                        {dates.start && dates.end && (
+                          <div className="mt-2 p-2 bg-white/70 rounded-lg">
+                            <p className="text-sm font-bold text-gray-800">
+                              {formatDateForDisplay(dates.start)} — {formatDateForDisplay(dates.end)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-gray-800 text-lg font-bold">{sharedData.holidays[item.key] || "Не указаны"}</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
