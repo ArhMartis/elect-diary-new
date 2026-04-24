@@ -318,32 +318,38 @@ function getHolidayNameByDate(date: Date): string | null {
 }
 
 // Получить праздник по дате
-function getHolidayByDate(date: Date): string | null {
+function getHolidayByDate(date: Date, disabledHolidays: Set<string> = new Set()): { name: string; key: string } | null {
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const dateStr = `${day} ${month === 1 ? 'января' : month === 2 ? 'февраля' : month === 3 ? 'марта' : month === 4 ? 'апреля' : month === 5 ? 'мая' : month === 6 ? 'июня' : month === 7 ? 'июля' : month === 8 ? 'августа' : month === 9 ? 'сентября' : month === 10 ? 'октября' : month === 11 ? 'ноября' : 'декабря'}`;
-  
+
   // Проверяем государственные праздники
   for (const holiday of HOLIDAYS_LIST) {
     if (holiday.date === dateStr) {
-      return `🎉 ${holiday.name}`;
+      const key = `state-${holiday.date}`;
+      if (disabledHolidays.has(key)) return null;
+      return { name: `🎉 ${holiday.name}`, key };
     }
   }
-  
+
   // Проверяем памятные даты
   for (const date of MEMORIAL_DATES) {
     if (date.date === dateStr) {
-      return `🕯️ ${date.name}`;
+      const key = `memorial-${date.date}`;
+      if (disabledHolidays.has(key)) return null;
+      return { name: `🕯️ ${date.name}`, key };
     }
   }
-  
+
   // Проверяем профессиональные праздники (только точные даты, не "последнее воскресенье")
   for (const holiday of PROFESSIONAL_HOLIDAYS) {
     if (holiday.date === dateStr) {
-      return `💼 ${holiday.name}`;
+      const key = `professional-${holiday.date}`;
+      if (disabledHolidays.has(key)) return null;
+      return { name: `💼 ${holiday.name}`, key };
     }
   }
-  
+
   return null;
 }
 
@@ -517,16 +523,164 @@ export default function StudentDiaryPage({
     socialPedagoguePhone: initialContacts?.socialPedagoguePhone || "",
   });
   
+  // Расписание звонков
+  const [bellSchedule, setBellSchedule] = useState([
+    { number: "1", start: "08:00", end: "08:45", break: "10" },
+    { number: "2", start: "08:55", end: "09:40", break: "10" },
+    { number: "3", start: "09:50", end: "10:35", break: "15" },
+    { number: "4", start: "10:50", end: "11:35", break: "15" },
+    { number: "5", start: "11:50", end: "12:35", break: "10" },
+    { number: "6", start: "12:45", end: "13:30", break: "10" },
+    { number: "7", start: "13:40", end: "14:25", break: "10" },
+    { number: "8", start: "14:35", end: "15:20", break: "" },
+  ]);
+  
+  const updateBellSchedule = (index: number, field: string, value: string) => {
+    if (!canEditContacts()) return;
+    const newSchedule = [...bellSchedule];
+    newSchedule[index] = { ...newSchedule[index], [field]: value };
+    setBellSchedule(newSchedule);
+  };
+  
+  // Пользовательские праздники
+  type HolidayCategory = 'state' | 'memorial' | 'professional';
+  interface CustomHoliday {
+    id: string;
+    date: string;
+    name: string;
+    category: HolidayCategory;
+  }
+
+  const [customHolidays, setCustomHolidays] = useState<CustomHoliday[]>([]);
+
+  // Настройка: отключенные праздники (не засчитываются как выходные)
+  const [disabledHolidays, setDisabledHolidays] = useState<Set<string>>(new Set());
+
+  const toggleHolidayDisabled = (holidayKey: string) => {
+    setDisabledHolidays(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(holidayKey)) {
+        newSet.delete(holidayKey);
+      } else {
+        newSet.add(holidayKey);
+      }
+      return newSet;
+    });
+  };
+
+  const [newHolidayForm, setNewHolidayForm] = useState({
+    date: '',
+    name: '',
+    category: 'state' as HolidayCategory
+  });
+  
+  const addCustomHoliday = () => {
+    if (!newHolidayForm.date || !newHolidayForm.name) return;
+    
+    const newHoliday: CustomHoliday = {
+      id: Date.now().toString(),
+      date: newHolidayForm.date,
+      name: newHolidayForm.name,
+      category: newHolidayForm.category
+    };
+    
+    setCustomHolidays([...customHolidays, newHoliday]);
+    setNewHolidayForm({ date: '', name: '', category: 'state' });
+  };
+  
+  // Модальное окно подтверждения удаления
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [holidayToDelete, setHolidayToDelete] = useState<string | null>(null);
+  const [holidayToDeleteName, setHolidayToDeleteName] = useState('');
+  
+  const confirmDeleteHoliday = (id: string, name: string) => {
+    setHolidayToDelete(id);
+    setHolidayToDeleteName(name);
+    setShowDeleteConfirm(true);
+  };
+  
+  const removeCustomHoliday = () => {
+    if (holidayToDelete) {
+      setCustomHolidays(customHolidays.filter(h => h.id !== holidayToDelete));
+      setShowDeleteConfirm(false);
+      setHolidayToDelete(null);
+      setHolidayToDeleteName('');
+    }
+  };
+  
+  // Получить все праздники (встроенные + пользовательские) по категории
+  const getAllHolidaysByCategory = (category: HolidayCategory) => {
+    const custom = customHolidays.filter(h => h.category === category);
+    return custom;
+  };
+  
   const [showNoClassModal, setShowNoClassModal] = useState(false);
   const [selectedQuarter, setSelectedQuarter] = useState<string>(() => getQuarterNumber(new Date()));
   const [scheduleData, setScheduleData] = useState<Record<string, string>>({});
   const [absence, setAbsence] = useState({ absent: "", absentUnexcused: "" });
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
-  
+
+  // Отметки для уроков (контрольная, самостоятельная, ключевое событие)
+  type LessonMarkType = 'test' | 'independent' | 'key-event' | null;
+  interface LessonMarkInfo {
+    type: LessonMarkType;
+    comment: string;
+  }
+  const [lessonMarks, setLessonMarks] = useState<Record<string, LessonMarkInfo>>({});
+
+  // Контекстное меню для уроков
+  interface ContextMenuState {
+    visible: boolean;
+    x: number;
+    y: number;
+    dayName: string;
+    lessonNumber: number;
+    lessonKey: string;
+  }
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    dayName: '',
+    lessonNumber: 0,
+    lessonKey: ''
+  });
+
+  // Для обмена уроками
+  const [swapSource, setSwapSource] = useState<{dayName: string, lessonNumber: number, lessonKey: string} | null>(null);
+
   // Модальное окно редактирования расписания
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  
+
+  // Модальное окно редактирования урока
+  interface LessonEditModalState {
+    visible: boolean;
+    dayName: string;
+    lessonNumber: number;
+    lessonKey: string;
+    currentSubject: string;
+  }
+  const [lessonEditModal, setLessonEditModal] = useState<LessonEditModalState>({
+    visible: false,
+    dayName: '',
+    lessonNumber: 0,
+    lessonKey: '',
+    currentSubject: ''
+  });
+
+  // Модальное окно добавления урока
+  interface AddLessonModalState {
+    visible: boolean;
+    dayName: string;
+    dayDate: Date;
+  }
+  const [addLessonModal, setAddLessonModal] = useState<AddLessonModalState>({
+    visible: false,
+    dayName: '',
+    dayDate: new Date()
+  });
+
   // Временный select для тестирования ролей
   const [tempUserRole, setTempUserRole] = useState<string>(userRole);
 
@@ -579,6 +733,170 @@ export default function StudentDiaryPage({
   };
 
   // ============================================================================
+  // КОНТЕКСТНОЕ МЕНЮ ДЛЯ УРОКОВ
+  // ============================================================================
+
+  const handleLessonContextMenu = (e: React.MouseEvent, dayName: string, lessonNumber: number, lessonKey: string) => {
+    if (!canEditSchedule()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      dayName,
+      lessonNumber,
+      lessonKey
+    });
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu(prev => ({ ...prev, visible: false }));
+  };
+
+  const removeLesson = (dayName: string, lessonNumber: number) => {
+    if (!canEditSchedule()) return;
+    const key = `${selectedQuarter}-${dayName}-${lessonNumber - 1}`;
+    const newSchedule = { ...scheduleData };
+    delete newSchedule[key];
+    setScheduleData(newSchedule);
+    if (studentGroupId) {
+      saveClassScheduleLocal(studentGroupId, newSchedule);
+    }
+    closeContextMenu();
+  };
+
+  const addLesson = (dayName: string, lessonNumber: number, subject: string) => {
+    if (!canEditSchedule()) return;
+    const key = `${selectedQuarter}-${dayName}-${lessonNumber - 1}`;
+    const newSchedule = { ...scheduleData, [key]: subject };
+    setScheduleData(newSchedule);
+    if (studentGroupId) {
+      saveClassScheduleLocal(studentGroupId, newSchedule);
+    }
+    closeContextMenu();
+  };
+
+  const swapLessons = (targetDayName: string, targetLessonNumber: number) => {
+    if (!canEditSchedule() || !swapSource) return;
+
+    const sourceKey = `${selectedQuarter}-${swapSource.dayName}-${swapSource.lessonNumber - 1}`;
+    const targetKey = `${selectedQuarter}-${targetDayName}-${targetLessonNumber - 1}`;
+
+    const sourceValue = scheduleData[sourceKey] || '';
+    const targetValue = scheduleData[targetKey] || '';
+
+    const newSchedule = { ...scheduleData };
+
+    if (targetValue) {
+      newSchedule[sourceKey] = targetValue;
+    } else {
+      delete newSchedule[sourceKey];
+    }
+
+    if (sourceValue) {
+      newSchedule[targetKey] = sourceValue;
+    } else {
+      delete newSchedule[targetKey];
+    }
+
+    setScheduleData(newSchedule);
+    if (studentGroupId) {
+      saveClassScheduleLocal(studentGroupId, newSchedule);
+    }
+
+    setSwapSource(null);
+    closeContextMenu();
+  };
+
+  const markLesson = (dayName: string, lessonNumber: number, markType: LessonMarkType, comment?: string) => {
+    if (!canEditSchedule()) return;
+    const key = `${selectedQuarter}-${dayName}-${lessonNumber}`;
+    const newMarks = { ...lessonMarks };
+    if (markType) {
+      newMarks[key] = { type: markType, comment: comment || newMarks[key]?.comment || '' };
+    } else {
+      delete newMarks[key];
+    }
+    setLessonMarks(newMarks);
+    closeContextMenu();
+  };
+
+  const updateLessonComment = (dayName: string, lessonNumber: number, comment: string) => {
+    if (!canEditSchedule()) return;
+    const key = `${selectedQuarter}-${dayName}-${lessonNumber}`;
+    const currentMark = lessonMarks[key];
+    if (currentMark) {
+      setLessonMarks({ ...lessonMarks, [key]: { ...currentMark, comment } });
+    }
+  };
+
+  const getLessonMark = (dayName: string, lessonNumber: number): LessonMarkInfo | null => {
+    const key = `${selectedQuarter}-${dayName}-${lessonNumber}`;
+    return lessonMarks[key] || null;
+  };
+
+  const getLessonMarkType = (dayName: string, lessonNumber: number): LessonMarkType => {
+    return getLessonMark(dayName, lessonNumber)?.type || null;
+  };
+
+  const getLessonMarkColor = (mark: LessonMarkType): string => {
+    switch (mark) {
+      case 'test': return 'bg-red-100 border-red-300';
+      case 'independent': return 'bg-blue-100 border-blue-300';
+      case 'key-event': return 'bg-purple-100 border-purple-300';
+      default: return 'bg-emerald-50 border-emerald-100';
+    }
+  };
+
+  const getLessonMarkLabel = (mark: LessonMarkType): string => {
+    switch (mark) {
+      case 'test': return '📝 Контрольная';
+      case 'independent': return '✏️ Самостоятельная';
+      case 'key-event': return '⭐ Ключевое событие';
+      default: return '';
+    }
+  };
+
+  const openLessonEditModal = (dayName: string, lessonNumber: number, lessonKey: string, currentSubject: string) => {
+    if (!canEditSchedule()) return;
+    setLessonEditModal({
+      visible: true,
+      dayName,
+      lessonNumber,
+      lessonKey,
+      currentSubject
+    });
+  };
+
+  const closeLessonEditModal = () => {
+    setLessonEditModal(prev => ({ ...prev, visible: false }));
+  };
+
+  const openAddLessonModal = (dayName: string, dayDate: Date) => {
+    if (!canEditSchedule()) return;
+    setAddLessonModal({
+      visible: true,
+      dayName,
+      dayDate
+    });
+  };
+
+  const closeAddLessonModal = () => {
+    setAddLessonModal(prev => ({ ...prev, visible: false }));
+  };
+
+  const handleAddLessonInDay = (dayName: string, lessonNum: number, subject: string) => {
+    if (!canEditSchedule()) return;
+    const key = `${selectedQuarter}-${dayName}-${lessonNum - 1}`;
+    const newSchedule = { ...scheduleData, [key]: subject };
+    setScheduleData(newSchedule);
+    if (studentGroupId) {
+      saveClassScheduleLocal(studentGroupId, newSchedule);
+    }
+  };
+
+  // ============================================================================
   // ЗАГРУЗКА ДАННЫХ
   // ============================================================================
 
@@ -600,30 +918,50 @@ export default function StudentDiaryPage({
     // Загрузка предметов - используем только фильтр предметов для класса
     setAvailableSubjects(classSubjectNames);
     
+    // Обновляем data.subjects при изменении доступных предметов
+    if (classSubjectNames.length > 0) {
+      setData(prev => ({
+        ...prev,
+        subjects: classSubjectNames.map(name => {
+          // Ищем существующий предмет чтобы сохранить учителя
+          const existing = prev.subjects.find(s => s.name === name);
+          return {
+            name,
+            teacher: existing?.teacher || ""
+          };
+        })
+      }));
+    }
+    
     // Загрузка данных дневника
     const savedData = getDiaryDataLocal(studentId);
     if (savedData && Object.keys(savedData).length > 0) {
       setData(prev => ({ ...prev, ...savedData }));
     } else {
       // Инициализация начальными данными
+      // Приоритет: 1) classSubjectNames (фильтр предметов для класса), 2) schedule
+      const initialSubjects = classSubjectNames.length > 0
+        ? classSubjectNames.map(name => ({ name, teacher: "" }))
+        : schedule.reduce((acc: { name: string; teacher: string }[], lesson) => {
+            if (lesson.subjectName && !acc.find(s => s.name === lesson.subjectName)) {
+              acc.push({ name: lesson.subjectName, teacher: lesson.teacherName || "" });
+            }
+            return acc;
+          }, []);
+
       setData(prev => ({
         ...prev,
         surname: studentFullName.split(" ")[0] || "",
         name: studentFullName.split(" ").slice(1).join(" ") || studentFullName,
         grade: studentGrade,
         academicYear: getCurrentAcademicYear(),
-        subjects: schedule.reduce((acc: { name: string; teacher: string }[], lesson) => {
-          if (lesson.subjectName && !acc.find(s => s.name === lesson.subjectName)) {
-            acc.push({ name: lesson.subjectName, teacher: lesson.teacherName || "" });
-          }
-          return acc;
-        }, []),
+        subjects: initialSubjects,
         holidays: { autumn: "28.10 - 03.11", winter: "25.12 - 08.01", spring: "24.03 - 30.03", summer: "01.06 - 31.08" },
       }));
     }
     
     setIsLoaded(true);
-  }, [studentFullName, studentGrade, studentGroupId, studentId, schedule]);
+  }, [studentFullName, studentGrade, studentGroupId, studentId, schedule, classSubjectNames]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -658,6 +996,17 @@ export default function StudentDiaryPage({
         });
       } catch {}
     }
+    
+    // Загружаем пользовательские праздники
+    const savedHolidays = localStorage.getItem("diary_custom_holidays");
+    if (savedHolidays) {
+      try {
+        const parsedHolidays = JSON.parse(savedHolidays);
+        if (Array.isArray(parsedHolidays)) {
+          setCustomHolidays(parsedHolidays);
+        }
+      } catch {}
+    }
   }, []);
 
   useEffect(() => {
@@ -667,6 +1016,18 @@ export default function StudentDiaryPage({
     setTeacherVerification(getDiaryVerificationLocal(studentId, weekStartStr));
     setParentVerification(getParentVerificationLocal(studentId, weekStartStr));
   }, [selectedWeek, studentId]);
+
+  // Закрытие контекстного меню по Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeContextMenu();
+        setSwapSource(null);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, []);
 
   // ============================================================================
   // ОБРАБОТЧИКИ
@@ -727,6 +1088,8 @@ export default function StudentDiaryPage({
     const merged = { ...sharedData, ...contacts };
     setSharedData(merged);
     localStorage.setItem("diary_shared_data", JSON.stringify(merged));
+    // Сохраняем пользовательские праздники
+    localStorage.setItem("diary_custom_holidays", JSON.stringify(customHolidays));
     if (canEditContacts() || canEditInstitution()) {
       await saveDiarySettings({
         schoolName: merged.schoolName || merged.institution,
@@ -826,15 +1189,31 @@ export default function StudentDiaryPage({
     return (
       <div className="fixed inset-0 backdrop-blur-md bg-black/30 flex items-center justify-center z-50 p-2">
         <div className="bg-white rounded-2xl shadow-2xl p-4 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="flex justify-between items-center mb-3">
-            <div>
-              <h2 className="text-lg font-bold text-emerald-800">
-                Редактирование расписания — {selectedQuarter} четверть
-              </h2>
-              {availableSubjects.length === 0 && (
-                <p className="text-xs text-red-600 font-semibold mt-1">⚠️ Предметы в фильтре не назначены — выберите предметы для этого класса (Админ → Предметы → Фильтр по классу)</p>
-              )}
-            </div>
+           <div className="flex justify-between items-center mb-3">
+             <div>
+               <h2 className="text-lg font-bold text-emerald-800">
+                 Редактирование расписания — {selectedQuarter} четверть
+               </h2>
+                {availableSubjects.length === 0 && (
+                  <div className="mt-2 p-3 bg-red-50 border-2 border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700 font-bold mb-2">⚠️ Предметы не найдены!</p>
+                    <p className="text-xs text-red-600 mb-2">Возможные причины:</p>
+                    <ul className="text-xs text-red-600 list-disc list-inside mb-3">
+                      <li>Нет расписания для этого класса</li>
+                      <li>Не назначены предметы в фильтре (Админ → Предметы)</li>
+                      <li>База данных пуста</li>
+                    </ul>
+                    {canEditContacts() && (
+                      <button
+                        onClick={() => window.location.href = '/admin/subjects'}
+                        className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 transition-colors"
+                      >
+                        Перейти к назначению предметов →
+                      </button>
+                    )}
+                  </div>
+                )}
+             </div>
             <button
               onClick={() => setShowScheduleModal(false)}
               className="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 transition-colors text-sm"
@@ -932,7 +1311,7 @@ export default function StudentDiaryPage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 font-sans pt-16">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 font-sans pt-4">
       {/* Модальное окно аватара */}
       {showAvatarModal && userAvatar && (
         <div 
@@ -974,11 +1353,11 @@ export default function StudentDiaryPage({
       {/* Модальное окно редактирования расписания */}
       {renderScheduleModal()}
 
-      <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-2 print:my-0 print:shadow-none rounded-xl overflow-hidden">
+      <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-0 print:my-0 print:shadow-none rounded-xl overflow-hidden">
         {/* Навигация */}
-        <div className="bg-white shadow-md border-b-2 border-emerald-300 px-4 py-4 mb-4">
+        <div className="bg-white border-b border-emerald-200 px-4 py-1">
           <div className="relative">
-            <div className="flex gap-2 overflow-x-auto pb-3 scroll-smooth" style={{ scrollbarWidth: 'thin', scrollbarColor: '#10b981 #e5e7eb', WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex gap-2 overflow-x-auto pb-1 scroll-smooth" style={{ scrollbarWidth: 'thin', scrollbarColor: '#10b981 #e5e7eb', WebkitOverflowScrolling: 'touch' }}>
               {sections.map(section => (
                 <button
                   key={section.id}
@@ -998,13 +1377,13 @@ export default function StudentDiaryPage({
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <a
-                href="/diary"
+                href={effectiveUserRole === "teacher" ? "/teacher" : "/diary"}
                 className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-all text-sm font-semibold"
               >
-                Назад
+                ← Назад
               </a>
               <div
-                className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-300 cursor-pointer hover:opacity-80 transition-opacity"
+                className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-300 cursor-pointer hover:opacity-80 transition-opacity shrink-0 flex items-center justify-center"
                 onClick={() => userAvatar && setShowAvatarModal(true)}
               >
                 {userAvatar ? (
@@ -1012,10 +1391,11 @@ export default function StudentDiaryPage({
                     src={userAvatar}
                     alt="Avatar"
                     fill
-                    className="object-cover"
+                    className="object-cover rounded-full"
+                    style={{ aspectRatio: '1/1' }}
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold shrink-0">
                     {studentFullName.charAt(0)}
                   </div>
                 )}
@@ -1028,42 +1408,44 @@ export default function StudentDiaryPage({
 
             <div className="flex items-center gap-3">
               {effectiveUserRole === "admin" && (
-                <a
-                  href="/diary"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all text-sm font-semibold"
-                >
-                  🔄 Сменить класс и/или ученика
-                </a>
+                <>
+                  <a
+                    href="/diary"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all text-sm font-semibold"
+                  >
+                    🔄 Сменить класс и/или ученика
+                  </a>
+                  <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg px-3 py-2 border border-indigo-200">
+                    <span className="text-sm text-indigo-500">🎭</span>
+                    <select
+                      value={tempUserRole}
+                      onChange={(e) => setTempUserRole(e.target.value)}
+                      className="text-sm border-0 bg-transparent text-violet-700 font-semibold focus:outline-none cursor-pointer"
+                    >
+                      <option value="">{userRole || "Роль"}</option>
+                      <option value="admin">👑 Админ</option>
+                      <option value="teacher">👨‍🏫 Учитель</option>
+                      <option value="homeroomTeacher">🍎 Классный</option>
+                      <option value="parent">👨‍👩‍👧 Родитель</option>
+                      <option value="student">🎒 Ученик</option>
+                    </select>
+                  </div>
+                </>
               )}
-              <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg px-3 py-2 border border-indigo-200">
-                <span className="text-sm text-indigo-500">🎭</span>
-                <select
-                  value={tempUserRole}
-                  onChange={(e) => setTempUserRole(e.target.value)}
-                  className="text-sm border-0 bg-transparent text-violet-700 font-semibold focus:outline-none cursor-pointer"
-                >
-                  <option value="">{userRole || "Роль"}</option>
-                  <option value="admin">👑 Админ</option>
-                  <option value="teacher">👨‍🏫 Учитель</option>
-                  <option value="homeroomTeacher">🍎 Классный</option>
-                  <option value="parent">👨‍👩‍👧 Родитель</option>
-                  <option value="student">🎒 Ученик</option>
-                </select>
-              </div>
             </div>
           </div>
         </div>
 
         {/* Титульный лист */}
         {activeSection === "title" && (
-          <div className="min-h-[297mm] p-12 bg-gradient-to-b from-amber-50/50 to-white">
-            <div className="text-center mb-10">
+          <div className="p-8 bg-gradient-to-b from-amber-50/50 to-white">
+            <div className="text-center mb-8">
               <div className="text-4xl mb-2">🎓</div>
               <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600 mb-2">Дневник учащегося</h2>
               <p className="text-gray-500 text-sm">официальный документ</p>
               {canEditInstitution() && <p className="text-xs text-emerald-600 mt-2">💡 Редактируется администратором — заполняется один раз и применяется для всех учеников класса</p>}
             </div>
-            <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 border border-emerald-100">
+            <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-emerald-100">
               <h3 className="font-bold text-emerald-800 mb-6 flex items-center gap-2"><span className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">📝</span>Основная информация</h3>
               <table className="w-full">
                 <tbody>
@@ -1180,6 +1562,89 @@ export default function StudentDiaryPage({
                 </div>
               ))}
             </div>
+            
+            {/* Расписание звонков */}
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">🔔</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-amber-800">Расписание звонков</h3>
+                    <p className="text-sm text-amber-600">Расписание уроков и перемен</p>
+                  </div>
+                </div>
+                {canEditContacts() && (
+                  <span className="text-xs text-amber-600 bg-amber-100 px-3 py-1 rounded-full">✏️ Режим редактирования</span>
+                )}
+              </div>
+              
+              <div className="overflow-hidden rounded-xl border border-amber-200">
+                <table className="w-full">
+                  <thead className="bg-gradient-to-r from-amber-400 to-orange-400 text-white">
+                    <tr>
+                      <th className="py-3 px-4 text-left font-bold">№</th>
+                      <th className="py-3 px-4 text-center font-bold">Начало</th>
+                      <th className="py-3 px-4 text-center font-bold">Конец</th>
+                      <th className="py-3 px-4 text-center font-bold">Перемена</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bellSchedule.map((bell, index) => (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-amber-50/50'}>
+                        <td className="py-3 px-4 font-bold text-amber-800">{bell.number}</td>
+                        <td className="py-3 px-4">
+                          {canEditContacts() ? (
+                            <input
+                              type="time"
+                              value={bell.start}
+                              onChange={(e) => updateBellSchedule(index, 'start', e.target.value)}
+                              className="w-full text-center border-2 border-amber-200 rounded-lg py-1 px-2 text-amber-800 font-semibold focus:border-amber-400 focus:outline-none"
+                            />
+                          ) : (
+                            <span className="block text-center font-semibold text-gray-800">{bell.start}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {canEditContacts() ? (
+                            <input
+                              type="time"
+                              value={bell.end}
+                              onChange={(e) => updateBellSchedule(index, 'end', e.target.value)}
+                              className="w-full text-center border-2 border-amber-200 rounded-lg py-1 px-2 text-amber-800 font-semibold focus:border-amber-400 focus:outline-none"
+                            />
+                          ) : (
+                            <span className="block text-center font-semibold text-gray-800">{bell.end}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {canEditContacts() ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <input
+                                type="text"
+                                value={bell.break}
+                                onChange={(e) => updateBellSchedule(index, 'break', e.target.value)}
+                                className="w-16 text-center border-2 border-amber-200 rounded-lg py-1 px-2 text-amber-800 font-semibold focus:border-amber-400 focus:outline-none"
+                              />
+                              <span className="text-sm text-amber-600">мин</span>
+                            </div>
+                          ) : (
+                            <span className="block text-center font-semibold text-gray-800">
+                              {bell.break ? `${bell.break} мин` : '—'}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {canEditContacts() && (
+                <p className="text-xs text-amber-600 mt-4 text-center">
+                  💡 Изменения сохраняются автоматически при редактировании
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -1274,7 +1739,8 @@ export default function StudentDiaryPage({
                   
                   // Проверяем каникулы и праздники
                   const holidayName = getHolidayNameByDate(dayDate);
-                  const celebrationName = getHolidayByDate(dayDate);
+                  const celebration = getHolidayByDate(dayDate, disabledHolidays);
+                  const celebrationName = celebration?.name || null;
                   const isHoliday = holidayName !== null;
                   
                   return (
@@ -1301,17 +1767,66 @@ export default function StudentDiaryPage({
                         </div>
                       )}
                       
-                      {!isHoliday && (dayLessons.length === 0 ? 
-                        <p className="text-xs text-gray-400 italic text-center">Нет уроков</p> : (
+                       {!isHoliday && (
                         <div className="space-y-1">
-                          {dayLessons.map(lesson => (
-                            <div key={lesson.lessonNumber} className="flex items-center gap-2 p-1.5 bg-emerald-50 rounded">
-                              <span className="w-5 h-5 flex items-center justify-center bg-emerald-200 text-emerald-800 rounded-full text-xs font-bold">{lesson.lessonNumber}</span>
-                              <span className="text-xs font-bold text-gray-800 truncate">{lesson.subject}</span>
-                            </div>
-                          ))}
+                          {dayLessons.length === 0 ? (
+                            <p className="text-xs text-gray-400 italic text-center py-2">Нет уроков</p>
+                          ) : (
+                            dayLessons.map(lesson => {
+                              const lessonMarkInfo = getLessonMark(day.name, lesson.lessonNumber);
+                              const lessonMarkType = lessonMarkInfo?.type || null;
+                              const markClass = lessonMarkType ? getLessonMarkColor(lessonMarkType) : 'bg-emerald-50 border-emerald-100';
+                              const lessonKey = `${selectedQuarter}-${day.name}-${lesson.lessonNumber - 1}`;
+                              return (
+                              <div
+                                key={lesson.lessonNumber}
+                                className={`flex items-center gap-2 p-1.5 rounded border ${markClass} group`}
+                              >
+                                <span className="w-5 h-5 flex items-center justify-center bg-emerald-200 text-emerald-800 rounded-full text-xs font-bold shrink-0">{lesson.lessonNumber}</span>
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-xs font-bold text-gray-900 truncate block">{lesson.subject}</span>
+                                  {lessonMarkInfo?.comment && (
+                                    <span className="text-[10px] text-gray-500 truncate block" title={lessonMarkInfo.comment}>
+                                      💬 {lessonMarkInfo.comment}
+                                    </span>
+                                  )}
+                                </div>
+                                {lessonMarkType && (
+                                  <span className="text-xs shrink-0" title={getLessonMarkLabel(lessonMarkType)}>
+                                    {lessonMarkType === 'test' && '📝'}
+                                    {lessonMarkType === 'independent' && '✏️'}
+                                    {lessonMarkType === 'key-event' && '⭐'}
+                                  </span>
+                                )}
+                                {canEditSchedule() && (
+                                  <button
+                                    onClick={() => openLessonEditModal(day.name, lesson.lessonNumber, lessonKey, lesson.subject)}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-emerald-200 rounded shrink-0"
+                                    title="Изменить урок"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-emerald-700" viewBox="0 0 20 20" fill="currentColor">
+                                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
+                              );
+                            })
+                          )}
+                          {/* Кнопка добавления урока */}
+                          {canEditSchedule() && (
+                            <button
+                              onClick={() => openAddLessonModal(day.name, dayDate)}
+                              className="w-full mt-2 px-2 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                              </svg>
+                              Добавить урок
+                            </button>
+                          )}
                         </div>
-                      ))}
+                      )}
                     </div>
                   );
                 })}
@@ -1618,23 +2133,23 @@ export default function StudentDiaryPage({
 
         {/* Каникулы */}
         {activeSection === "holidays" && (
-          <div className="min-h-[297mm] p-12 bg-gradient-to-b from-sky-50/50 to-white">
-            <div className="text-center mb-10">
+          <div className="p-8 bg-gradient-to-b from-sky-50/50 to-white">
+            <div className="text-center mb-8">
               <div className="text-4xl mb-2">🏖️</div>
               <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-blue-600">Каникулы</h2>
               {canEditInstitution() && (
-                <p className="text-sm text-sky-600 mt-2">💡 Редактируется администратором — заполняется один раз и применяется для всех учеников класса. Они будут идентичны только для одних и тех же классов (5-А, 5-Г например, для 8-А 8-Б другие каникулы и так далее)</p>
+                <p className="text-sm text-sky-600 mt-2">💡 Редактируется администратором — заполняется один раз и применяется для всех учеников класса</p>
               )}
             </div>
             
-            <div className="grid md:grid-cols-2 gap-6 mb-10">
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
               {[
                 {label: "🍂 Осенние каникулы", key: "autumn" as const},
                 {label: "❄️ Зимние каникулы", key: "winter" as const},
                 {label: "🌸 Весенние каникулы", key: "spring" as const},
                 {label: "☀️ Летние каникулы", key: "summer" as const},
               ].map((item, i) => (
-                <div key={i} className="bg-gradient-to-br from-white to-sky-50 rounded-2xl shadow-lg p-6 border-2 border-sky-200">
+                <div key={i} className="bg-gradient-to-br from-white to-sky-50 rounded-2xl shadow-lg p-5 border-2 border-sky-200">
                   <label className="block text-lg font-bold text-sky-800 mb-3">{item.label}</label>
                   {canEditInstitution() ? (
                     <input
@@ -1671,17 +2186,93 @@ export default function StudentDiaryPage({
                 Республики Беларусь
               </p>
             </div>
+
+            {/* Форма добавления праздника */}
+            {canEditContacts() && (
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-lg p-6 border-2 border-amber-300 mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-3xl">➕</span>
+                  <h3 className="text-xl font-bold text-amber-800">Добавить праздник</h3>
+                </div>
+                <div className="grid md:grid-cols-4 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Дата (например: 15 мая)"
+                    value={newHolidayForm.date}
+                    onChange={(e) => setNewHolidayForm({...newHolidayForm, date: e.target.value})}
+                    className="border-2 border-amber-300 rounded-lg px-4 py-2.5 text-gray-900 font-medium bg-white placeholder-gray-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Название праздника"
+                    value={newHolidayForm.name}
+                    onChange={(e) => setNewHolidayForm({...newHolidayForm, name: e.target.value})}
+                    className="border-2 border-amber-300 rounded-lg px-4 py-2.5 text-gray-900 font-medium bg-white placeholder-gray-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200 md:col-span-2"
+                  />
+                  <select
+                    value={newHolidayForm.category}
+                    onChange={(e) => setNewHolidayForm({...newHolidayForm, category: e.target.value as HolidayCategory})}
+                    className="border-2 border-amber-300 rounded-lg px-4 py-2.5 text-gray-900 font-medium bg-white focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                  >
+                    <option value="state">🎉 Государственный</option>
+                    <option value="memorial">🕯️ Памятная дата</option>
+                    <option value="professional">💼 Профессиональный</option>
+                  </select>
+                </div>
+                <button
+                  onClick={addCustomHoliday}
+                  disabled={!newHolidayForm.date || !newHolidayForm.name}
+                  className="mt-4 px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  Добавить праздник
+                </button>
+              </div>
+            )}
+            
             <div className="grid md:grid-cols-2 gap-8 mb-8">
               <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-2xl shadow-lg p-6 border-2 border-red-200">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-3xl">🎉</span>
                   <h3 className="text-xl font-bold text-red-800">Государственные праздники</h3>
+                  {canEditContacts() && getAllHolidaysByCategory('state').length > 0 && (
+                    <span className="text-xs text-gray-500 ml-auto">✕ для удаления</span>
+                  )}
                 </div>
                 <ul className="space-y-3">
-                  {HOLIDAYS_LIST.map((holiday, i) => (
-                    <li key={i} className="flex gap-3 items-start bg-white rounded-lg p-3 shadow-sm">
-                      <span className="flex-shrink-0 w-24 font-bold text-red-600">{holiday.date}</span>
-                      <span className="text-gray-800 font-bold">{holiday.name}</span>
+                  {HOLIDAYS_LIST.map((holiday, i) => {
+                    const holidayKey = `state-${holiday.date}`;
+                    const isDisabled = disabledHolidays.has(holidayKey);
+                    return (
+                      <li key={i} className={`flex gap-3 items-center rounded-lg p-3 shadow-sm transition-all ${isDisabled ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
+                        {canEditSchedule() && (
+                          <button
+                            onClick={() => toggleHolidayDisabled(holidayKey)}
+                            className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${isDisabled ? 'bg-gray-300 text-gray-500' : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'}`}
+                            title={isDisabled ? 'Праздник не засчитывается как выходной - кликните чтобы включить' : 'Праздник засчитывается как выходной - кликните чтобы отключить'}
+                          >
+                            <span className="text-lg">{isDisabled ? '🔕' : '📅'}</span>
+                          </button>
+                        )}
+                        <span className="flex-shrink-0 w-20 font-bold text-red-600">{holiday.date}</span>
+                        <span className={`flex-1 font-bold ${isDisabled ? 'text-gray-500 line-through' : 'text-gray-800'}`}>{holiday.name}</span>
+                      </li>
+                    );
+                  })}
+                  {/* Пользовательские государственные праздники */}
+                  {getAllHolidaysByCategory('state').length === 0 && (
+                    <li className="text-sm text-gray-400 italic">Нет пользовательских праздников</li>
+                  )}
+                  {getAllHolidaysByCategory('state').map((holiday) => (
+                    <li key={holiday.id} className="flex gap-3 items-start bg-amber-50 rounded-lg p-3 shadow-sm border-2 border-amber-200">
+                      <span className="flex-shrink-0 w-24 font-bold text-amber-700">{holiday.date}</span>
+                      <span className="text-gray-800 font-bold flex-1">{holiday.name}</span>
+                      <button
+                        onClick={() => confirmDeleteHoliday(holiday.id, holiday.name)}
+                        className="bg-red-500 hover:bg-red-600 text-white font-bold text-lg leading-none w-8 h-8 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all flex-shrink-0"
+                        title="Удалить праздник"
+                      >
+                        ✕
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -1692,10 +2283,37 @@ export default function StudentDiaryPage({
                   <h3 className="text-xl font-bold text-gray-800">Памятные даты</h3>
                 </div>
                 <ul className="space-y-3">
-                  {MEMORIAL_DATES.map((date, i) => (
-                    <li key={i} className="flex gap-2 items-start bg-white rounded-lg p-3 shadow-sm overflow-hidden">
-                      <span className="flex-shrink-0 w-16 sm:w-20 font-bold text-gray-600 text-xs sm:text-sm">{date.date}</span>
-                      <span className="text-gray-800 font-bold text-xs sm:text-sm break-words flex-1 min-w-0 leading-snug">{date.name}</span>
+                  {MEMORIAL_DATES.map((date, i) => {
+                    const holidayKey = `memorial-${date.date}`;
+                    const isDisabled = disabledHolidays.has(holidayKey);
+                    return (
+                      <li key={i} className={`flex gap-3 items-center rounded-lg p-3 shadow-sm overflow-hidden transition-all ${isDisabled ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
+                        {canEditSchedule() && (
+                          <button
+                            onClick={() => toggleHolidayDisabled(holidayKey)}
+                            className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${isDisabled ? 'bg-gray-300 text-gray-500' : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'}`}
+                            title={isDisabled ? 'Праздник не засчитывается как выходной - кликните чтобы включить' : 'Праздник засчитывается как выходной - кликните чтобы отключить'}
+                          >
+                            <span className="text-lg">{isDisabled ? '🔕' : '📅'}</span>
+                          </button>
+                        )}
+                        <span className="flex-shrink-0 w-16 sm:w-16 font-bold text-gray-600 text-xs sm:text-sm">{date.date}</span>
+                        <span className={`font-bold text-xs sm:text-sm break-words flex-1 min-w-0 leading-snug ${isDisabled ? 'text-gray-500 line-through' : 'text-gray-800'}`}>{date.name}</span>
+                      </li>
+                    );
+                  })}
+                  {/* Пользовательские памятные даты */}
+                  {getAllHolidaysByCategory('memorial').map((holiday) => (
+                    <li key={holiday.id} className="flex gap-3 items-start bg-amber-50 rounded-lg p-3 shadow-sm border-2 border-amber-200">
+                      <span className="flex-shrink-0 w-16 sm:w-20 font-bold text-amber-700 text-xs sm:text-sm">{holiday.date}</span>
+                      <span className="text-gray-800 font-bold text-xs sm:text-sm break-words flex-1 min-w-0 leading-snug">{holiday.name}</span>
+                      <button
+                        onClick={() => confirmDeleteHoliday(holiday.id, holiday.name)}
+                        className="bg-red-500 hover:bg-red-600 text-white font-bold text-lg leading-none w-8 h-8 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all flex-shrink-0"
+                        title="Удалить праздник"
+                      >
+                        ✕
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -1707,13 +2325,403 @@ export default function StudentDiaryPage({
                 <h3 className="text-xl font-bold text-emerald-800">Профессиональные праздники</h3>
               </div>
               <ul className="space-y-3">
-                {PROFESSIONAL_HOLIDAYS.map((holiday, i) => (
-                  <li key={i} className="flex gap-3 items-start bg-white rounded-lg p-3 shadow-sm">
-                    <span className="flex-shrink-0 w-48 font-bold text-emerald-600">{holiday.date}</span>
-                    <span className="text-gray-800 font-bold">{holiday.name}</span>
+                {PROFESSIONAL_HOLIDAYS.map((holiday, i) => {
+                  const holidayKey = `professional-${holiday.date}`;
+                  const isDisabled = disabledHolidays.has(holidayKey);
+                  return (
+                    <li key={i} className={`flex gap-3 items-center rounded-lg p-3 shadow-sm transition-all ${isDisabled ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
+                      {canEditSchedule() && (
+                        <button
+                          onClick={() => toggleHolidayDisabled(holidayKey)}
+                          className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${isDisabled ? 'bg-gray-300 text-gray-500' : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'}`}
+                          title={isDisabled ? 'Праздник не засчитывается как выходной - кликните чтобы включить' : 'Праздник засчитывается как выходной - кликните чтобы отключить'}
+                        >
+                          <span className="text-lg">{isDisabled ? '🔕' : '📅'}</span>
+                        </button>
+                      )}
+                      <span className="flex-shrink-0 w-40 font-bold text-emerald-600">{holiday.date}</span>
+                      <span className={`flex-1 font-bold ${isDisabled ? 'text-gray-500 line-through' : 'text-gray-800'}`}>{holiday.name}</span>
+                    </li>
+                  );
+                })}
+                {/* Пользовательские профессиональные праздники */}
+                {getAllHolidaysByCategory('professional').map((holiday) => (
+                  <li key={holiday.id} className="flex gap-3 items-start bg-amber-50 rounded-lg p-3 shadow-sm border-2 border-amber-200">
+                    <span className="flex-shrink-0 w-48 font-bold text-amber-700">{holiday.date}</span>
+                    <span className="text-gray-800 font-bold flex-1">{holiday.name}</span>
+                    <button
+                      onClick={() => confirmDeleteHoliday(holiday.id, holiday.name)}
+                      className="bg-red-500 hover:bg-red-600 text-white font-bold text-lg leading-none w-8 h-8 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all flex-shrink-0"
+                      title="Удалить праздник"
+                    >
+                      ✕
+                    </button>
                   </li>
                 ))}
               </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно подтверждения удаления праздника */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 backdrop-blur-md bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">🗑️</span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Подтвердите удаление</h3>
+                <p className="text-gray-600">
+                  Вы действительно хотите удалить праздник <strong className="text-gray-800">"{holidayToDeleteName}"</strong>?
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-300 transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={removeCustomHoliday}
+                  className="flex-1 px-4 py-3 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition-colors"
+                >
+                  Удалить
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Контекстное меню для уроков */}
+        {contextMenu.visible && canEditSchedule() && (
+          <>
+            <div
+              className="fixed inset-0 z-[60]"
+              onClick={closeContextMenu}
+            />
+            <div
+              className="fixed z-[70] bg-white rounded-xl shadow-2xl border border-gray-200 py-2 min-w-[220px]"
+              style={{ left: contextMenu.x, top: contextMenu.y }}
+            >
+              <div className="px-3 py-2 border-b border-gray-100">
+                <p className="text-xs text-gray-500">{contextMenu.dayName}, урок {contextMenu.lessonNumber}</p>
+              </div>
+
+              {/* Обмен уроками */}
+              {!swapSource ? (
+                <button
+                  onClick={() => setSwapSource({ dayName: contextMenu.dayName, lessonNumber: contextMenu.lessonNumber, lessonKey: contextMenu.lessonKey })}
+                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100 flex items-center gap-2 transition-colors"
+                >
+                  <span>🔄</span>
+                  <span>Поменять местами</span>
+                </button>
+              ) : (
+                <>
+                  <div className="px-4 py-2 bg-amber-50 text-xs text-amber-700">
+                    Выберите урок для обмена с {swapSource.dayName}, {swapSource.lessonNumber}
+                  </div>
+                  <button
+                    onClick={() => swapLessons(contextMenu.dayName, contextMenu.lessonNumber)}
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100 flex items-center gap-2 transition-colors text-emerald-600 font-medium"
+                  >
+                    <span>✓</span>
+                    <span>Обменять с этим уроком</span>
+                  </button>
+                  <button
+                    onClick={() => setSwapSource(null)}
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100 flex items-center gap-2 transition-colors text-red-600"
+                  >
+                    <span>✕</span>
+                    <span>Отменить обмен</span>
+                  </button>
+                </>
+              )}
+
+              <div className="border-t border-gray-100 my-1" />
+
+              {/* Добавить урок */}
+              <div className="px-3 py-2">
+                <p className="text-xs text-gray-400 mb-1">Добавить:</p>
+                <div className="grid grid-cols-2 gap-1">
+                  {availableSubjects.slice(0, 6).map(subject => (
+                    <button
+                      key={subject}
+                      onClick={() => addLesson(contextMenu.dayName, contextMenu.lessonNumber, subject)}
+                      className="px-2 py-1 text-xs text-left hover:bg-emerald-50 hover:text-emerald-700 rounded transition-colors truncate"
+                    >
+                      {subject}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 my-1" />
+
+              {/* Пометить урок */}
+              <div className="px-3 py-2">
+                <p className="text-xs text-gray-400 mb-1">Пометить как:</p>
+                <button
+                  onClick={() => markLesson(contextMenu.dayName, contextMenu.lessonNumber, 'test')}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 hover:text-red-700 flex items-center gap-2 rounded transition-colors"
+                >
+                  <span>📝</span>
+                  <span>Контрольная работа</span>
+                </button>
+                <button
+                  onClick={() => markLesson(contextMenu.dayName, contextMenu.lessonNumber, 'independent')}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2 rounded transition-colors"
+                >
+                  <span>✏️</span>
+                  <span>Самостоятельная работа</span>
+                </button>
+                <button
+                  onClick={() => markLesson(contextMenu.dayName, contextMenu.lessonNumber, 'key-event')}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 rounded transition-colors"
+                >
+                  <span>⭐</span>
+                  <span>Ключевое событие</span>
+                </button>
+                <button
+                  onClick={() => markLesson(contextMenu.dayName, contextMenu.lessonNumber, null)}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded transition-colors text-gray-500"
+                >
+                  <span>✗</span>
+                  <span>Убрать пометку</span>
+                </button>
+              </div>
+
+              <div className="border-t border-gray-100 my-1" />
+
+              {/* Убрать урок */}
+              <button
+                onClick={() => removeLesson(contextMenu.dayName, contextMenu.lessonNumber)}
+                className="w-full px-4 py-2.5 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2 transition-colors"
+              >
+                <span>🗑️</span>
+                <span>Убрать урок</span>
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Модальное окно редактирования урока */}
+        {lessonEditModal.visible && canEditSchedule() && (
+          <div className="fixed inset-0 backdrop-blur-md bg-black/30 z-[80] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-800">
+                  {lessonEditModal.dayName}, урок {lessonEditModal.lessonNumber}
+                </h3>
+                <button
+                  onClick={closeLessonEditModal}
+                  className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Сменить предмет */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Изменить предмет:</label>
+                <select
+                  value={lessonEditModal.currentSubject}
+                  onChange={(e) => {
+                    updateScheduleItem(selectedQuarter, lessonEditModal.dayName, lessonEditModal.lessonNumber - 1, e.target.value);
+                    setLessonEditModal(prev => ({ ...prev, currentSubject: e.target.value }));
+                  }}
+                  className="w-full border-2 border-emerald-200 rounded-lg px-3 py-2 text-gray-800 focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="">— Нет урока —</option>
+                  {availableSubjects.map((subject) => (
+                    <option key={subject} value={subject}>{subject}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Поменять местами */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Обмен с другим уроком:</label>
+                {!swapSource ? (
+                  <button
+                    onClick={() => {
+                      setSwapSource({
+                        dayName: lessonEditModal.dayName,
+                        lessonNumber: lessonEditModal.lessonNumber,
+                        lessonKey: lessonEditModal.lessonKey
+                      });
+                      closeLessonEditModal();
+                    }}
+                    className="w-full px-4 py-2 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>🔄</span>
+                    <span>Выбрать урок для обмена</span>
+                  </button>
+                ) : (
+                  <div className="p-3 bg-emerald-50 rounded-lg text-center">
+                    <p className="text-sm text-emerald-700">Готово к обмену!</p>
+                    <button
+                      onClick={() => setSwapSource(null)}
+                      className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200"
+                    >
+                      Отменить обмен
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Пометить урок */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Пометить урок:</label>
+                <div className="grid grid-cols-1 gap-2">
+                  <button
+                    onClick={() => markLesson(lessonEditModal.dayName, lessonEditModal.lessonNumber, 'test')}
+                    className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                      getLessonMarkType(lessonEditModal.dayName, lessonEditModal.lessonNumber) === 'test'
+                        ? 'bg-red-500 text-white'
+                        : 'bg-red-100 text-red-800 hover:bg-red-200'
+                    }`}
+                  >
+                    <span>📝</span>
+                    <span>Контрольная работа</span>
+                  </button>
+                  <button
+                    onClick={() => markLesson(lessonEditModal.dayName, lessonEditModal.lessonNumber, 'independent')}
+                    className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                      getLessonMarkType(lessonEditModal.dayName, lessonEditModal.lessonNumber) === 'independent'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                    }`}
+                  >
+                    <span>✏️</span>
+                    <span>Самостоятельная работа</span>
+                  </button>
+                  <button
+                    onClick={() => markLesson(lessonEditModal.dayName, lessonEditModal.lessonNumber, 'key-event')}
+                    className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                      getLessonMarkType(lessonEditModal.dayName, lessonEditModal.lessonNumber) === 'key-event'
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-purple-100 text-purple-800 hover:bg-purple-200'
+                    }`}
+                  >
+                    <span>⭐</span>
+                    <span>Ключевое событие</span>
+                  </button>
+                  <button
+                    onClick={() => markLesson(lessonEditModal.dayName, lessonEditModal.lessonNumber, null)}
+                    className="px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center gap-2"
+                  >
+                    <span>✗</span>
+                    <span>Убрать пометку</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Комментарий к уроку */}
+              {getLessonMarkType(lessonEditModal.dayName, lessonEditModal.lessonNumber) && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Комментарий:</label>
+                  <textarea
+                    value={getLessonMark(lessonEditModal.dayName, lessonEditModal.lessonNumber)?.comment || ''}
+                    onChange={(e) => updateLessonComment(lessonEditModal.dayName, lessonEditModal.lessonNumber, e.target.value)}
+                    placeholder="Например: тема контрольной, номер варианта..."
+                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:border-emerald-500 focus:outline-none resize-none"
+                    rows={2}
+                  />
+                </div>
+              )}
+
+              {/* Убрать урок */}
+              <button
+                onClick={() => {
+                  removeLesson(lessonEditModal.dayName, lessonEditModal.lessonNumber);
+                  closeLessonEditModal();
+                }}
+                className="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center justify-center gap-2"
+              >
+                <span>🗑️</span>
+                <span>Убрать урок</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Индикатор режима обмена */}
+        {swapSource && (
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-6 py-3 rounded-xl shadow-lg z-[90] flex items-center gap-3">
+            <span>🔄</span>
+            <span>Режим обмена: выберите урок для обмена с {swapSource.dayName}, урок {swapSource.lessonNumber}</span>
+            <button
+              onClick={() => setSwapSource(null)}
+              className="ml-2 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm"
+            >
+              Отмена
+            </button>
+          </div>
+        )}
+
+        {/* Модальное окно добавления урока */}
+        {addLessonModal.visible && canEditSchedule() && (
+          <div className="fixed inset-0 backdrop-blur-md bg-black/30 z-[80] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-800">
+                  Добавить урок — {addLessonModal.dayName}
+                </h3>
+                <button
+                  onClick={closeAddLessonModal}
+                  className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-500 mb-4">
+                {addLessonModal.dayDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+              </p>
+
+              {/* Выбор номера урока */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Номер урока:</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {Array.from({ length: 8 }, (_, i) => i + 1).map(num => {
+                    const existingLesson = Object.entries(scheduleData).find(([key, value]) => {
+                      const [q, day, lessonNum] = key.split('-');
+                      return q === selectedQuarter && day === addLessonModal.dayName && parseInt(lessonNum) === num - 1;
+                    });
+                    const isOccupied = !!existingLesson;
+                    return (
+                      <button
+                        key={num}
+                        onClick={() => {
+                          if (!isOccupied) {
+                            const firstSubject = availableSubjects[0];
+                            if (firstSubject) {
+                              handleAddLessonInDay(addLessonModal.dayName, num, firstSubject);
+                              closeAddLessonModal();
+                            }
+                          }
+                        }}
+                        disabled={isOccupied}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          isOccupied
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                        }`}
+                      >
+                        {num}
+                        {isOccupied && <span className="block text-[10px]">занят</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-400 text-center">
+                Выберите свободный номер урока
+              </p>
             </div>
           </div>
         )}

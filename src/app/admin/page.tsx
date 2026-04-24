@@ -56,6 +56,11 @@ const icons = {
       <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
     </svg>
   ),
+  holidays: (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+    </svg>
+  ),
 };
 
 // Цвета для кнопок меню - точно как на скриншоте
@@ -67,6 +72,7 @@ const menuButtons = [
   { href: "/admin/teacher-classes", label: "Классы учителей", icon: icons.teacherClasses, color: "bg-cyan-600 hover:bg-cyan-700" },
   { href: "/admin/parent-student-links", label: "Связи", icon: icons.links, color: "bg-amber-600 hover:bg-amber-700" },
   { href: "/admin/posts", label: "Посты", icon: icons.posts, color: "bg-teal-600 hover:bg-teal-700" },
+  { href: "/admin/holidays", label: "Каникулы", icon: icons.holidays, color: "bg-orange-600 hover:bg-orange-700" },
 ];
 
 export default async function AdminPage() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { SubjectItem } from "./SubjectItem";
 
@@ -15,6 +15,12 @@ interface Subject {
   name: string;
   teacherId: string | null;
   type?: string | null;
+}
+
+interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error';
 }
 
 export default function SubjectsAdminPage({
@@ -41,6 +47,17 @@ export default function SubjectsAdminPage({
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
   const [eventForm, setEventForm] = useState({ name: "", type: "class_hour" });
   const [specialForm, setSpecialForm] = useState({ name: "", type: "elective" });
+  const [regularForm, setRegularForm] = useState({ name: "" });
+  const [isAdding, setIsAdding] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  };
 
   const selectedClassGroups = selectedClassNumber
     ? classesData.filter(cls => cls.name.startsWith(`${selectedClassNumber}-`) || cls.name.startsWith(`${selectedClassNumber} `))
@@ -73,35 +90,107 @@ export default function SubjectsAdminPage({
     setSelectedGroupIds([]);
   };
 
-  const handleAddEvent = (e: React.FormEvent) => {
+  const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Добавить мероприятие:", eventForm);
-    setEventForm({ name: "", type: "class_hour" });
+    setIsAdding(true);
+    try {
+      const formData = new FormData();
+      formData.append("name", eventForm.name);
+      formData.append("type", eventForm.type);
+
+      const response = await fetch("/api/subjects/create", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        setEventForm({ name: "", type: "class_hour" });
+        showToast(eventForm.type === 'class_hour' ? 'Классный час успешно добавлен!' : 'Мероприятие успешно добавлено!');
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        const error = await response.json();
+        showToast(error.error || "Ошибка при создании", 'error');
+      }
+    } catch (err) {
+      showToast("Ошибка при создании", 'error');
+    } finally {
+      setIsAdding(false);
+    }
   };
 
-  const handleAddSpecial = (e: React.FormEvent) => {
+  const handleAddSpecial = async (e: React.FormEvent) => {
     e.preventDefault();
-    fetch("/api/subjects/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `name=${encodeURIComponent(specialForm.name)}&type=${specialForm.type}`,
-    }).then(() => {
-      setSpecialForm({ name: "", type: "elective" });
-      window.location.reload();
-    });
+    setIsAdding(true);
+    try {
+      const formData = new FormData();
+      formData.append("name", specialForm.name);
+      formData.append("type", specialForm.type);
+
+      const response = await fetch("/api/subjects/create", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        setSpecialForm({ name: "", type: "elective" });
+        showToast(specialForm.type === 'elective' ? 'Факультатив успешно добавлен!' : 'Олимпиада успешно добавлена!');
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        const error = await response.json();
+        showToast(error.error || "Ошибка при создании предмета", 'error');
+      }
+    } catch (err) {
+      showToast("Ошибка при создании предмета", 'error');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleAddRegular = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regularForm.name.trim()) return;
+
+    setIsAdding(true);
+    try {
+      const formData = new FormData();
+      formData.append("name", regularForm.name);
+      formData.append("type", "regular");
+
+      const response = await fetch("/api/subjects/create", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        setRegularForm({ name: "" });
+        showToast('Предмет успешно добавлен!');
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        const error = await response.json();
+        showToast(error.error || "Ошибка при создании предмета", 'error');
+      }
+    } catch (err) {
+      showToast("Ошибка при создании предмета", 'error');
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition-all shadow-sm hover:shadow"
-        >
-          ← Назад
-        </Link>
-        <h1 className="text-3xl font-bold text-gray-800">Управление предметами</h1>
-      </div>
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-2 px-5 py-3 bg-white border-2 border-indigo-200 text-indigo-700 rounded-xl hover:bg-indigo-50 hover:border-indigo-300 transition-all shadow-md hover:shadow-lg font-medium"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            Назад в админ-панель
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-800">📚 Управление предметами</h1>
+        </div>
 
       {/* Форма добавления предмета */}
       <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
@@ -109,19 +198,20 @@ export default function SubjectsAdminPage({
           <span className="text-xl">📚</span>
           Добавить предмет
         </h2>
-        <form action="/api/subjects/create" className="flex gap-3">
+        <form onSubmit={handleAddRegular} className="flex gap-3">
           <input
-            name="name"
+            value={regularForm.name}
+            onChange={(e) => setRegularForm({ name: e.target.value })}
             placeholder="Название предмета"
             className="flex-1 border-2 border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-indigo-500"
             required
           />
-          <input type="hidden" name="type" value="regular" />
           <button
             type="submit"
-            className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-md font-medium"
+            disabled={isAdding}
+            className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-md font-medium disabled:opacity-50"
           >
-            Добавить
+            {isAdding ? "Добавление..." : "Добавить"}
           </button>
         </form>
       </div>
@@ -162,7 +252,7 @@ export default function SubjectsAdminPage({
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-6 border-2 border-blue-200">
         <h2 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
           <span className="text-xl">🏆</span>
-          Добавить специализированные предметы (факультативы, олимпиады)
+          Добавить специализированные предметы (факультативы, олимпиады, и тому подобные)
         </h2>
         <form onSubmit={handleAddSpecial} className="flex gap-3">
           <input
@@ -265,6 +355,7 @@ export default function SubjectsAdminPage({
                 subject={subject}
                 teachers={teachersData}
                 teacherSubjects={teacherSubjectsData}
+                onShowToast={showToast}
               />
             ))}
           </div>
@@ -285,6 +376,7 @@ export default function SubjectsAdminPage({
                 subject={subject}
                 teachers={teachersData}
                 teacherSubjects={teacherSubjectsData}
+                onShowToast={showToast}
               />
             ))}
             {eventSubjects.map((subject) => (
@@ -293,6 +385,7 @@ export default function SubjectsAdminPage({
                 subject={subject}
                 teachers={teachersData}
                 teacherSubjects={teacherSubjectsData}
+                onShowToast={showToast}
               />
             ))}
           </div>
@@ -313,6 +406,7 @@ export default function SubjectsAdminPage({
                 subject={subject}
                 teachers={teachersData}
                 teacherSubjects={teacherSubjectsData}
+                onShowToast={showToast}
               />
             ))}
             {electiveSubjects.map((subject) => (
@@ -321,6 +415,7 @@ export default function SubjectsAdminPage({
                 subject={subject}
                 teachers={teachersData}
                 teacherSubjects={teacherSubjectsData}
+                onShowToast={showToast}
               />
             ))}
           </div>
@@ -410,6 +505,56 @@ export default function SubjectsAdminPage({
           </div>
         </div>
       )}
+
+      {/* Toast уведомления - справа и ниже Navbar */}
+      <div className="fixed top-24 right-6 z-[100] flex flex-col gap-3 pointer-events-none w-80">
+        {toasts.map((toast, index) => (
+          <div
+            key={toast.id}
+            className={`px-5 py-4 rounded-xl shadow-2xl font-bold text-white transform transition-all duration-500 ease-out backdrop-blur-md bg-opacity-95 border-l-4 animate-slide-in-right ${
+              toast.type === 'success' 
+                ? 'bg-emerald-500 border-emerald-300' 
+                : 'bg-red-500 border-red-300'
+            }`}
+            style={{
+              animationDelay: `${index * 100}ms`,
+              animation: 'slideInRight 0.4s ease-out, fadeOut 0.4s ease-in 2.6s forwards'
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <span className="text-2xl flex-shrink-0">{toast.type === 'success' ? '✅' : '❌'}</span>
+              <span className="text-base leading-tight">{toast.message}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <style jsx global>{`
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(100%) scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+          }
+        }
+        @keyframes fadeOut {
+          from {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+          }
+          to {
+            opacity: 0;
+            transform: translateX(20px) scale(0.95);
+          }
+        }
+        .animate-slide-in-right {
+          animation: slideInRight 0.4s ease-out forwards;
+        }
+      `}</style>
+      </div>
     </div>
   );
 }

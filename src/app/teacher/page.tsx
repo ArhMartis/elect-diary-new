@@ -2,10 +2,11 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { user, groups } from "@/db/schema/auth_schema";
+import { user, groups, schedule } from "@/db/schema/auth_schema";
 import { eq } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
+import TeacherForms from "./TeacherForms";
 
 export default async function TeacherPage() {
   noStore();
@@ -30,6 +31,29 @@ export default async function TeacherPage() {
       .from(user)
       .where(eq(user.groupId, teacherGroup.id));
   }
+
+  // Получаем все классы, где учитель преподает (через расписание)
+  const teacherSchedule = await db
+    .select({
+      groupId: schedule.groupId,
+      groupName: groups.name,
+    })
+    .from(schedule)
+    .leftJoin(groups, eq(schedule.groupId, groups.id))
+    .where(eq(schedule.teacherId, session.user.id));
+
+  // Уникальные классы, которые ведет учитель (помимо классного руководства)
+  const taughtGroupsMap = new Map<number, string>();
+  teacherSchedule.forEach((item) => {
+    if (item.groupId && item.groupName && !taughtGroupsMap.has(item.groupId)) {
+      taughtGroupsMap.set(item.groupId, item.groupName);
+    }
+  });
+  
+  // Исключаем класс, где учитель классный руководитель
+  const taughtGroups = Array.from(taughtGroupsMap.entries())
+    .filter(([id]) => id !== teacherGroup?.id)
+    .map(([id, name]) => ({ id, name }));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6">
@@ -104,6 +128,39 @@ export default async function TeacherPage() {
             </div>
           </div>
         </div>
+
+        {/* Информация о классах, которые ведет учитель */}
+        {taughtGroups.length > 0 && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl shadow-lg p-6 border-2 border-amber-200">
+            <h2 className="text-lg font-bold text-amber-800 mb-3 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4-.001z" />
+              </svg>
+              Вы преподаете в классах:
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {taughtGroups.map((group) => (
+                <span
+                  key={group.id}
+                  className="px-4 py-2 bg-white border-2 border-amber-300 text-amber-800 rounded-lg font-bold"
+                >
+                  {group.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Формы управления классом - для классного руководителя */}
+        {teacherGroup && (
+          <TeacherForms
+            teacherId={session.user.id}
+            groupId={teacherGroup.id}
+            groupName={teacherGroup.name}
+            students={students.map(s => ({ id: s.id, fullName: s.fullName }))}
+            taughtGroups={taughtGroups}
+          />
+        )}
 
         {/* Список учеников */}
         <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-lg p-6 border border-purple-100">

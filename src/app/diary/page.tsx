@@ -29,7 +29,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
   let targetStudentGroupId: number | null = null;
   let targetStudentAvatar = "";
 
-  if (userRole === "admin" || userRole === "teacher") {
+  if (userRole === "admin" || userRole === "teacher" || userRole === "principal") {
     const params = await searchParams;
     targetStudentId = params.studentId || "";
 
@@ -157,26 +157,41 @@ export default async function DiaryPage({ searchParams }: PageProps) {
   const effectiveHomeroomTeacher = homeroomTeacherData?.fullName || diarySettings?.homeroomTeacher || "";
   const effectiveHomeroomTeacherPhone = homeroomTeacherData?.phone || diarySettings?.homeroomTeacherPhone || "";
 
+  // Получаем названия предметов из расписания
   const classSubjectNames = [...new Set(
     allSchedule
       .map(s => subjectMap.get(s.subjectId))
       .filter(Boolean) as string[]
   )];
 
+  // Получаем названия предметов из groupSubjects (привязка предметов к классу)
   let filteredSubjectNames: string[] = [];
+  
   if (targetStudentGroupId) {
     const groupSubjectRows = await db.select().from(groupSubjects).where(eq(groupSubjects.groupId, targetStudentGroupId));
     const groupSubjectIds = groupSubjectRows.map(gs => gs.subjectId);
+    
     if (groupSubjectIds.length > 0) {
-      filteredSubjectNames = [];
+      // Если есть привязанные предметы в groupSubjects, используем их
       for (const sid of groupSubjectIds) {
         const found = await db.query.subjects.findFirst({ where: eq(subjects.id, sid) });
         if (found) filteredSubjectNames.push(found.name);
       }
-    } else {
+    }
+    
+    // Если нет записей в groupSubjects или фильтрация вернула пустой результат, 
+    // используем предметы из расписания
+    if (filteredSubjectNames.length === 0 && classSubjectNames.length > 0) {
       filteredSubjectNames = classSubjectNames;
     }
+    
+    // Если и расписание пустое и groupSubjects пустой (или нет groupId), загружаем все предметы
+    if (filteredSubjectNames.length === 0) {
+      const allSubjectsData = await db.select().from(subjects);
+      filteredSubjectNames = allSubjectsData.map(s => s.name);
+    }
   } else {
+    // Если нет groupId, используем предметы из расписания
     filteredSubjectNames = classSubjectNames;
   }
 

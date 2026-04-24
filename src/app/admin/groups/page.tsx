@@ -180,7 +180,7 @@ export default async function GroupsPage() {
                 type="text"
                 name="name"
                 placeholder="Например: 5-А"
-                className="w-full border-2 border-blue-200 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 transition-all"
+                className="w-full border-2 border-blue-200 rounded-lg px-4 py-3 text-gray-900 font-bold placeholder:text-gray-500 focus:outline-none focus:border-blue-500 transition-all"
                 required
               />
             </div>
