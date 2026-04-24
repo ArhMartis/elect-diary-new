@@ -453,39 +453,49 @@ function saveDiaryDataLocal(studentId: string, data: Partial<DiaryData>) {
 }
 
 // ============================================================================
-// КОМПОНЕНТ КАЛЕНДАРЯ КАНИКУЛ
+// КОМПОНЕНТ КАЛЕНДАРЯ КАНИКУЛ (DaisyUI Calendar)
 // ============================================================================
 
 interface HolidayCalendarSectionProps {
   sharedData: {
     holidays: { autumn: string; winter: string; spring: string; summer: string };
+    academicYear: string;
   };
   setSharedData: (data: any) => void;
   canEdit: boolean;
 }
 
 function HolidayCalendarSection({ sharedData, setSharedData, canEdit }: HolidayCalendarSectionProps) {
-  const [activeCalendar, setActiveCalendar] = useState<{period: string; type: 'start' | 'end'} | null>(null);
   const [selectedDates, setSelectedDates] = useState<{[key: string]: {start: string; end: string}}>({
     autumn: { start: "", end: "" },
     winter: { start: "", end: "" },
     spring: { start: "", end: "" },
     summer: { start: "", end: "" },
   });
+  const [calendarState, setCalendarState] = useState<{[key: string]: {start: {month: number; year: number}; end: {month: number; year: number}}}>({
+    autumn: { start: { month: 9, year: 2025 }, end: { month: 10, year: 2025 } },
+    winter: { start: { month: 11, year: 2025 }, end: { month: 0, year: 2026 } },
+    spring: { start: { month: 2, year: 2026 }, end: { month: 2, year: 2026 } },
+    summer: { start: { month: 5, year: 2026 }, end: { month: 7, year: 2026 } },
+  });
+
+  // Parse academic year
+  const getAcademicYearStart = () => {
+    const match = sharedData.academicYear.match(/(\d{4})/);
+    return match ? parseInt(match[1]) : new Date().getFullYear();
+  };
+
+  const academicYearStart = getAcademicYearStart();
 
   // Parse existing holiday values
   useEffect(() => {
     const parseDates = (value: string) => {
       if (!value) return { start: "", end: "" };
-      // Match format: "28.10.2025 - 03.11.2025" or "28.10 - 03.11"
-      const match = value.match(/(\d{2})\.(\d{2})(?:\.(\d{4}))?\s*-\s*(\d{2})\.(\d{2})(?:\.(\d{4}))?/);
+      const match = value.match(/(\d{2})\.(\d{2})\.(\d{4})\s*-\s*(\d{2})\.(\d{2})\.(\d{4})/);
       if (match) {
-        const currentYear = new Date().getFullYear();
-        const year1 = match[3] || currentYear;
-        const year2 = match[6] || currentYear;
         return {
-          start: `${year1}-${match[2]}-${match[1]}`,
-          end: `${year2}-${match[5]}-${match[4]}`
+          start: `${match[3]}-${match[2]}-${match[1]}`,
+          end: `${match[6]}-${match[5]}-${match[4]}`
         };
       }
       return { start: "", end: "" };
@@ -527,149 +537,208 @@ function HolidayCalendarSection({ sharedData, setSharedData, canEdit }: HolidayC
     { key: "summer", label: "☀️ Летние каникулы", color: "bg-yellow-100", borderColor: "border-yellow-300", textColor: "text-yellow-800" },
   ];
 
-  // Generate calendar days for DaisyUI calendar
-  const generateCalendarDays = () => {
-    const days = [];
-    for (let i = 1; i <= 31; i++) {
-      days.push(i);
-    }
-    return days;
+  const monthNames = [
+    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+  ];
+
+  const getDaysInMonth = (month: number, year: number) => {
+    return new Date(year, month + 1, 0).getDate();
   };
 
-  const calendarDays = generateCalendarDays();
+  const getFirstDayOfMonth = (month: number, year: number) => {
+    return new Date(year, month, 1).getDay();
+  };
+
+  const CalendarDropdown = ({ 
+    period, 
+    type, 
+    currentDate, 
+    currentMonth, 
+    currentYear 
+  }: { 
+    period: string; 
+    type: 'start' | 'end'; 
+    currentDate: string;
+    currentMonth: number;
+    currentYear: number;
+  }) => {
+    const [month, setMonth] = useState(currentMonth);
+    const [year, setYear] = useState(currentYear);
+
+    const daysInMonth = getDaysInMonth(month, year);
+    const firstDay = getFirstDayOfMonth(month, year);
+    const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1; // Пн=0, Вс=6
+
+    const prevMonth = () => {
+      if (month === 0) {
+        setMonth(11);
+        setYear(year - 1);
+      } else {
+        setMonth(month - 1);
+      }
+    };
+
+    const nextMonth = () => {
+      if (month === 11) {
+        setMonth(0);
+        setYear(year + 1);
+      } else {
+        setMonth(month + 1);
+      }
+    };
+
+    const selectDate = (day: number) => {
+      const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const newDates = { ...selectedDates };
+      newDates[period][type] = date;
+      setSelectedDates(newDates);
+      updateHoliday(period, newDates[period].start, newDates[period].end);
+      
+      // Update calendar state
+      const newCalendarState = { ...calendarState };
+      newCalendarState[period][type] = { month, year };
+      setCalendarState(newCalendarState);
+    };
+
+    return (
+      <div className="dropdown dropdown-bottom dropdown-end w-full">
+        <div 
+          tabIndex={0} 
+          role="button" 
+          className="w-full px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-left font-bold text-gray-900 hover:border-sky-500 transition-colors flex justify-between items-center"
+        >
+          <span>{currentDate ? formatDateForDisplay(currentDate) : "Выберите дату"}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <div tabIndex={0} className="dropdown-content z-[1] mt-1">
+          <div className="calendar bg-base-100 shadow-xl rounded-box border border-base-300 p-3 w-80">
+            {/* DaisyUI Calendar Header */}
+            <div className="calender-header flex justify-between items-center mb-2">
+              <button 
+                className="btn btn-sm btn-ghost btn-circle" 
+                onClick={(e) => { e.preventDefault(); prevMonth(); }}
+              >
+                «
+              </button>
+              <span className="text-lg font-bold">
+                {monthNames[month]} {year}
+              </span>
+              <button 
+                className="btn btn-sm btn-ghost btn-circle" 
+                onClick={(e) => { e.preventDefault(); nextMonth(); }}
+              >
+                »
+              </button>
+            </div>
+            
+            {/* DaisyUI Calendar Days Header */}
+            <div className="grid grid-cols-7 text-center text-sm font-semibold text-gray-500 mb-1">
+              <div>Пн</div>
+              <div>Вт</div>
+              <div>Ср</div>
+              <div>Чт</div>
+              <div>Пт</div>
+              <div>Сб</div>
+              <div>Вс</div>
+            </div>
+            
+            {/* DaisyUI Calendar Dates */}
+            <div className="grid grid-cols-7 gap-1">
+              {/* Empty cells for days before start of month */}
+              {Array.from({ length: adjustedFirstDay }).map((_, i) => (
+                <div key={`empty-${i}`} className="h-8"></div>
+              ))}
+              
+              {/* Days */}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isSelected = currentDate === dateStr;
+                
+                return (
+                  <button
+                    key={day}
+                    className={`btn btn-sm btn-ghost h-8 min-h-0 ${isSelected ? 'btn-primary text-primary-content' : 'hover:bg-base-200'}`}
+                    onClick={(e) => { 
+                      e.preventDefault();
+                      selectDate(day);
+                      const elem = e.currentTarget.closest('.dropdown-content')?.parentElement as HTMLElement;
+                      if (elem) elem.removeAttribute('tabIndex');
+                    }}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="p-8 bg-gradient-to-b from-sky-50/50 to-white">
       <div className="text-center mb-8">
         <div className="text-4xl mb-2">🏖️</div>
         <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-blue-600">Каникулы</h2>
+        <p className="text-sm text-gray-600 mt-2">Учебный год: {sharedData.academicYear}</p>
         {canEdit && (
           <p className="text-sm text-sky-600 mt-2">💡 Редактируется администратором — заполняется один раз и применяется для всех учеников класса</p>
         )}
       </div>
       
       <div className="grid md:grid-cols-2 gap-6 mb-6">
-        {holidayConfigs.map((item) => (
-          <div key={item.key} className={`${item.color} rounded-2xl shadow-lg p-5 border-2 ${item.borderColor}`}>
-            <label className={`block text-lg font-bold ${item.textColor} mb-3`}>{item.label}</label>
-            {canEdit ? (
-              <div className="space-y-3">
-                {/* Start Date */}
-                <div className="relative">
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Начало периода:</label>
-                  <div className="dropdown dropdown-bottom w-full">
-                    <div 
-                      tabIndex={0} 
-                      role="button" 
-                      className="w-full px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-left font-bold text-gray-900 hover:border-sky-500 transition-colors flex justify-between items-center"
-                    >
-                      <span>{selectedDates[item.key].start ? formatDateForDisplay(selectedDates[item.key].start) : "Выберите дату"}</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div tabIndex={0} className="dropdown-content z-[1] p-2 shadow-xl bg-base-100 rounded-box w-72 mt-1 border-2 border-gray-200">
-                      <div className="calendar">
-                        <div className="calender-header flex justify-between items-center mb-2 px-2">
-                          <button className="btn btn-sm btn-ghost">«</button>
-                          <span className="font-bold">Октябрь 2025</span>
-                          <button className="btn btn-sm btn-ghost">»</button>
-                        </div>
-                        <div className="grid grid-cols-7 gap-1 text-center text-xs mb-1">
-                          <div className="text-gray-500">Пн</div>
-                          <div className="text-gray-500">Вт</div>
-                          <div className="text-gray-500">Ср</div>
-                          <div className="text-gray-500">Чт</div>
-                          <div className="text-gray-500">Пт</div>
-                          <div className="text-gray-500">Сб</div>
-                          <div className="text-gray-500">Вс</div>
-                        </div>
-                        <div className="grid grid-cols-7 gap-1">
-                          {calendarDays.map((day) => (
-                            <button
-                              key={day}
-                              className="btn btn-sm btn-ghost hover:bg-sky-500 hover:text-white"
-                              onClick={() => {
-                                const date = `2025-10-${String(day).padStart(2, '0')}`;
-                                const newDates = { ...selectedDates, [item.key]: { ...selectedDates[item.key], start: date } };
-                                setSelectedDates(newDates);
-                                updateHoliday(item.key, date, selectedDates[item.key].end);
-                              }}
-                            >
-                              {day}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+        {holidayConfigs.map((item) => {
+          const config = calendarState[item.key];
+          
+          return (
+            <div key={item.key} className={`${item.color} rounded-2xl shadow-lg p-5 border-2 ${item.borderColor}`}>
+              <label className={`block text-lg font-bold ${item.textColor} mb-3`}>{item.label}</label>
+              {canEdit ? (
+                <div className="space-y-3">
+                  {/* Start Date */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Начало периода:</label>
+                    <CalendarDropdown
+                      period={item.key}
+                      type="start"
+                      currentDate={selectedDates[item.key].start}
+                      currentMonth={config.start.month}
+                      currentYear={config.start.year}
+                    />
                   </div>
-                </div>
 
-                {/* End Date */}
-                <div className="relative">
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Конец периода (включительно):</label>
-                  <div className="dropdown dropdown-bottom w-full">
-                    <div 
-                      tabIndex={0} 
-                      role="button" 
-                      className="w-full px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-left font-bold text-gray-900 hover:border-sky-500 transition-colors flex justify-between items-center"
-                    >
-                      <span>{selectedDates[item.key].end ? formatDateForDisplay(selectedDates[item.key].end) : "Выберите дату"}</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div tabIndex={0} className="dropdown-content z-[1] p-2 shadow-xl bg-base-100 rounded-box w-72 mt-1 border-2 border-gray-200">
-                      <div className="calendar">
-                        <div className="calender-header flex justify-between items-center mb-2 px-2">
-                          <button className="btn btn-sm btn-ghost">«</button>
-                          <span className="font-bold">Ноябрь 2025</span>
-                          <button className="btn btn-sm btn-ghost">»</button>
-                        </div>
-                        <div className="grid grid-cols-7 gap-1 text-center text-xs mb-1">
-                          <div className="text-gray-500">Пн</div>
-                          <div className="text-gray-500">Вт</div>
-                          <div className="text-gray-500">Ср</div>
-                          <div className="text-gray-500">Чт</div>
-                          <div className="text-gray-500">Пт</div>
-                          <div className="text-gray-500">Сб</div>
-                          <div className="text-gray-500">Вс</div>
-                        </div>
-                        <div className="grid grid-cols-7 gap-1">
-                          {calendarDays.map((day) => (
-                            <button
-                              key={day}
-                              className="btn btn-sm btn-ghost hover:bg-sky-500 hover:text-white"
-                              onClick={() => {
-                                const date = `2025-11-${String(day).padStart(2, '0')}`;
-                                const newDates = { ...selectedDates, [item.key]: { ...selectedDates[item.key], end: date } };
-                                setSelectedDates(newDates);
-                                updateHoliday(item.key, selectedDates[item.key].start, date);
-                              }}
-                            >
-                              {day}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                  {/* End Date */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Конец периода (включительно):</label>
+                    <CalendarDropdown
+                      period={item.key}
+                      type="end"
+                      currentDate={selectedDates[item.key].end}
+                      currentMonth={config.end.month}
+                      currentYear={config.end.year}
+                    />
                   </div>
-                </div>
 
-                {/* Preview */}
-                {selectedDates[item.key].start && selectedDates[item.key].end && (
-                  <div className="mt-2 p-2 bg-white/70 rounded-lg">
-                    <p className="text-sm font-bold text-gray-800">
-                      {formatDateForDisplay(selectedDates[item.key].start)} — {formatDateForDisplay(selectedDates[item.key].end)}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-gray-800 text-lg font-bold">{sharedData.holidays[item.key as keyof typeof sharedData.holidays] || "Не указаны"}</p>
-            )}
-          </div>
-        ))}
+                  {/* Preview */}
+                  {selectedDates[item.key].start && selectedDates[item.key].end && (
+                    <div className="mt-2 p-2 bg-white/70 rounded-lg">
+                      <p className="text-sm font-bold text-gray-800">
+                        {formatDateForDisplay(selectedDates[item.key].start)} — {formatDateForDisplay(selectedDates[item.key].end)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-800 text-lg font-bold">{sharedData.holidays[item.key as keyof typeof sharedData.holidays] || "Не указаны"}</p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
