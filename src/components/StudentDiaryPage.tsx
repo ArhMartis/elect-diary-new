@@ -453,6 +453,229 @@ function saveDiaryDataLocal(studentId: string, data: Partial<DiaryData>) {
 }
 
 // ============================================================================
+// КОМПОНЕНТ КАЛЕНДАРЯ КАНИКУЛ
+// ============================================================================
+
+interface HolidayCalendarSectionProps {
+  sharedData: {
+    holidays: { autumn: string; winter: string; spring: string; summer: string };
+  };
+  setSharedData: (data: any) => void;
+  canEdit: boolean;
+}
+
+function HolidayCalendarSection({ sharedData, setSharedData, canEdit }: HolidayCalendarSectionProps) {
+  const [activeCalendar, setActiveCalendar] = useState<{period: string; type: 'start' | 'end'} | null>(null);
+  const [selectedDates, setSelectedDates] = useState<{[key: string]: {start: string; end: string}}>({
+    autumn: { start: "", end: "" },
+    winter: { start: "", end: "" },
+    spring: { start: "", end: "" },
+    summer: { start: "", end: "" },
+  });
+
+  // Parse existing holiday values
+  useEffect(() => {
+    const parseDates = (value: string) => {
+      if (!value) return { start: "", end: "" };
+      // Match format: "28.10.2025 - 03.11.2025" or "28.10 - 03.11"
+      const match = value.match(/(\d{2})\.(\d{2})(?:\.(\d{4}))?\s*-\s*(\d{2})\.(\d{2})(?:\.(\d{4}))?/);
+      if (match) {
+        const currentYear = new Date().getFullYear();
+        const year1 = match[3] || currentYear;
+        const year2 = match[6] || currentYear;
+        return {
+          start: `${year1}-${match[2]}-${match[1]}`,
+          end: `${year2}-${match[5]}-${match[4]}`
+        };
+      }
+      return { start: "", end: "" };
+    };
+
+    setSelectedDates({
+      autumn: parseDates(sharedData.holidays.autumn),
+      winter: parseDates(sharedData.holidays.winter),
+      spring: parseDates(sharedData.holidays.spring),
+      summer: parseDates(sharedData.holidays.summer),
+    });
+  }, [sharedData.holidays]);
+
+  const formatDateForDisplay = (dateStr: string) => {
+    if (!dateStr) return "";
+    const match = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      return `${match[3]}.${match[2]}.${match[1]}`;
+    }
+    return dateStr;
+  };
+
+  const updateHoliday = (period: string, start: string, end: string) => {
+    if (start && end) {
+      const value = `${formatDateForDisplay(start)} - ${formatDateForDisplay(end)}`;
+      const updated = { 
+        ...sharedData, 
+        holidays: { ...sharedData.holidays, [period]: value } 
+      };
+      setSharedData(updated);
+      localStorage.setItem("diary_shared_data", JSON.stringify(updated));
+    }
+  };
+
+  const holidayConfigs = [
+    { key: "autumn", label: "🍂 Осенние каникулы", color: "bg-amber-100", borderColor: "border-amber-300", textColor: "text-amber-800" },
+    { key: "winter", label: "❄️ Зимние каникулы", color: "bg-blue-100", borderColor: "border-blue-300", textColor: "text-blue-800" },
+    { key: "spring", label: "🌸 Весенние каникулы", color: "bg-pink-100", borderColor: "border-pink-300", textColor: "text-pink-800" },
+    { key: "summer", label: "☀️ Летние каникулы", color: "bg-yellow-100", borderColor: "border-yellow-300", textColor: "text-yellow-800" },
+  ];
+
+  // Generate calendar days for DaisyUI calendar
+  const generateCalendarDays = () => {
+    const days = [];
+    for (let i = 1; i <= 31; i++) {
+      days.push(i);
+    }
+    return days;
+  };
+
+  const calendarDays = generateCalendarDays();
+
+  return (
+    <div className="p-8 bg-gradient-to-b from-sky-50/50 to-white">
+      <div className="text-center mb-8">
+        <div className="text-4xl mb-2">🏖️</div>
+        <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-blue-600">Каникулы</h2>
+        {canEdit && (
+          <p className="text-sm text-sky-600 mt-2">💡 Редактируется администратором — заполняется один раз и применяется для всех учеников класса</p>
+        )}
+      </div>
+      
+      <div className="grid md:grid-cols-2 gap-6 mb-6">
+        {holidayConfigs.map((item) => (
+          <div key={item.key} className={`${item.color} rounded-2xl shadow-lg p-5 border-2 ${item.borderColor}`}>
+            <label className={`block text-lg font-bold ${item.textColor} mb-3`}>{item.label}</label>
+            {canEdit ? (
+              <div className="space-y-3">
+                {/* Start Date */}
+                <div className="relative">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Начало периода:</label>
+                  <div className="dropdown dropdown-bottom w-full">
+                    <div 
+                      tabIndex={0} 
+                      role="button" 
+                      className="w-full px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-left font-bold text-gray-900 hover:border-sky-500 transition-colors flex justify-between items-center"
+                    >
+                      <span>{selectedDates[item.key].start ? formatDateForDisplay(selectedDates[item.key].start) : "Выберите дату"}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div tabIndex={0} className="dropdown-content z-[1] p-2 shadow-xl bg-base-100 rounded-box w-72 mt-1 border-2 border-gray-200">
+                      <div className="calendar">
+                        <div className="calender-header flex justify-between items-center mb-2 px-2">
+                          <button className="btn btn-sm btn-ghost">«</button>
+                          <span className="font-bold">Октябрь 2025</span>
+                          <button className="btn btn-sm btn-ghost">»</button>
+                        </div>
+                        <div className="grid grid-cols-7 gap-1 text-center text-xs mb-1">
+                          <div className="text-gray-500">Пн</div>
+                          <div className="text-gray-500">Вт</div>
+                          <div className="text-gray-500">Ср</div>
+                          <div className="text-gray-500">Чт</div>
+                          <div className="text-gray-500">Пт</div>
+                          <div className="text-gray-500">Сб</div>
+                          <div className="text-gray-500">Вс</div>
+                        </div>
+                        <div className="grid grid-cols-7 gap-1">
+                          {calendarDays.map((day) => (
+                            <button
+                              key={day}
+                              className="btn btn-sm btn-ghost hover:bg-sky-500 hover:text-white"
+                              onClick={() => {
+                                const date = `2025-10-${String(day).padStart(2, '0')}`;
+                                const newDates = { ...selectedDates, [item.key]: { ...selectedDates[item.key], start: date } };
+                                setSelectedDates(newDates);
+                                updateHoliday(item.key, date, selectedDates[item.key].end);
+                              }}
+                            >
+                              {day}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* End Date */}
+                <div className="relative">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Конец периода (включительно):</label>
+                  <div className="dropdown dropdown-bottom w-full">
+                    <div 
+                      tabIndex={0} 
+                      role="button" 
+                      className="w-full px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-left font-bold text-gray-900 hover:border-sky-500 transition-colors flex justify-between items-center"
+                    >
+                      <span>{selectedDates[item.key].end ? formatDateForDisplay(selectedDates[item.key].end) : "Выберите дату"}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div tabIndex={0} className="dropdown-content z-[1] p-2 shadow-xl bg-base-100 rounded-box w-72 mt-1 border-2 border-gray-200">
+                      <div className="calendar">
+                        <div className="calender-header flex justify-between items-center mb-2 px-2">
+                          <button className="btn btn-sm btn-ghost">«</button>
+                          <span className="font-bold">Ноябрь 2025</span>
+                          <button className="btn btn-sm btn-ghost">»</button>
+                        </div>
+                        <div className="grid grid-cols-7 gap-1 text-center text-xs mb-1">
+                          <div className="text-gray-500">Пн</div>
+                          <div className="text-gray-500">Вт</div>
+                          <div className="text-gray-500">Ср</div>
+                          <div className="text-gray-500">Чт</div>
+                          <div className="text-gray-500">Пт</div>
+                          <div className="text-gray-500">Сб</div>
+                          <div className="text-gray-500">Вс</div>
+                        </div>
+                        <div className="grid grid-cols-7 gap-1">
+                          {calendarDays.map((day) => (
+                            <button
+                              key={day}
+                              className="btn btn-sm btn-ghost hover:bg-sky-500 hover:text-white"
+                              onClick={() => {
+                                const date = `2025-11-${String(day).padStart(2, '0')}`;
+                                const newDates = { ...selectedDates, [item.key]: { ...selectedDates[item.key], end: date } };
+                                setSelectedDates(newDates);
+                                updateHoliday(item.key, selectedDates[item.key].start, date);
+                              }}
+                            >
+                              {day}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preview */}
+                {selectedDates[item.key].start && selectedDates[item.key].end && (
+                  <div className="mt-2 p-2 bg-white/70 rounded-lg">
+                    <p className="text-sm font-bold text-gray-800">
+                      {formatDateForDisplay(selectedDates[item.key].start)} — {formatDateForDisplay(selectedDates[item.key].end)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-800 text-lg font-bold">{sharedData.holidays[item.key as keyof typeof sharedData.holidays] || "Не указаны"}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // ОСНОВНОЙ КОМПОНЕНТ
 // ============================================================================
 
@@ -2133,94 +2356,11 @@ export default function StudentDiaryPage({
 
         {/* Каникулы */}
         {activeSection === "holidays" && (
-          <div className="p-8 bg-gradient-to-b from-sky-50/50 to-white">
-            <div className="text-center mb-8">
-              <div className="text-4xl mb-2">🏖️</div>
-              <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-blue-600">Каникулы</h2>
-              {canEditInstitution() && (
-                <p className="text-sm text-sky-600 mt-2">💡 Редактируется администратором — заполняется один раз и применяется для всех учеников класса</p>
-              )}
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              {[
-                {label: "🍂 Осенние каникулы", key: "autumn" as const, color: "from-amber-50 to-orange-50", borderColor: "border-amber-200", labelColor: "text-amber-800"},
-                {label: "❄️ Зимние каникулы", key: "winter" as const, color: "from-sky-50 to-blue-50", borderColor: "border-sky-200", labelColor: "text-sky-800"},
-                {label: "🌸 Весенние каникулы", key: "spring" as const, color: "from-pink-50 to-rose-50", borderColor: "border-pink-200", labelColor: "text-pink-800"},
-                {label: "☀️ Летние каникулы", key: "summer" as const, color: "from-yellow-50 to-amber-50", borderColor: "border-yellow-200", labelColor: "text-yellow-800"},
-              ].map((item, i) => {
-                // Парсим текущее значение дат
-                const parseDates = (value: string) => {
-                  if (!value) return { start: "", end: "" };
-                  const match = value.match(/(\d{2})\.(\d{2})\.(\d{4})\s*-\s*(\d{2})\.(\d{2})\.(\d{4})/);
-                  if (match) {
-                    return {
-                      start: `${match[3]}-${match[2]}-${match[1]}`,
-                      end: `${match[6]}-${match[5]}-${match[4]}`
-                    };
-                  }
-                  return { start: "", end: "" };
-                };
-                
-                const dates = parseDates(sharedData.holidays[item.key]);
-                
-                const formatDateForDisplay = (dateStr: string) => {
-                  if (!dateStr) return "";
-                  const match = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
-                  if (match) {
-                    return `${match[3]}.${match[2]}.${match[1]}`;
-                  }
-                  return dateStr;
-                };
-                
-                const updateHoliday = (start: string, end: string) => {
-                  if (start && end) {
-                    const value = `${formatDateForDisplay(start)} - ${formatDateForDisplay(end)}`;
-                    const updated = { ...sharedData, holidays: { ...sharedData.holidays, [item.key]: value } };
-                    setSharedData(updated);
-                    localStorage.setItem("diary_shared_data", JSON.stringify(updated));
-                  }
-                };
-                
-                return (
-                  <div key={i} className={`bg-gradient-to-br ${item.color} rounded-2xl shadow-lg p-5 border-2 ${item.borderColor}`}>
-                    <label className={`block text-lg font-bold ${item.labelColor} mb-3`}>{item.label}</label>
-                    {canEditInstitution() ? (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-1">Начало периода:</label>
-                          <input
-                            type="date"
-                            value={dates.start}
-                            onChange={(e) => updateHoliday(e.target.value, dates.end)}
-                            className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 text-gray-900 font-bold bg-white focus:outline-none focus:border-sky-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-1">Конец периода (включительно):</label>
-                          <input
-                            type="date"
-                            value={dates.end}
-                            onChange={(e) => updateHoliday(dates.start, e.target.value)}
-                            className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 text-gray-900 font-bold bg-white focus:outline-none focus:border-sky-500"
-                          />
-                        </div>
-                        {dates.start && dates.end && (
-                          <div className="mt-2 p-2 bg-white/70 rounded-lg">
-                            <p className="text-sm font-bold text-gray-800">
-                              {formatDateForDisplay(dates.start)} — {formatDateForDisplay(dates.end)}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-gray-800 text-lg font-bold">{sharedData.holidays[item.key] || "Не указаны"}</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <HolidayCalendarSection 
+            sharedData={sharedData}
+            setSharedData={setSharedData}
+            canEdit={canEditInstitution()}
+          />
         )}
 
         {/* Праздники */}
