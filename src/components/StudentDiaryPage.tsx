@@ -92,8 +92,8 @@ interface StudentDiaryPageProps {
   isParent?: boolean;
   userRole?: string;
   initialDirectorName?: string;
-  initialHomeroomTeacherName?: string;
-  initialHomeroomTeacherPhone?: string;
+  initialHomeroomTeacherName?: string | null;
+  initialHomeroomTeacherPhone?: string | null;
   initialSchoolName?: string;
   initialSchoolAddress?: string;
   classSubjectNames?: string[];
@@ -105,8 +105,8 @@ interface StudentDiaryPageProps {
     vicePrincipalPhone: string;
     vicePrincipalEdu: string;
     vicePrincipalEduPhone: string;
-    homeroomTeacher: string;
-    homeroomTeacherPhone: string;
+    homeroomTeacher: string | null;
+    homeroomTeacherPhone: string | null;
     psychologist: string;
     psychologistPhone: string;
     socialPedagogue: string;
@@ -775,15 +775,16 @@ export default function StudentDiaryPage({
     vicePrincipalPhone: initialContacts?.vicePrincipalPhone || "",
     vicePrincipalEdu: initialContacts?.vicePrincipalEdu || "",
     vicePrincipalEduPhone: initialContacts?.vicePrincipalEduPhone || "",
-    homeroomTeacher: initialHomeroomTeacherName || initialContacts?.homeroomTeacher || "",
-    homeroomTeacherPhone: initialHomeroomTeacherPhone || initialContacts?.homeroomTeacherPhone || "",
+    // Используем ?? вместо || чтобы пустая строка (назначенный учитель без имени) не заменялась на fallback
+    homeroomTeacher: initialHomeroomTeacherName ?? initialContacts?.homeroomTeacher ?? "",
+    homeroomTeacherPhone: initialHomeroomTeacherPhone ?? initialContacts?.homeroomTeacherPhone ?? "",
     psychologist: initialContacts?.psychologist || "",
     psychologistPhone: initialContacts?.psychologistPhone || "",
     socialPedagogue: initialContacts?.socialPedagogue || "",
     socialPedagoguePhone: initialContacts?.socialPedagoguePhone || "",
     holidays: normalizedHolidays,
   });
-  
+
   const [contacts, setContacts] = useState({
     director: initialDirectorName || initialContacts?.director || "",
     directorPhone: initialContacts?.directorPhone || "",
@@ -791,8 +792,9 @@ export default function StudentDiaryPage({
     vicePrincipalPhone: initialContacts?.vicePrincipalPhone || "",
     vicePrincipalEdu: initialContacts?.vicePrincipalEdu || "",
     vicePrincipalEduPhone: initialContacts?.vicePrincipalEduPhone || "",
-    homeroomTeacher: initialHomeroomTeacherName || initialContacts?.homeroomTeacher || "",
-    homeroomTeacherPhone: initialHomeroomTeacherPhone || initialContacts?.homeroomTeacherPhone || "",
+    // Используем ?? вместо || чтобы пустая строка (назначенный учитель без имени) не заменялась на fallback
+    homeroomTeacher: initialHomeroomTeacherName ?? initialContacts?.homeroomTeacher ?? "",
+    homeroomTeacherPhone: initialHomeroomTeacherPhone ?? initialContacts?.homeroomTeacherPhone ?? "",
     psychologist: initialContacts?.psychologist || "",
     psychologistPhone: initialContacts?.psychologistPhone || "",
     socialPedagogue: initialContacts?.socialPedagogue || "",

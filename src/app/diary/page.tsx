@@ -154,14 +154,16 @@ export default async function DiaryPage({ searchParams }: PageProps) {
   const diarySettings = await getDiarySettings();
 
   const effectiveDirector = directorData?.fullName || diarySettings?.director || "";
-  // Если классный руководитель найден для группы (даже с пустым именем), используем его
+  // Если классный руководитель найден для группы (teacherId назначен), используем его имя (даже пустое)
   // иначе fallback на общие настройки
+  // null означает - для группы не назначен классный руководитель
+  // "" (пустая строка) означает - назначен, но имя не заполнено
   const effectiveHomeroomTeacher = homeroomTeacherData 
-    ? (homeroomTeacherData.fullName || "")
-    : (diarySettings?.homeroomTeacher || "");
+    ? homeroomTeacherData.fullName  // может быть "" если имя не заполнено
+    : (diarySettings?.homeroomTeacher || null);  // null если не назначен вообще
   const effectiveHomeroomTeacherPhone = homeroomTeacherData
-    ? (homeroomTeacherData.phone || "")
-    : (diarySettings?.homeroomTeacherPhone || "");
+    ? homeroomTeacherData.phone  // может быть "" 
+    : (diarySettings?.homeroomTeacherPhone || null);
 
   // Получаем названия предметов из расписания
   const classSubjectNames = [...new Set(
