@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { assignTeacherToSubject, removeTeacherFromSubject, updateSubject, deleteSubject } from "./actions";
+import { useTransition } from "react";
 
 interface Subject {
   id: number;
@@ -36,17 +37,48 @@ export function SubjectItem({
   onShowToast
 }: SubjectItemProps) {
   const [isTeachersOpen, setIsTeachersOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
   
   // Получаем IDs учителей, закреплённых за этим предметом
   const assignedTeacherIds = new Set(teacherSubjects.map(ts => ts.teacherId));
   const assignedTeachersCount = assignedTeacherIds.size;
+  
+  const isLockedSubject = subject.type === 'class_hour' || subject.type === 'event';
+  
+  const handleAssignTeacher = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    
+    startTransition(async () => {
+      try {
+        await assignTeacherToSubject(formData);
+        onShowToast("Учитель закреплён за предметом", 'success');
+      } catch (error) {
+        onShowToast("Ошибка при закреплении учителя", 'error');
+      }
+    });
+  };
 
-  const handleRemoveTeacher = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRemoveTeacher = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
     // Проверяем, не является ли это последним учителем
     if (assignedTeachersCount <= 1) {
-      e.preventDefault();
       onShowToast("Должен быть хоть один учитель, закреплённый за предметом!", 'error');
-      return false;
+      return;
+    }
+    
+    // Отправляем форму вручную
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    
+    try {
+      await removeTeacherFromSubject(formData);
+      onShowToast("Учитель откреплён от предмета", 'success');
+    } catch (error) {
+      onShowToast("Ошибка при откреплении учителя", 'error');
     }
   };
 
@@ -55,45 +87,49 @@ export function SubjectItem({
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-3">
           <span className="text-gray-800 font-medium text-lg">{subject.name}</span>
-          <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full font-medium">
-            {assignedTeacherIds.size} учител{assignedTeacherIds.size === 1 ? 'ь' : assignedTeacherIds.size < 5 ? 'я' : 'ей'}
-          </span>
+          {!isLockedSubject && (
+            <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full font-medium">
+              {assignedTeacherIds.size} учител{assignedTeacherIds.size === 1 ? 'ь' : assignedTeacherIds.size < 5 ? 'я' : 'ей'}
+            </span>
+          )}
         </div>
         
         {/* Кнопки редактирования и удаления предмета */}
-        <div className="flex gap-2">
-          {/* Форма редактирования */}
-          <form action={updateSubject} className="flex gap-2">
-            <input type="hidden" name="id" value={subject.id} />
-            <input
-              name="name"
-              defaultValue={subject.name}
-              className="border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-indigo-500"
-              required
-            />
-            <button
-              type="submit"
-              className="px-3 py-1.5 bg-amber-500 text-white rounded hover:bg-amber-600 transition-all text-sm font-medium"
-            >
-              Обновить
-            </button>
-          </form>
-          {/* Форма удаления */}
-          <form action={deleteSubject}>
-            <input type="hidden" name="id" value={subject.id} />
-            <button
-              type="submit"
-              className="px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600 transition-all text-sm font-medium"
-              onClick={(e) => {
-                if (!confirm("Вы уверены, что хотите удалить этот предмет?")) {
-                  e.preventDefault();
-                }
-              }}
-            >
-              Удалить
-            </button>
-          </form>
-        </div>
+        {!isLockedSubject && (
+          <div className="flex gap-2">
+            {/* Форма редактирования */}
+            <form action={updateSubject} className="flex gap-2">
+              <input type="hidden" name="id" value={subject.id} />
+              <input
+                name="name"
+                defaultValue={subject.name}
+                className="border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-indigo-500"
+                required
+              />
+              <button
+                type="submit"
+                className="px-3 py-1.5 bg-amber-500 text-white rounded hover:bg-amber-600 transition-all text-sm font-medium"
+              >
+                Обновить
+              </button>
+            </form>
+            {/* Форма удаления */}
+            <form action={deleteSubject}>
+              <input type="hidden" name="id" value={subject.id} />
+              <button
+                type="submit"
+                className="px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600 transition-all text-sm font-medium"
+                onClick={(e) => {
+                  if (!confirm("Вы уверены, что хотите удалить этот предмет?")) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                Удалить
+              </button>
+            </form>
+          </div>
+        )}
       </div>
 
       {/* Справочник учителей для этого предмета - каруселька с анимацией */}
@@ -174,12 +210,17 @@ export function SubjectItem({
 
                     {/* Кнопка +/- */}
                     {isAssigned ? (
-                      <form action={removeTeacherFromSubject} onSubmit={handleRemoveTeacher}>
+                      <form 
+                        key={`remove-${subject.id}-${teacher.id}`}
+                        onSubmit={handleRemoveTeacher}
+                        className="inline-block"
+                      >
                         <input type="hidden" name="teacherId" value={teacher.id} />
                         <input type="hidden" name="subjectId" value={subject.id} />
                         <button
                           type="submit"
-                          className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-all shadow-md hover:shadow-lg"
+                          disabled={isPending}
+                          className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white flex items-center justify-center transition-all shadow-md hover:shadow-lg"
                           title="Открепить предмет"
                         >
                           <svg
@@ -197,12 +238,17 @@ export function SubjectItem({
                         </button>
                       </form>
                     ) : (
-                      <form action={assignTeacherToSubject}>
+                      <form 
+                        key={`assign-${subject.id}-${teacher.id}`}
+                        onSubmit={handleAssignTeacher}
+                        className="inline-block"
+                      >
                         <input type="hidden" name="teacherId" value={teacher.id} />
                         <input type="hidden" name="subjectId" value={subject.id} />
                         <button
                           type="submit"
-                          className="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center transition-all shadow-md hover:shadow-lg"
+                          disabled={isPending}
+                          className="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white flex items-center justify-center transition-all shadow-md hover:shadow-lg"
                           title="Закрепить предмет"
                         >
                           <svg
