@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { assignTeacherToSubject, removeTeacherFromSubject, updateSubject, deleteSubject } from "./actions";
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 interface Subject {
   id: number;
@@ -30,14 +31,15 @@ interface SubjectItemProps {
   onShowToast: (message: string, type: 'success' | 'error') => void;
 }
 
-export function SubjectItem({ 
-  subject, 
+export function SubjectItem({
+  subject,
   teachers,
   teacherSubjects,
   onShowToast
 }: SubjectItemProps) {
   const [isTeachersOpen, setIsTeachersOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   
   // Получаем IDs учителей, закреплённых за этим предметом
   const assignedTeacherIds = new Set(teacherSubjects.map(ts => ts.teacherId));
@@ -47,14 +49,15 @@ export function SubjectItem({
   
   const handleAssignTeacher = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     const form = e.currentTarget;
     const formData = new FormData(form);
-    
+
     startTransition(async () => {
       try {
         await assignTeacherToSubject(formData);
         onShowToast("Учитель закреплён за предметом", 'success');
+        router.refresh();
       } catch (error) {
         onShowToast("Ошибка при закреплении учителя", 'error');
       }
@@ -63,23 +66,26 @@ export function SubjectItem({
 
   const handleRemoveTeacher = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     // Проверяем, не является ли это последним учителем
     if (assignedTeachersCount <= 1) {
       onShowToast("Должен быть хоть один учитель, закреплённый за предметом!", 'error');
       return;
     }
-    
+
     // Отправляем форму вручную
     const form = e.currentTarget;
     const formData = new FormData(form);
-    
-    try {
-      await removeTeacherFromSubject(formData);
-      onShowToast("Учитель откреплён от предмета", 'success');
-    } catch (error) {
-      onShowToast("Ошибка при откреплении учителя", 'error');
-    }
+
+    startTransition(async () => {
+      try {
+        await removeTeacherFromSubject(formData);
+        onShowToast("Учитель откреплён от предмета", 'success');
+        router.refresh();
+      } catch (error) {
+        onShowToast("Ошибка при откреплении учителя", 'error');
+      }
+    });
   };
 
   return (
