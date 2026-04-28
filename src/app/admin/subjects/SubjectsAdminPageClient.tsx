@@ -78,11 +78,15 @@ export default function SubjectsAdminPage({
   };
 
   const handleSave = async () => {
+    // Всегда включаем классные часы
+    const classHourIds = classHourSubjects.map(s => s.id);
+    const finalSubjectIds = Array.from(new Set([...selectedSubjects, ...classHourIds]));
+
     for (const groupId of selectedGroupIds) {
       await fetch("/api/group-subjects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId, subjectIds: selectedSubjects }),
+        body: JSON.stringify({ groupId, subjectIds: finalSubjectIds }),
       });
     }
     setSelectedClassNumber(null);
@@ -133,7 +137,7 @@ export default function SubjectsAdminPage({
 
       if (response.ok) {
         setSpecialForm({ name: "", type: "elective" });
-        showToast(specialForm.type === 'elective' ? 'Факультатив успешно добавлен!' : 'Олимпиада успешно добавлена!');
+        showToast(specialForm.type === 'elective' ? 'Специализированный предмет успешно добавлен!' : 'Олимпиада успешно добавлена!');
         setTimeout(() => window.location.reload(), 500);
       } else {
         const error = await response.json();
@@ -268,7 +272,7 @@ export default function SubjectsAdminPage({
             onChange={(e) => setSpecialForm({ ...specialForm, type: e.target.value })}
             className="border-2 border-blue-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:border-blue-500 bg-white"
           >
-            <option value="elective">Факультатив</option>
+            <option value="elective">Специализированные предметы</option>
             <option value="olympiad">Олимпиада</option>
           </select>
           <button
@@ -424,8 +428,25 @@ export default function SubjectsAdminPage({
 
       {/* Модальное окно выбора предметов */}
       {selectedClassNumber !== null && (
-        <div className="fixed inset-0 backdrop-blur-md bg-black/30 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 backdrop-blur-md bg-black/30 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedClassNumber(null);
+              setSelectedSubjects([]);
+            }
+          }}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto scrollbar-hide"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <style>{`
+              .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-800">
@@ -465,7 +486,31 @@ export default function SubjectsAdminPage({
                 ))}
               </div>
 
-              <h3 className="text-sm font-semibold text-blue-600 mb-3">Факультативы</h3>
+              {/* Классный час — автоматически выбран и заблокирован */}
+              {classHourSubjects.length > 0 && (
+                <>
+                  <h3 className="text-sm font-semibold text-emerald-600 mb-3">Классный час</h3>
+                  <div className="grid gap-3 mb-6">
+                    {classHourSubjects.map((subject) => (
+                      <div
+                        key={subject.id}
+                        className="flex items-center gap-3 p-4 border-2 border-emerald-200 rounded-lg bg-emerald-50/50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={true}
+                          disabled
+                          className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500 cursor-not-allowed opacity-60"
+                        />
+                        <span className="font-medium text-gray-800 flex-1">{subject.name}</span>
+                        <span className="badge badge-sm bg-emerald-100 text-emerald-700">обязательно</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <h3 className="text-sm font-semibold text-blue-600 mb-3">Специализированные предметы</h3>
               <div className="grid gap-3">
                 {electiveSubjects.map((subject) => (
                   <div
@@ -479,7 +524,22 @@ export default function SubjectsAdminPage({
                       className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
                     />
                     <span className="font-medium text-gray-800 flex-1">{subject.name}</span>
-                    <span className="badge badge-sm bg-blue-100 text-blue-700">факультатив</span>
+                    <span className="badge badge-sm bg-blue-100 text-blue-700">спецпредмет</span>
+                  </div>
+                ))}
+                {olympiadSubjects.map((subject) => (
+                  <div
+                    key={subject.id}
+                    className="flex items-center gap-3 p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 transition-all"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedSubjects.includes(subject.id)}
+                      onChange={() => toggleSubject(subject.id)}
+                      className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <span className="font-medium text-gray-800 flex-1">{subject.name}</span>
+                    <span className="badge badge-sm bg-blue-100 text-blue-700">олимпиада</span>
                   </div>
                 ))}
               </div>
@@ -511,14 +571,13 @@ export default function SubjectsAdminPage({
         {toasts.map((toast, index) => (
           <div
             key={toast.id}
-            className={`px-5 py-4 rounded-xl shadow-2xl font-bold text-white transform transition-all duration-500 ease-out backdrop-blur-md bg-opacity-95 border-l-4 animate-slide-in-right ${
-              toast.type === 'success' 
-                ? 'bg-emerald-500 border-emerald-300' 
+            className={`px-5 py-4 rounded-xl shadow-2xl font-bold text-white transform transition-all duration-500 ease-out backdrop-blur-md bg-opacity-95 border-l-4 ${
+              toast.type === 'success'
+                ? 'bg-emerald-500 border-emerald-300'
                 : 'bg-red-500 border-red-300'
             }`}
             style={{
-              animationDelay: `${index * 100}ms`,
-              animation: 'slideInRight 0.4s ease-out, fadeOut 0.4s ease-in 2.6s forwards'
+              animation: `slideInRight 0.4s ease-out ${index * 100}ms forwards, fadeOut 0.4s ease-in ${2600 + index * 100}ms forwards`
             }}
           >
             <div className="flex items-start gap-3">
