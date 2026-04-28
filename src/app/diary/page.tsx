@@ -154,8 +154,14 @@ export default async function DiaryPage({ searchParams }: PageProps) {
   const diarySettings = await getDiarySettings();
 
   const effectiveDirector = directorData?.fullName || diarySettings?.director || "";
-  const effectiveHomeroomTeacher = homeroomTeacherData?.fullName || diarySettings?.homeroomTeacher || "";
-  const effectiveHomeroomTeacherPhone = homeroomTeacherData?.phone || diarySettings?.homeroomTeacherPhone || "";
+  // Если классный руководитель найден для группы (даже с пустым именем), используем его
+  // иначе fallback на общие настройки
+  const effectiveHomeroomTeacher = homeroomTeacherData 
+    ? (homeroomTeacherData.fullName || "")
+    : (diarySettings?.homeroomTeacher || "");
+  const effectiveHomeroomTeacherPhone = homeroomTeacherData
+    ? (homeroomTeacherData.phone || "")
+    : (diarySettings?.homeroomTeacherPhone || "");
 
   // Получаем названия предметов из расписания
   const classSubjectNames = [...new Set(
@@ -163,6 +169,16 @@ export default async function DiaryPage({ searchParams }: PageProps) {
       .map(s => subjectMap.get(s.subjectId))
       .filter(Boolean) as string[]
   )];
+
+  // Получаем названия мероприятий (классный час, события) для зеленой подсветки
+  let eventSubjectNames: string[] = [];
+  try {
+    const eventSubjectsData = await db.select().from(subjects).where(eq(subjects.type, 'class_hour'));
+    const eventItemsData = await db.select().from(subjects).where(eq(subjects.type, 'event'));
+    eventSubjectNames = [...eventSubjectsData, ...eventItemsData].map(s => s.name);
+  } catch {
+    eventSubjectNames = [];
+  }
 
   // Получаем названия предметов из groupSubjects (привязка предметов к классу)
   let filteredSubjectNames: string[] = [];
@@ -213,6 +229,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
       initialSchoolName={diarySettings?.schoolName || ""}
       initialSchoolAddress={diarySettings?.schoolAddress || ""}
       classSubjectNames={filteredSubjectNames}
+      eventSubjectNames={eventSubjectNames}
       initialContacts={diarySettings ? {
         director: effectiveDirector || diarySettings.director,
         directorPhone: diarySettings.directorPhone,
@@ -220,8 +237,9 @@ export default async function DiaryPage({ searchParams }: PageProps) {
         vicePrincipalPhone: diarySettings.vicePrincipalPhone,
         vicePrincipalEdu: diarySettings.vicePrincipalEdu,
         vicePrincipalEduPhone: diarySettings.vicePrincipalEduPhone,
-        homeroomTeacher: effectiveHomeroomTeacher || diarySettings.homeroomTeacher,
-        homeroomTeacherPhone: effectiveHomeroomTeacherPhone || diarySettings.homeroomTeacherPhone,
+        // Классный руководитель берется только из данных группы, без fallback на общие настройки
+        homeroomTeacher: effectiveHomeroomTeacher,
+        homeroomTeacherPhone: effectiveHomeroomTeacherPhone,
         psychologist: diarySettings.psychologist,
         psychologistPhone: diarySettings.psychologistPhone,
         socialPedagogue: diarySettings.socialPedagogue,
