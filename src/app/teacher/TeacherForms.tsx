@@ -2,6 +2,18 @@
 
 import { useState, useEffect, useMemo } from "react";
 
+// Функция для определения цвета оценки
+function getGradeColor(value: string): string {
+  const numeric = Number(value);
+  if (isNaN(numeric)) return "bg-blue-500";
+  if (numeric === 10) return "bg-emerald-500";
+  if (numeric >= 9) return "bg-green-500";
+  if (numeric >= 7) return "bg-blue-500";
+  if (numeric >= 5) return "bg-yellow-500";
+  if (numeric >= 4) return "bg-orange-500";
+  return "bg-red-500";
+}
+
 interface Student {
   id: string;
   fullName: string | null;
@@ -135,7 +147,7 @@ export default function TeacherForms({ teacherId, groupId, groupName, students, 
       const today = new Date();
       const sixMonthsAgo = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000);
       const threeMonthsFromNow = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
-      fetch(`/api/schedule?groupId=${groupId}&startDate=${sixMonthsAgo.toISOString().split("T")[0]}&endDate=${threeMonthsFromNow.toISOString().split("T")[0]}`)
+      fetch(`/api/schedule?groupId=${groupId}&teacherId=${teacherId}&startDate=${sixMonthsAgo.toISOString().split("T")[0]}&endDate=${threeMonthsFromNow.toISOString().split("T")[0]}`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {

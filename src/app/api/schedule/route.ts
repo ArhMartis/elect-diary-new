@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const subjectId = searchParams.get("subjectId");
+    const teacherId = searchParams.get("teacherId");
 
     if (!groupId) {
       return NextResponse.json(
@@ -45,6 +46,10 @@ export async function GET(request: NextRequest) {
     const conditions: (ReturnType<typeof eq> | ReturnType<typeof gte> | ReturnType<typeof lte>)[] = [
       eq(schedule.groupId, parseInt(groupId)),
     ];
+
+    if (teacherId) {
+      conditions.push(eq(schedule.teacherId, teacherId));
+    }
 
     if (subjectId) {
       conditions.push(eq(schedule.subjectId, parseInt(subjectId)));
