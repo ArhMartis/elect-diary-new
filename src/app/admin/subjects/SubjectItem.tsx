@@ -45,6 +45,11 @@ export function SubjectItem({
   const assignedTeacherIds = new Set(teacherSubjects.map(ts => ts.teacherId));
   const assignedTeachersCount = assignedTeacherIds.size;
   
+  // Отладочный вывод для конкретного предмета
+  if (subject.name === "Русский язык" || subject.name === "Русская литература") {
+    console.log("Subject:", subject.name, "teacherSubjects:", teacherSubjects.filter(ts => ts.subjectId === subject.id));
+  }
+  
   const isLockedSubject = subject.type === 'class_hour' || subject.type === 'event';
   
   const handleAssignTeacher = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -76,13 +81,20 @@ export function SubjectItem({
     // Отправляем форму вручную
     const form = e.currentTarget;
     const formData = new FormData(form);
+    
+    // Отладочный вывод
+    const teacherId = formData.get("teacherId");
+    const subjectId = formData.get("subjectId");
+    console.log("Removing teacher:", { teacherId, subjectId, teacherName: teachers.find(t => t.id === teacherId)?.fullName });
 
     startTransition(async () => {
       try {
         await removeTeacherFromSubject(formData);
+        console.log("Successfully removed teacher");
         onShowToast("Учитель откреплён от предмета", 'success');
         router.refresh();
       } catch (error) {
+        console.error("Error removing teacher:", error);
         onShowToast("Ошибка при откреплении учителя", 'error');
       }
     });

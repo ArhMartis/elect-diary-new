@@ -140,9 +140,26 @@ export async function removeTeacherFromSubject(formData: FormData) {
   const teacherId = formData.get("teacherId") as string;
   const subjectId = formData.get("subjectId") as string;
 
+  console.log("Server: Removing teacher from subject:", { teacherId, subjectId });
+
   if (!teacherId || !subjectId) throw new Error("Некорректные данные");
 
-  await db
+  // Проверяем существование записи перед удалением
+  const existing = await db.query.teacherSubjects.findFirst({
+    where: and(
+      eq(teacherSubjects.teacherId, teacherId),
+      eq(teacherSubjects.subjectId, parseInt(subjectId))
+    ),
+  });
+
+  console.log("Server: Found record:", existing);
+
+  if (!existing) {
+    console.log("Server: No record found to delete");
+    throw new Error("Запись не найдена");
+  }
+
+  const result = await db
     .delete(teacherSubjects)
     .where(
       and(
@@ -150,6 +167,8 @@ export async function removeTeacherFromSubject(formData: FormData) {
         eq(teacherSubjects.subjectId, parseInt(subjectId))
       )
     );
+
+  console.log("Server: Delete result:", result);
 
   revalidatePath("/admin/subjects");
 }
