@@ -47,7 +47,10 @@ export function SubjectItem({
   
   // Отладочный вывод для конкретного предмета
   if (subject.name === "Русский язык" || subject.name === "Русская литература") {
-    console.log("Subject:", subject.name, "teacherSubjects:", teacherSubjects.filter(ts => ts.subjectId === subject.id));
+    console.log("Subject:", subject.name, "subjectId:", subject.id, "type:", typeof subject.id);
+    console.log("All teacherSubjects for this subject:", teacherSubjects.filter(ts => ts.subjectId === subject.id));
+    console.log("All teacherSubjects:", teacherSubjects);
+    console.log("Teachers list:", teachers.map(t => ({ id: t.id, name: t.fullName })));
   }
   
   const isLockedSubject = subject.type === 'class_hour' || subject.type === 'event';
@@ -83,9 +86,22 @@ export function SubjectItem({
     const formData = new FormData(form);
     
     // Отладочный вывод
-    const teacherId = formData.get("teacherId");
-    const subjectId = formData.get("subjectId");
-    console.log("Removing teacher:", { teacherId, subjectId, teacherName: teachers.find(t => t.id === teacherId)?.fullName });
+    const teacherId = formData.get("teacherId") as string;
+    const subjectId = formData.get("subjectId") as string;
+    console.log("=== REMOVE TEACHER DEBUG ===");
+    console.log("Form data - teacherId:", teacherId, "type:", typeof teacherId);
+    console.log("Form data - subjectId:", subjectId, "type:", typeof subjectId);
+    console.log("Teacher name:", teachers.find(t => t.id === teacherId)?.fullName);
+    console.log("Subject:", subject.name, "subject.id:", subject.id, "type:", typeof subject.id);
+    
+    // Проверяем существование записи в teacherSubjects
+    const matchingRecord = teacherSubjects.find(ts => 
+      ts.teacherId === teacherId && ts.subjectId === parseInt(subjectId)
+    );
+    console.log("Matching record in teacherSubjects:", matchingRecord);
+    console.log("All teacherSubjects for this teacher:", teacherSubjects.filter(ts => ts.teacherId === teacherId));
+    console.log("All teacherSubjects for this subject:", teacherSubjects.filter(ts => ts.subjectId === parseInt(subjectId)));
+    console.log("=== END DEBUG ===");
 
     startTransition(async () => {
       try {

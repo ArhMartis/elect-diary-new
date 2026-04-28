@@ -140,7 +140,11 @@ export async function removeTeacherFromSubject(formData: FormData) {
   const teacherId = formData.get("teacherId") as string;
   const subjectId = formData.get("subjectId") as string;
 
-  console.log("Server: Removing teacher from subject:", { teacherId, subjectId });
+  console.log("=== SERVER DEBUG ===");
+  console.log("Server: Removing teacher from subject");
+  console.log("Server: teacherId:", teacherId, "type:", typeof teacherId);
+  console.log("Server: subjectId:", subjectId, "type:", typeof subjectId);
+  console.log("Server: parsed subjectId:", parseInt(subjectId), "type:", typeof parseInt(subjectId));
 
   if (!teacherId || !subjectId) throw new Error("Некорректные данные");
 
@@ -152,7 +156,17 @@ export async function removeTeacherFromSubject(formData: FormData) {
     ),
   });
 
-  console.log("Server: Found record:", existing);
+  console.log("Server: Found record with exact match:", existing);
+
+  // Попробуем найти без строгого сравнения
+  const allRecords = await db.select().from(teacherSubjects);
+  console.log("Server: Total records in teacherSubjects:", allRecords.length);
+  console.log("Server: All records:", allRecords);
+  
+  const fuzzyMatch = allRecords.find(r => 
+    r.teacherId == teacherId && r.subjectId == parseInt(subjectId)
+  );
+  console.log("Server: Fuzzy match found:", fuzzyMatch);
 
   if (!existing) {
     console.log("Server: No record found to delete");
@@ -169,6 +183,7 @@ export async function removeTeacherFromSubject(formData: FormData) {
     );
 
   console.log("Server: Delete result:", result);
+  console.log("=== END SERVER DEBUG ===");
 
   revalidatePath("/admin/subjects");
 }
