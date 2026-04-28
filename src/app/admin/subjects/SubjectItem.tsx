@@ -41,17 +41,10 @@ export function SubjectItem({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   
-  // Получаем IDs учителей, закреплённых за этим предметом
-  const assignedTeacherIds = new Set(teacherSubjects.map(ts => ts.teacherId));
+  // Получаем IDs учителей, закреплённых за ЭТИМ предметом (исправлено - было для всех предметов)
+  const subjectTeacherSubjects = teacherSubjects.filter(ts => ts.subjectId === subject.id);
+  const assignedTeacherIds = new Set(subjectTeacherSubjects.map(ts => ts.teacherId));
   const assignedTeachersCount = assignedTeacherIds.size;
-  
-  // Отладочный вывод для конкретного предмета
-  if (subject.name === "Русский язык" || subject.name === "Русская литература") {
-    console.log("Subject:", subject.name, "subjectId:", subject.id, "type:", typeof subject.id);
-    console.log("All teacherSubjects for this subject:", teacherSubjects.filter(ts => ts.subjectId === subject.id));
-    console.log("All teacherSubjects:", teacherSubjects);
-    console.log("Teachers list:", teachers.map(t => ({ id: t.id, name: t.fullName })));
-  }
   
   const isLockedSubject = subject.type === 'class_hour' || subject.type === 'event';
   
@@ -84,33 +77,13 @@ export function SubjectItem({
     // Отправляем форму вручную
     const form = e.currentTarget;
     const formData = new FormData(form);
-    
-    // Отладочный вывод
-    const teacherId = formData.get("teacherId") as string;
-    const subjectId = formData.get("subjectId") as string;
-    console.log("=== REMOVE TEACHER DEBUG ===");
-    console.log("Form data - teacherId:", teacherId, "type:", typeof teacherId);
-    console.log("Form data - subjectId:", subjectId, "type:", typeof subjectId);
-    console.log("Teacher name:", teachers.find(t => t.id === teacherId)?.fullName);
-    console.log("Subject:", subject.name, "subject.id:", subject.id, "type:", typeof subject.id);
-    
-    // Проверяем существование записи в teacherSubjects
-    const matchingRecord = teacherSubjects.find(ts => 
-      ts.teacherId === teacherId && ts.subjectId === parseInt(subjectId)
-    );
-    console.log("Matching record in teacherSubjects:", matchingRecord);
-    console.log("All teacherSubjects for this teacher:", teacherSubjects.filter(ts => ts.teacherId === teacherId));
-    console.log("All teacherSubjects for this subject:", teacherSubjects.filter(ts => ts.subjectId === parseInt(subjectId)));
-    console.log("=== END DEBUG ===");
 
     startTransition(async () => {
       try {
         await removeTeacherFromSubject(formData);
-        console.log("Successfully removed teacher");
         onShowToast("Учитель откреплён от предмета", 'success');
         router.refresh();
       } catch (error) {
-        console.error("Error removing teacher:", error);
         onShowToast("Ошибка при откреплении учителя", 'error');
       }
     });
