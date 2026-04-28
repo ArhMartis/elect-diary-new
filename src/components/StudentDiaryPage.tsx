@@ -1843,7 +1843,7 @@ export default function StudentDiaryPage({
             </div>
             <div className="grid md:grid-cols-2 gap-4 mb-10 items-start">
               {[
-                {label: "👔 Руководитель учреждения", field: "director" as const, phoneField: "directorPhone" as const, autoHint: true, readOnlyName: true},
+                {label: "👔 Руководитель учреждения", field: "director" as const, phoneField: "directorPhone" as const, isDirector: true, readOnlyName: false},
                 {label: "🍎 Классный руководитель", field: "homeroomTeacher" as const, phoneField: "homeroomTeacherPhone" as const, isHomeroom: true, readOnlyName: true},
                 {label: "📚 Заместитель по учебной работе", field: "vicePrincipal" as const, phoneField: "vicePrincipalPhone" as const, readOnlyName: false},
                 {label: "🌟 Заместитель по воспитательной работе", field: "vicePrincipalEdu" as const, phoneField: "vicePrincipalEduPhone" as const, readOnlyName: false},
@@ -1856,10 +1856,10 @@ export default function StudentDiaryPage({
                     {canEditContacts() && contact.isHomeroom && (
                       <span className="block text-xs text-amber-600 font-normal mt-1">💡 Классный руководитель вставляется автоматически в зависимости от выбранного класса</span>
                     )}
-                    {canEditContacts() && contact.readOnlyName && !contact.isHomeroom && (
-                      <span className="block text-xs text-red-500 font-normal mt-1">🔒 ФИО редактируется только через админ-панель, телефон можно изменить</span>
+                    {canEditContacts() && contact.isDirector && effectiveUserRole === "admin" && (
+                      <span className="block text-xs text-blue-600 font-normal mt-1">💡 ФИО выбирается от роли директора, аккаунт которого первый назначился, в противном случае редактируйте если отображается неккоректно</span>
                     )}
-                    {canEditContacts() && !contact.readOnlyName && !contact.isHomeroom && (
+                    {canEditContacts() && !contact.isDirector && !contact.isHomeroom && (
                       <span className="block text-xs text-violet-500 font-normal mt-1">💡 Редактируется администратором — заполняется один раз и применяется для всех учеников класса</span>
                     )}
                   </label>
