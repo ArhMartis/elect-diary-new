@@ -1843,12 +1843,12 @@ export default function StudentDiaryPage({
             </div>
             <div className="grid md:grid-cols-2 gap-4 mb-10 items-start">
               {[
-                {label: "👔 Руководитель учреждения", field: "director" as const, phoneField: "directorPhone" as const, autoHint: true, readOnly: true},
-                {label: "🍎 Классный руководитель", field: "homeroomTeacher" as const, phoneField: "homeroomTeacherPhone" as const, isHomeroom: true, readOnly: true},
-                {label: "📚 Заместитель по учебной работе", field: "vicePrincipal" as const, phoneField: "vicePrincipalPhone" as const, readOnly: false},
-                {label: "🌟 Заместитель по воспитательной работе", field: "vicePrincipalEdu" as const, phoneField: "vicePrincipalEduPhone" as const, readOnly: false},
-                {label: "🧠 Педагог-психолог", field: "psychologist" as const, phoneField: "psychologistPhone" as const, readOnly: false},
-                {label: "🤝 Социальный педагог", field: "socialPedagogue" as const, phoneField: "socialPedagoguePhone" as const, readOnly: false},
+                {label: "👔 Руководитель учреждения", field: "director" as const, phoneField: "directorPhone" as const, autoHint: true, readOnlyName: true},
+                {label: "🍎 Классный руководитель", field: "homeroomTeacher" as const, phoneField: "homeroomTeacherPhone" as const, isHomeroom: true, readOnlyName: true},
+                {label: "📚 Заместитель по учебной работе", field: "vicePrincipal" as const, phoneField: "vicePrincipalPhone" as const, readOnlyName: false},
+                {label: "🌟 Заместитель по воспитательной работе", field: "vicePrincipalEdu" as const, phoneField: "vicePrincipalEduPhone" as const, readOnlyName: false},
+                {label: "🧠 Педагог-психолог", field: "psychologist" as const, phoneField: "psychologistPhone" as const, readOnlyName: false},
+                {label: "🤝 Социальный педагог", field: "socialPedagogue" as const, phoneField: "socialPedagoguePhone" as const, readOnlyName: false},
               ].map((contact, i) => (
                 <div key={i} className="bg-white border border-violet-100 rounded-xl p-4 shadow-md">
                   <label className="block text-sm font-bold text-violet-700 mb-2">
@@ -1856,10 +1856,10 @@ export default function StudentDiaryPage({
                     {canEditContacts() && contact.isHomeroom && (
                       <span className="block text-xs text-amber-600 font-normal mt-1">💡 Классный руководитель вставляется автоматически в зависимости от выбранного класса</span>
                     )}
-                    {canEditContacts() && contact.readOnly && !contact.isHomeroom && (
-                      <span className="block text-xs text-red-500 font-normal mt-1">🔒 Редактируется только через админ-панель</span>
+                    {canEditContacts() && contact.readOnlyName && !contact.isHomeroom && (
+                      <span className="block text-xs text-red-500 font-normal mt-1">🔒 ФИО редактируется только через админ-панель, телефон можно изменить</span>
                     )}
-                    {canEditContacts() && !contact.readOnly && !contact.isHomeroom && (
+                    {canEditContacts() && !contact.readOnlyName && !contact.isHomeroom && (
                       <span className="block text-xs text-violet-500 font-normal mt-1">💡 Редактируется администратором — заполняется один раз и применяется для всех учеников класса</span>
                     )}
                   </label>
@@ -1867,17 +1867,17 @@ export default function StudentDiaryPage({
                     type="text"
                     placeholder="ФИО"
                     value={contacts[contact.field]}
-                    readOnly={!canEditContacts() || contact.readOnly}
+                    readOnly={!canEditContacts() || contact.readOnlyName}
                     onChange={(e) => updateContact(contact.field, e.target.value)}
-                    className={`w-full border-b-2 border-violet-200 py-2 text-gray-800 font-bold mb-2 ${canEditContacts() && !contact.readOnly ? 'bg-white' : 'bg-gray-100'}`}
+                    className={`w-full border-b-2 border-violet-200 py-2 text-gray-800 font-bold mb-2 ${canEditContacts() && !contact.readOnlyName ? 'bg-white' : 'bg-gray-100'}`}
                   />
                   <input
                     type="tel"
                     placeholder="Телефон"
                     value={contacts[contact.phoneField]}
-                    readOnly={!canEditContacts() || contact.readOnly}
+                    readOnly={!canEditContacts()}
                     onChange={(e) => updateContact(contact.phoneField, e.target.value)}
-                    className={`w-full border-b-2 border-violet-200 py-2 text-gray-800 ${canEditContacts() && !contact.readOnly ? 'bg-white' : 'bg-gray-100'}`}
+                    className={`w-full border-b-2 border-violet-200 py-2 text-gray-800 ${canEditContacts() ? 'bg-white' : 'bg-gray-50'}`}
                   />
                 </div>
               ))}
