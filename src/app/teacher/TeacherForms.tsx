@@ -133,8 +133,9 @@ export default function TeacherForms({ teacherId, groupId, groupName, students, 
       // Загружаем расписание
       setLoadingSchedule(true);
       const today = new Date();
-      const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-      fetch(`/api/schedule?groupId=${groupId}&startDate=${today.toISOString().split("T")[0]}&endDate=${weekFromNow.toISOString().split("T")[0]}`)
+      const sixMonthsAgo = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000);
+      const threeMonthsFromNow = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+      fetch(`/api/schedule?groupId=${groupId}&startDate=${sixMonthsAgo.toISOString().split("T")[0]}&endDate=${threeMonthsFromNow.toISOString().split("T")[0]}`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
@@ -642,26 +643,55 @@ export default function TeacherForms({ teacherId, groupId, groupName, students, 
               </div>
             )}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-800 mb-2">
-                  Оценка (10-балльная) <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={gradeForm.value}
-                  onChange={(e) => setGradeForm({ ...gradeForm, value: e.target.value })}
-                  required
-                  className="w-full px-4 py-2.5 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none bg-white text-gray-900 font-medium"
-                >
-                  <option value="">Выберите оценку</option>
-                  {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => (
-                    <option key={grade} value={grade.toString()}>
-                      {grade} {grade >= 7 ? "(Отлично)" : grade >= 5 ? "(Хорошо)" : grade >= 4 ? "(Удовл.)" : "(Неуд.)"}
-                    </option>
-                  ))}
-                </select>
+            <div>
+              <label className="block text-sm font-bold text-gray-800 mb-3">
+                Оценка (10-балльная) <span className="text-red-500">*</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => {
+                  const isSelected = gradeForm.value === grade.toString();
+                  const getGradeColor = (g: number) => {
+                    if (g >= 9) return "bg-emerald-500 hover:bg-emerald-600 border-emerald-600";
+                    if (g >= 7) return "bg-blue-500 hover:bg-blue-600 border-blue-600";
+                    if (g >= 5) return "bg-yellow-500 hover:bg-yellow-600 border-yellow-600";
+                    if (g >= 4) return "bg-orange-500 hover:bg-orange-600 border-orange-600";
+                    return "bg-red-500 hover:bg-red-600 border-red-600";
+                  };
+                  const getGradeLabel = (g: number) => {
+                    if (g >= 9) return "Отлично";
+                    if (g >= 7) return "Хорошо";
+                    if (g >= 5) return "Удовл.";
+                    if (g >= 4) return "Неуд.";
+                    return "Плохо";
+                  };
+                  return (
+                    <button
+                      key={grade}
+                      type="button"
+                      onClick={() => setGradeForm({ ...gradeForm, value: grade.toString() })}
+                      className={`relative px-4 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-105 active:scale-95 shadow-md border-2 ${
+                        isSelected
+                          ? `${getGradeColor(grade)} ring-4 ring-offset-2 ring-${grade >= 9 ? 'emerald' : grade >= 7 ? 'blue' : grade >= 5 ? 'yellow' : grade >= 4 ? 'orange' : 'red'}-300`
+                          : "bg-gray-400 hover:bg-gray-500 border-gray-500 opacity-60 hover:opacity-100"
+                      }`}
+                    >
+                      <span className="text-xl">{grade}</span>
+                      <span className="block text-xs font-normal opacity-90">{getGradeLabel(grade)}</span>
+                      {isSelected && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-              
+              <input type="hidden" value={gradeForm.value} required />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-2">
                   Комментарий
