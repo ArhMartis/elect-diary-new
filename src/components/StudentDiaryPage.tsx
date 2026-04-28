@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from "react";
 import Image from "next/image";
 import { saveDiarySettings } from "@/app/student/actions";
+import { CallyCalendar } from "./CallyCalendar";
 
 // ============================================================================
 // ТИПЫ ДАННЫХ
@@ -15,11 +16,11 @@ interface DiaryData {
   grade: string;
   schoolName: string;
   schoolAddress: string;
-  subjects: { name: string; teacher: string }[];
+  subjects: { name: string; teacher: string; gradeType?: 'numeric' | 'passfail' }[];
   electives: { name: string; teacher: string; schedule: string }[];
   bellSchedule: { number: string; start: string; end: string; break: string }[];
   months: MonthData[];
-  grades: { subject: string; q1: string; q2: string; q3: string; q4: string; year: string; exam: string; final: string }[];
+  grades: { subject: string; q1: string; q2: string; q3: string; q4: string; year: string; exam: string; final: string; gradeType?: 'numeric' | 'passfail' }[];
   behavior: {
     q1: 'example' | 'satisfactory' | 'unsatisfactory' | '';
     q2: 'example' | 'satisfactory' | 'unsatisfactory' | '';
@@ -96,6 +97,7 @@ interface StudentDiaryPageProps {
   initialSchoolName?: string;
   initialSchoolAddress?: string;
   classSubjectNames?: string[];
+  eventSubjectNames?: string[];
   initialContacts?: {
     director: string;
     directorPhone: string;
@@ -249,31 +251,37 @@ const HOLIDAY_PERIODS: Record<string, { startMonth: number; startDay: number; en
   'summer': { startMonth: 5, startDay: 1, endMonth: 7, endDay: 31 },    // 1 июн - 31 авг
 };
 
-function isDateInHolidays(date: Date, academicYear: string): boolean {
+function getHolidayYear(date: Date, academicYear: string): number {
   const parts = academicYear.split('/');
   const startYear = parts[0] ? parseInt(parts[0]) : new Date().getFullYear();
-  const year = date.getMonth() >= 8 ? startYear : startYear + 1;
-  
-  // Проверяем каждый период каникул
-  for (const [key, period] of Object.entries(HOLIDAY_PERIODS)) {
+  return date.getMonth() >= 8 ? startYear : startYear + 1;
+}
+
+function getHolidayPeriodForDate(date: Date, academicYear: string): { start: Date; end: Date } | null {
+  const year = getHolidayYear(date, academicYear);
+
+  for (const period of Object.values(HOLIDAY_PERIODS)) {
     let startDate: Date;
     let endDate: Date;
-    
+
     if (period.endMonth < period.startMonth) {
-      // Каникулы переходят через Новый год (зимние)
       startDate = new Date(year - (date.getMonth() < 6 ? 1 : 0), period.startMonth, period.startDay);
       endDate = new Date(year, period.endMonth, period.endDay);
     } else {
       startDate = new Date(year, period.startMonth, period.startDay);
       endDate = new Date(year, period.endMonth, period.endDay);
     }
-    
+
     if (date >= startDate && date <= endDate) {
-      return true;
+      return { start: startDate, end: endDate };
     }
   }
-  
-  return false;
+
+  return null;
+}
+
+function isDateInHolidays(date: Date, academicYear: string): boolean {
+  return getHolidayPeriodForDate(date, academicYear) !== null;
 }
 
 function getQuarterStartDate(quarter: string, academicYear: string): Date {
@@ -453,7 +461,7 @@ function saveDiaryDataLocal(studentId: string, data: Partial<DiaryData>) {
 }
 
 // ============================================================================
-// КОМПОНЕНТ КАЛЕНДАРЯ КАНИКУЛ (DaisyUI Calendar)
+// КОМПОНЕНТ КАЛЕНДАРЯ КАНИКУЛ (Cally Calendar)
 // ============================================================================
 
 interface HolidayCalendarSectionProps {
@@ -472,30 +480,25 @@ function HolidayCalendarSection({ sharedData, setSharedData, canEdit }: HolidayC
     spring: { start: "", end: "" },
     summer: { start: "", end: "" },
   });
-  const [calendarState, setCalendarState] = useState<{[key: string]: {start: {month: number; year: number}; end: {month: number; year: number}}}>({
-    autumn: { start: { month: 9, year: 2025 }, end: { month: 10, year: 2025 } },
-    winter: { start: { month: 11, year: 2025 }, end: { month: 0, year: 2026 } },
-    spring: { start: { month: 2, year: 2026 }, end: { month: 2, year: 2026 } },
-    summer: { start: { month: 5, year: 2026 }, end: { month: 7, year: 2026 } },
-  });
-
-  // Parse academic year
-  const getAcademicYearStart = () => {
-    const match = sharedData.academicYear.match(/(\d{4})/);
-    return match ? parseInt(match[1]) : new Date().getFullYear();
-  };
-
-  const academicYearStart = getAcademicYearStart();
 
   // Parse existing holiday values
   useEffect(() => {
     const parseDates = (value: string) => {
       if (!value) return { start: "", end: "" };
-      const match = value.match(/(\d{2})\.(\d{2})\.(\d{4})\s*-\s*(\d{2})\.(\d{2})\.(\d{4})/);
-      if (match) {
+      // Формат "DD.MM.YYYY - DD.MM.YYYY"
+      const matchDot = value.match(/(\d{2})\.(\d{2})\.(\d{4})\s*-\s*(\d{2})\.(\d{2})\.(\d{4})/);
+      if (matchDot) {
         return {
-          start: `${match[3]}-${match[2]}-${match[1]}`,
-          end: `${match[6]}-${match[5]}-${match[4]}`
+          start: `${matchDot[3]}-${matchDot[2]}-${matchDot[1]}`,
+          end: `${matchDot[6]}-${matchDot[5]}-${matchDot[4]}`
+        };
+      }
+      // Формат "YYYY-MM-DD - YYYY-MM-DD" (из БД)
+      const matchDash = value.match(/(\d{4})-(\d{2})-(\d{2})\s*-\s*(\d{4})-(\d{2})-(\d{2})/);
+      if (matchDash) {
+        return {
+          start: `${matchDash[1]}-${matchDash[2]}-${matchDash[3]}`,
+          end: `${matchDash[4]}-${matchDash[5]}-${matchDash[6]}`
         };
       }
       return { start: "", end: "" };
@@ -537,145 +540,129 @@ function HolidayCalendarSection({ sharedData, setSharedData, canEdit }: HolidayC
     { key: "summer", label: "☀️ Летние каникулы", color: "bg-yellow-100", borderColor: "border-yellow-300", textColor: "text-yellow-800" },
   ];
 
-  const monthNames = [
-    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
-  ];
-
-  const getDaysInMonth = (month: number, year: number) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = (month: number, year: number) => {
-    return new Date(year, month, 1).getDay();
-  };
-
-  const CalendarDropdown = ({ 
+  const CallyCalendarDropdown = ({ 
     period, 
     type, 
-    currentDate, 
-    currentMonth, 
-    currentYear 
+    currentDate
   }: { 
     period: string; 
     type: 'start' | 'end'; 
     currentDate: string;
-    currentMonth: number;
-    currentYear: number;
   }) => {
-    const [month, setMonth] = useState(currentMonth);
-    const [year, setYear] = useState(currentYear);
+    const [isOpen, setIsOpen] = useState(false);
+    const popoverRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0, width: 0 });
 
-    const daysInMonth = getDaysInMonth(month, year);
-    const firstDay = getFirstDayOfMonth(month, year);
-    const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1; // Пн=0, Вс=6
-
-    const prevMonth = () => {
-      if (month === 0) {
-        setMonth(11);
-        setYear(year - 1);
-      } else {
-        setMonth(month - 1);
+    const handleDateChange = (value: string) => {
+      if (value) {
+        const newDates = { ...selectedDates };
+        newDates[period][type] = value;
+        setSelectedDates(newDates);
+        updateHoliday(period, newDates[period].start, newDates[period].end);
+        setIsOpen(false);
       }
     };
 
-    const nextMonth = () => {
-      if (month === 11) {
-        setMonth(0);
-        setYear(year + 1);
-      } else {
-        setMonth(month + 1);
+    // Compute position when opening (flip upwards if overflows bottom)
+    useLayoutEffect(() => {
+      if (isOpen && buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        const popoverHeight = 320; // approximate calendar height
+        const gap = 8;
+        const viewportH = window.innerHeight;
+        const viewportW = window.innerWidth;
+
+        let top = rect.bottom + gap;
+        // Flip to top if not enough space below
+        if (top + popoverHeight > viewportH - gap) {
+          top = rect.top - popoverHeight - gap;
+          if (top < gap) top = gap; // fallback: stick to top
+        }
+
+        let left = rect.left;
+        const popoverWidth = Math.max(rect.width, 280);
+        // Keep inside right edge
+        if (left + popoverWidth > viewportW - gap) {
+          left = viewportW - popoverWidth - gap;
+          if (left < gap) left = gap;
+        }
+
+        setPopoverPos({ top, left, width: rect.width });
       }
+    }, [isOpen]);
+
+    // Close popover when clicking outside or on escape
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
+            buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
+          setIsOpen(false);
+        }
+      };
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setIsOpen(false);
+      };
+      if (isOpen) {
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscape);
+        return () => {
+          document.removeEventListener('mousedown', handleClickOutside);
+          document.removeEventListener('keydown', handleEscape);
+        };
+      }
+    }, [isOpen]);
+
+    // Compute academic year bounds
+    const getYearBounds = () => {
+      const match = sharedData.academicYear.match(/(\d{4})\/(\d{4})/);
+      if (match) {
+        const startYear = parseInt(match[1]);
+        const endYear = parseInt(match[2]);
+        return {
+          min: `${startYear}-09-01`,
+          max: `${endYear}-08-31`,
+        };
+      }
+      return { min: undefined, max: undefined };
     };
 
-    const selectDate = (day: number) => {
-      const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const newDates = { ...selectedDates };
-      newDates[period][type] = date;
-      setSelectedDates(newDates);
-      updateHoliday(period, newDates[period].start, newDates[period].end);
-      
-      // Update calendar state
-      const newCalendarState = { ...calendarState };
-      newCalendarState[period][type] = { month, year };
-      setCalendarState(newCalendarState);
-    };
+    const yearBounds = getYearBounds();
 
     return (
-      <div className="dropdown dropdown-bottom dropdown-end w-full">
-        <div 
-          tabIndex={0} 
-          role="button" 
+      <div className="w-full relative">
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
           className="w-full px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-left font-bold text-gray-900 hover:border-sky-500 transition-colors flex justify-between items-center"
         >
           <span>{currentDate ? formatDateForDisplay(currentDate) : "Выберите дату"}</span>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
           </svg>
-        </div>
-        <div tabIndex={0} className="dropdown-content z-[1] mt-1">
-          <div className="calendar bg-base-100 shadow-xl rounded-box border border-base-300 p-3 w-80">
-            {/* DaisyUI Calendar Header */}
-            <div className="calender-header flex justify-between items-center mb-2">
-              <button 
-                className="btn btn-sm btn-ghost btn-circle" 
-                onClick={(e) => { e.preventDefault(); prevMonth(); }}
-              >
-                «
-              </button>
-              <span className="text-lg font-bold">
-                {monthNames[month]} {year}
-              </span>
-              <button 
-                className="btn btn-sm btn-ghost btn-circle" 
-                onClick={(e) => { e.preventDefault(); nextMonth(); }}
-              >
-                »
-              </button>
-            </div>
-            
-            {/* DaisyUI Calendar Days Header */}
-            <div className="grid grid-cols-7 text-center text-sm font-semibold text-gray-500 mb-1">
-              <div>Пн</div>
-              <div>Вт</div>
-              <div>Ср</div>
-              <div>Чт</div>
-              <div>Пт</div>
-              <div>Сб</div>
-              <div>Вс</div>
-            </div>
-            
-            {/* DaisyUI Calendar Dates */}
-            <div className="grid grid-cols-7 gap-1">
-              {/* Empty cells for days before start of month */}
-              {Array.from({ length: adjustedFirstDay }).map((_, i) => (
-                <div key={`empty-${i}`} className="h-8"></div>
-              ))}
-              
-              {/* Days */}
-              {Array.from({ length: daysInMonth }).map((_, i) => {
-                const day = i + 1;
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const isSelected = currentDate === dateStr;
-                
-                return (
-                  <button
-                    key={day}
-                    className={`btn btn-sm btn-ghost h-8 min-h-0 ${isSelected ? 'btn-primary text-primary-content' : 'hover:bg-base-200'}`}
-                    onClick={(e) => { 
-                      e.preventDefault();
-                      selectDate(day);
-                      const elem = e.currentTarget.closest('.dropdown-content')?.parentElement as HTMLElement;
-                      if (elem) elem.removeAttribute('tabIndex');
-                    }}
-                  >
-                    {day}
-                  </button>
-                );
-              })}
-            </div>
+        </button>
+        
+        {isOpen && (
+          <div
+            ref={popoverRef}
+            className="fixed z-[9999] bg-white rounded-xl shadow-2xl border border-gray-200 p-3"
+            style={{ 
+              top: popoverPos.top,
+              left: popoverPos.left,
+              width: Math.max(popoverPos.width, 280),
+              colorScheme: 'light only',
+            }}
+          >
+            <CallyCalendar 
+              key={`${period}-${type}-${currentDate}-${yearBounds.min}-${yearBounds.max}`}
+              value={currentDate}
+              onChange={handleDateChange}
+              min={yearBounds.min}
+              max={yearBounds.max}
+            />
           </div>
-        </div>
+        )}
       </div>
     );
   };
@@ -692,10 +679,7 @@ function HolidayCalendarSection({ sharedData, setSharedData, canEdit }: HolidayC
       </div>
       
       <div className="grid md:grid-cols-2 gap-6 mb-6">
-        {holidayConfigs.map((item) => {
-          const config = calendarState[item.key];
-          
-          return (
+        {holidayConfigs.map((item) => (
             <div key={item.key} className={`${item.color} rounded-2xl shadow-lg p-5 border-2 ${item.borderColor}`}>
               <label className={`block text-lg font-bold ${item.textColor} mb-3`}>{item.label}</label>
               {canEdit ? (
@@ -703,24 +687,20 @@ function HolidayCalendarSection({ sharedData, setSharedData, canEdit }: HolidayC
                   {/* Start Date */}
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Начало периода:</label>
-                    <CalendarDropdown
+                    <CallyCalendarDropdown
                       period={item.key}
                       type="start"
                       currentDate={selectedDates[item.key].start}
-                      currentMonth={config.start.month}
-                      currentYear={config.start.year}
                     />
                   </div>
 
                   {/* End Date */}
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Конец периода (включительно):</label>
-                    <CalendarDropdown
+                    <CallyCalendarDropdown
                       period={item.key}
                       type="end"
                       currentDate={selectedDates[item.key].end}
-                      currentMonth={config.end.month}
-                      currentYear={config.end.year}
                     />
                   </div>
 
@@ -737,8 +717,7 @@ function HolidayCalendarSection({ sharedData, setSharedData, canEdit }: HolidayC
                 <p className="text-gray-800 text-lg font-bold">{sharedData.holidays[item.key as keyof typeof sharedData.holidays] || "Не указаны"}</p>
               )}
             </div>
-          );
-        })}
+        ))}
       </div>
     </div>
   );
@@ -765,6 +744,7 @@ export default function StudentDiaryPage({
   initialSchoolName = "",
   initialSchoolAddress = "",
   classSubjectNames = [],
+  eventSubjectNames = [],
   initialContacts,
   initialHolidays,
   userAvatar = "",
@@ -780,6 +760,10 @@ export default function StudentDiaryPage({
   const [isVerifying, setIsVerifying] = useState(false);
   const [isParentVerifying, setIsParentVerifying] = useState(false);
   
+  const normalizedHolidays = initialHolidays && Object.values(initialHolidays).some(v => v && v.trim() !== "")
+    ? initialHolidays
+    : { autumn: "28.10 - 03.11", winter: "25.12 - 08.01", spring: "24.03 - 30.03", summer: "01.06 - 31.08" };
+
   const [sharedData, setSharedData] = useState({
     academicYear: getCurrentAcademicYear(),
     schoolName: initialSchoolName || "",
@@ -797,7 +781,7 @@ export default function StudentDiaryPage({
     psychologistPhone: initialContacts?.psychologistPhone || "",
     socialPedagogue: initialContacts?.socialPedagogue || "",
     socialPedagoguePhone: initialContacts?.socialPedagoguePhone || "",
-    holidays: initialHolidays || { autumn: "28.10 - 03.11", winter: "25.12 - 08.01", spring: "24.03 - 30.03", summer: "01.06 - 31.08" },
+    holidays: normalizedHolidays,
   });
   
   const [contacts, setContacts] = useState({
@@ -952,13 +936,17 @@ export default function StudentDiaryPage({
     lessonNumber: number;
     lessonKey: string;
     currentSubject: string;
+    dayDate: Date | null;
+    applyToSingleDay: boolean;
   }
   const [lessonEditModal, setLessonEditModal] = useState<LessonEditModalState>({
     visible: false,
     dayName: '',
     lessonNumber: 0,
     lessonKey: '',
-    currentSubject: ''
+    currentSubject: '',
+    dayDate: null,
+    applyToSingleDay: false
   });
 
   // Модальное окно добавления урока
@@ -982,6 +970,11 @@ export default function StudentDiaryPage({
 
   const effectiveUserRole = tempUserRole || userRole;
 
+  const sortedAvailableSubjects = useMemo(() =>
+    [...availableSubjects].sort((a, b) => a.localeCompare(b, 'ru')),
+    [availableSubjects]
+  );
+
   const canEditAbsence = useCallback(() => effectiveUserRole === "admin" || isHomeroomTeacher, [effectiveUserRole, isHomeroomTeacher]);
   const canEditSchedule = useCallback(() => effectiveUserRole === "admin", [effectiveUserRole]);
   const canEditInstitution = useCallback(() => effectiveUserRole === "admin", [effectiveUserRole]);
@@ -999,7 +992,8 @@ export default function StudentDiaryPage({
     Object.entries(scheduleData).forEach(([key, value]) => {
       if (key.startsWith(`${quarter}-`)) {
         const parts = key.split('-');
-        if (parts.length >= 3) {
+        // Обычный формат: quarter-day-lessonNum (3 части)
+        if (parts.length === 3) {
           result[`${parts[1]}-${parts[2]}`] = value;
         }
       }
@@ -1007,11 +1001,47 @@ export default function StudentDiaryPage({
     return result;
   }, [scheduleData]);
 
+  // Получить уроки для конкретного дня с учетом специфических записей на дату
+  const getDayLessons = useCallback((quarter: string, dayName: string, date: Date): Array<{lessonNumber: number; subject: string}> => {
+    const dateStr = date.toISOString().split('T')[0];
+    const lessons: Array<{lessonNumber: number; subject: string}> = [];
+    const processedLessons = new Set<number>();
+    
+    // Сначала ищем специфические записи на эту дату (формат: quarter-YYYY-MM-DD-day-lessonNum)
+    Object.entries(scheduleData).forEach(([key, value]) => {
+      if (key.startsWith(`${quarter}-${dateStr}-${dayName}-`)) {
+        const parts = key.split('-');
+        if (parts.length === 5) {
+          const lessonNum = parseInt(parts[4]);
+          lessons.push({ lessonNumber: lessonNum + 1, subject: value });
+          processedLessons.add(lessonNum);
+        }
+      }
+    });
+    
+    // Затем добавляем общие записи (формат: quarter-day-lessonNum)
+    Object.entries(scheduleData).forEach(([key, value]) => {
+      if (key.startsWith(`${quarter}-${dayName}-`)) {
+        const parts = key.split('-');
+        if (parts.length === 3) {
+          const lessonNum = parseInt(parts[2]);
+          if (!processedLessons.has(lessonNum)) {
+            lessons.push({ lessonNumber: lessonNum + 1, subject: value });
+          }
+        }
+      }
+    });
+    
+    return lessons.sort((a, b) => a.lessonNumber - b.lessonNumber);
+  }, [scheduleData]);
+
   const quarterSchedule = getScheduleForQuarter(selectedQuarter);
 
-  const updateScheduleItem = (quarter: string, day: string, lessonNum: number, subject: string) => {
+  const updateScheduleItem = (quarter: string, day: string, lessonNum: number, subject: string, date?: Date) => {
     if (!canEditSchedule()) return;
-    const key = `${quarter}-${day}-${lessonNum}`;
+    // Если указана дата и применяем только на один день - используем дату в ключе
+    const dateStr = date ? date.toISOString().split('T')[0] : null;
+    const key = dateStr ? `${quarter}-${dateStr}-${day}-${lessonNum}` : `${quarter}-${day}-${lessonNum}`;
     const newSchedule = { ...scheduleData };
     if (subject) {
       newSchedule[key] = subject;
@@ -1150,14 +1180,16 @@ export default function StudentDiaryPage({
     }
   };
 
-  const openLessonEditModal = (dayName: string, lessonNumber: number, lessonKey: string, currentSubject: string) => {
+  const openLessonEditModal = (dayName: string, lessonNumber: number, lessonKey: string, currentSubject: string, dayDate: Date) => {
     if (!canEditSchedule()) return;
     setLessonEditModal({
       visible: true,
       dayName,
       lessonNumber,
       lessonKey,
-      currentSubject
+      currentSubject,
+      dayDate,
+      applyToSingleDay: false
     });
   };
 
@@ -1264,11 +1296,14 @@ export default function StudentDiaryPage({
         setSharedData(prev => {
           const merged = { ...prev };
           for (const [key, value] of Object.entries(parsed)) {
-            if (value && typeof value === 'string' && !prev[key as keyof typeof prev]) {
+            const prevValue = (prev as any)[key];
+            // Для объектов (holidays и т.п.) делаем глубокое слияние
+            if (value && typeof value === 'object' && !Array.isArray(value) && prevValue && typeof prevValue === 'object') {
+              (merged as any)[key] = { ...prevValue, ...value };
+            } else if (value !== undefined && value !== null && value !== '') {
+              // Для строк и других значений — перезаписываем
               (merged as any)[key] = value;
-            } else if (value && typeof value === 'string' && prev[key as keyof typeof prev]) {
-              (merged as any)[key] = value;
-            } else if (!prev[key as keyof typeof prev]) {
+            } else if (!prevValue) {
               (merged as any)[key] = value;
             }
           }
@@ -1277,11 +1312,8 @@ export default function StudentDiaryPage({
         setContacts(prev => {
           const updated = { ...prev };
           for (const [key, value] of Object.entries(parsed)) {
-            if (key in updated) {
-              const val = value as string;
-              if (val && !prev[key as keyof typeof prev]) {
-                (updated as any)[key] = val;
-              }
+            if (key in updated && value !== undefined && value !== null && value !== '') {
+              (updated as any)[key] = value;
             }
           }
           return updated;
@@ -1398,6 +1430,8 @@ export default function StudentDiaryPage({
         psychologistPhone: merged.psychologistPhone,
         socialPedagogue: merged.socialPedagogue,
         socialPedagoguePhone: merged.socialPedagoguePhone,
+        holidays: merged.holidays,
+        academicYear: merged.academicYear,
       });
     }
     alert("Дневник сохранен!");
@@ -1408,30 +1442,16 @@ export default function StudentDiaryPage({
   };
 
   const navigateWeek = (direction: "prev" | "next") => {
-    let newWeek = new Date(selectedWeek);
+    const newWeek = new Date(selectedWeek);
     newWeek.setDate(newWeek.getDate() + (direction === "prev" ? -7 : 7));
-    
-    // Проверяем границы учебного года
+
+    // Проверяем границы учебного года (сентябрь – май)
     if (!isDateInAcademicYear(newWeek)) {
-      return; // Не выходим за границы учебного года
+      return;
     }
-    
-    // Если попали на каникулы, пропускаем только ОДНУ неделю каникул
-    if (isDateInHolidays(newWeek, sharedData.academicYear)) {
-      // Пропускаем каникулы, переходя ещё на одну неделю в том же направлении
-      newWeek.setDate(newWeek.getDate() + (direction === "prev" ? -7 : 7));
-      
-      // Если после пропуска каникул снова попали на каникулы (длинные каникулы),
-      // пропускаем ещё одну неделю
-      if (isDateInHolidays(newWeek, sharedData.academicYear)) {
-        newWeek.setDate(newWeek.getDate() + (direction === "prev" ? -7 : 7));
-      }
-    }
-    
-    if (isDateInAcademicYear(newWeek)) {
-      setSelectedWeek(getStartOfWeek(newWeek));
-      setSelectedQuarter(getQuarterNumber(newWeek));
-    }
+
+    setSelectedWeek(getStartOfWeek(newWeek));
+    setSelectedQuarter(getQuarterNumber(newWeek));
   };
 
   // ============================================================================
@@ -1479,8 +1499,11 @@ export default function StudentDiaryPage({
     const bottomRowDays = DAYS_OF_WEEK.slice(3);
 
     return (
-      <div className="fixed inset-0 backdrop-blur-md bg-black/30 flex items-center justify-center z-50 p-2">
-        <div className="bg-white rounded-2xl shadow-2xl p-4 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+      <div 
+        className="fixed inset-0 backdrop-blur-md bg-black/30 flex items-center justify-center z-50 p-2"
+        onClick={(e) => { if (e.target === e.currentTarget) setShowScheduleModal(false); }}
+      >
+        <div className="bg-white rounded-2xl shadow-2xl p-4 max-w-6xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
            <div className="flex justify-between items-center mb-3">
              <div>
                <h2 className="text-lg font-bold text-emerald-800">
@@ -1532,7 +1555,7 @@ export default function StudentDiaryPage({
                           className="flex-1 text-xs border border-emerald-200 rounded px-1 py-1 focus:outline-none focus:border-emerald-500 bg-white text-emerald-800 font-semibold"
                         >
                           <option value="" className="text-gray-400">—</option>
-                          {availableSubjects.map((subject) => (
+                          {sortedAvailableSubjects.map((subject) => (
                             <option key={subject} value={subject} className="text-emerald-900 font-semibold">{subject}</option>
                           ))}
                         </select>
@@ -1562,7 +1585,7 @@ export default function StudentDiaryPage({
                           className="flex-1 text-xs border border-emerald-200 rounded px-1 py-1 focus:outline-none focus:border-emerald-500 bg-white text-emerald-800 font-semibold"
                         >
                           <option value="" className="text-gray-400">—</option>
-                          {availableSubjects.map((subject) => (
+                          {sortedAvailableSubjects.map((subject) => (
                             <option key={subject} value={subject} className="text-emerald-900 font-semibold">{subject}</option>
                           ))}
                         </select>
@@ -1669,10 +1692,10 @@ export default function StudentDiaryPage({
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <a
-                href={effectiveUserRole === "teacher" ? "/teacher" : "/diary"}
+                href={effectiveUserRole === "admin" ? "/admin" : effectiveUserRole === "teacher" ? "/teacher" : "/diary"}
                 className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-all text-sm font-semibold"
               >
-                ← Назад
+                Назад
               </a>
               <div
                 className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-300 cursor-pointer hover:opacity-80 transition-opacity shrink-0 flex items-center justify-center"
@@ -2017,17 +2040,12 @@ export default function StudentDiaryPage({
               {/* Расписание по дням */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {DAYS_OF_WEEK.map((day) => {
-                  const dayLessons = Object.entries(quarterSchedule)
-                    .filter(([key]) => key.startsWith(`${day.name}-`))
-                    .map(([key, value]) => ({ 
-                      lessonNumber: parseInt(key.split('-')[1]) + 1, 
-                      subject: value as string 
-                    }))
-                    .sort((a, b) => a.lessonNumber - b.lessonNumber);
-                  
                   // Вычисляем дату для этого дня
                   const dayDate = new Date(selectedWeek);
                   dayDate.setDate(dayDate.getDate() + (day.dayOfWeek - 1));
+                  
+                  // Получаем уроки с учетом специфических записей на эту дату
+                  const dayLessons = getDayLessons(selectedQuarter, day.name, dayDate);
                   
                   // Проверяем каникулы и праздники
                   const holidayName = getHolidayNameByDate(dayDate);
@@ -2069,14 +2087,20 @@ export default function StudentDiaryPage({
                               const lessonMarkType = lessonMarkInfo?.type || null;
                               const markClass = lessonMarkType ? getLessonMarkColor(lessonMarkType) : 'bg-emerald-50 border-emerald-100';
                               const lessonKey = `${selectedQuarter}-${day.name}-${lesson.lessonNumber - 1}`;
+                              const isEventLesson = eventSubjectNames.includes(lesson.subject);
+                              const eventClass = isEventLesson ? 'bg-emerald-200 border-emerald-500 shadow-sm' : '';
+                              const eventTextClass = isEventLesson ? 'text-emerald-900' : 'text-gray-900';
                               return (
                               <div
                                 key={lesson.lessonNumber}
-                                className={`flex items-center gap-2 p-1.5 rounded border ${markClass} group`}
+                                className={`flex items-center gap-2 p-1.5 rounded border ${markClass} ${eventClass} group`}
                               >
-                                <span className="w-5 h-5 flex items-center justify-center bg-emerald-200 text-emerald-800 rounded-full text-xs font-bold shrink-0">{lesson.lessonNumber}</span>
+                                <span className={`w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold shrink-0 ${isEventLesson ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-200 text-emerald-800'}`}>{lesson.lessonNumber}</span>
                                 <div className="flex-1 min-w-0">
-                                  <span className="text-xs font-bold text-gray-900 truncate block">{lesson.subject}</span>
+                                  <span className={`text-xs font-bold truncate block ${eventTextClass}`}>
+                                    {isEventLesson && <span className="mr-0.5">🎯</span>}
+                                    {lesson.subject}
+                                  </span>
                                   {lessonMarkInfo?.comment && (
                                     <span className="text-[10px] text-gray-500 truncate block" title={lessonMarkInfo.comment}>
                                       💬 {lessonMarkInfo.comment}
@@ -2092,7 +2116,7 @@ export default function StudentDiaryPage({
                                 )}
                                 {canEditSchedule() && (
                                   <button
-                                    onClick={() => openLessonEditModal(day.name, lesson.lessonNumber, lessonKey, lesson.subject)}
+                                    onClick={() => openLessonEditModal(day.name, lesson.lessonNumber, lessonKey, lesson.subject, dayDate)}
                                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-emerald-200 rounded shrink-0"
                                     title="Изменить урок"
                                   >
@@ -2321,38 +2345,164 @@ export default function StudentDiaryPage({
 
         {/* Аттестация */}
         {activeSection === "grades" && (
-          <div className="min-h-[297mm] p-12 bg-gradient-to-b from-rose-50/50 to-white">
-            <div className="text-center mb-10">
+          <div className="p-8 bg-gradient-to-b from-rose-50/50 to-white">
+            <div className="text-center mb-8">
               <div className="text-4xl mb-2">📊</div>
               <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">Сведения о результатах аттестации</h2>
             </div>
-            <div className="bg-white rounded-2xl shadow-lg mb-8 border border-rose-100">
-              <table className="w-full text-xs table-fixed">
+
+            {/* Тип оценок по предметам */}
+            {canEditInstitution() && (
+              <div className="mb-6 bg-white rounded-2xl shadow-lg p-4 border border-rose-100">
+                <h3 className="text-sm font-bold text-rose-700 mb-3">⚙️ Тип оценок по предметам</h3>
+                <p className="text-xs text-gray-500 mb-3">Отметьте предметы с зачётной системой оценок (зачёт/незачёт вместо числовых)</p>
+                <div className="flex flex-wrap gap-2">
+                  {data.subjects.map((subj, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        const newSubjects = [...data.subjects];
+                        const current = newSubjects[i].gradeType || 'numeric';
+                        newSubjects[i] = { 
+                          ...newSubjects[i], 
+                          gradeType: current === 'numeric' ? 'passfail' : 'numeric' 
+                        };
+                        setData(prev => ({ ...prev, subjects: newSubjects }));
+                        saveDiaryDataLocal(studentId, { ...data, subjects: newSubjects });
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                        (subj.gradeType || 'numeric') === 'passfail'
+                          ? 'bg-amber-100 text-amber-800 border-2 border-amber-400'
+                          : 'bg-gray-100 text-gray-600 border-2 border-gray-200 hover:border-rose-300'
+                      }`}
+                    >
+                      {subj.name} {(subj.gradeType || 'numeric') === 'passfail' ? '(зачёт)' : '(балл)'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-white rounded-2xl shadow-lg mb-8 border border-rose-100 overflow-x-auto">
+              <table className="w-full text-xs table-fixed" style={{ minWidth: '700px' }}>
                 <thead>
                   <tr className="bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-t-2xl">
-                    <th className="border border-rose-400 px-2 py-2 text-left font-bold w-[35%]">📖 Учебный предмет</th>
-                    <th className="border border-rose-400 px-1 py-2 font-bold">I</th>
-                    <th className="border border-rose-400 px-1 py-2 font-bold">II</th>
-                    <th className="border border-rose-400 px-1 py-2 font-bold">III</th>
-                    <th className="border border-rose-400 px-1 py-2 font-bold">IV</th>
-                    <th className="border border-rose-400 px-1 py-2 font-bold bg-rose-600/50">Годовая</th>
-                    <th className="border border-rose-400 px-1 py-2 font-bold bg-rose-600/50">Экзамен</th>
-                    <th className="border border-rose-400 px-1 py-2 font-bold bg-rose-600/30">Итоговая</th>
+                    <th className="border border-rose-400 px-2 py-2 text-left font-bold" style={{ width: '30%' }}>📖 Учебный предмет</th>
+                    <th className="border border-rose-400 px-1 py-2 font-bold" style={{ width: '9%' }}>I</th>
+                    <th className="border border-rose-400 px-1 py-2 font-bold" style={{ width: '9%' }}>II</th>
+                    <th className="border border-rose-400 px-1 py-2 font-bold" style={{ width: '9%' }}>III</th>
+                    <th className="border border-rose-400 px-1 py-2 font-bold" style={{ width: '9%' }}>IV</th>
+                    <th className="border border-rose-400 px-1 py-2 font-bold bg-rose-600/50" style={{ width: '11%' }}>Годовая</th>
+                    <th className="border border-rose-400 px-1 py-2 font-bold bg-rose-600/50" style={{ width: '11%' }}>Экзамен</th>
+                    <th className="border border-rose-400 px-1 py-2 font-bold bg-rose-600/30" style={{ width: '12%' }}>Итоговая</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.subjects.length > 0 ? data.subjects.map((subj, i) => {
                     const grade = data.grades.find(g => g.subject === subj.name);
+                    const isPassFail = (subj.gradeType || (grade?.gradeType)) === 'passfail';
+                    const gradeType = isPassFail ? 'passfail' : 'numeric';
+
+                    const calcAutoGrade = (field: 'year' | 'final'): string => {
+                      if (!grade) return '';
+                      const existing = grade[field];
+                      if (existing && existing !== '—' && existing !== '') return existing;
+                      
+                      if (isPassFail) {
+                        const quarters = [grade.q1, grade.q2, grade.q3, grade.q4].filter(v => v && v !== '—' && v !== '');
+                        if (field === 'year') {
+                          const allPass = quarters.every(q => q === 'зачёт' || q === 'Зачёт' || q === 'З' || q === 'з');
+                          const hasAny = quarters.length > 0;
+                          return hasAny ? (allPass ? 'Зачёт' : 'Незачёт') : '';
+                        }
+                        if (field === 'final') {
+                          const yearVal = grade.year || calcAutoGrade('year');
+                          const examVal = grade.exam;
+                          const yPass = yearVal === 'Зачёт' || yearVal === 'зачёт' || yearVal === 'З';
+                          const ePass = !examVal || examVal === 'Зачёт' || examVal === 'зачёт' || examVal === 'З' || examVal === '—';
+                          return (yPass && ePass) ? 'Зачёт' : 'Незачёт';
+                        }
+                        return '';
+                      }
+
+                      if (field === 'year') {
+                        const nums = [grade.q1, grade.q2, grade.q3, grade.q4]
+                          .map(v => parseFloat(v))
+                          .filter(v => !isNaN(v) && v > 0);
+                        if (nums.length === 0) return '';
+                        const avg = nums.reduce((a: number, b: number) => a + b, 0) / nums.length;
+                        return Math.round(avg * 10) / 10 % 1 === 0 ? String(Math.round(avg)) : (Math.round(avg * 10) / 10).toString();
+                      }
+
+                      if (field === 'final') {
+                        const yearVal = grade.year || calcAutoGrade('year');
+                        const examVal = grade.exam;
+                        const yearNum = parseFloat(yearVal);
+                        const examNum = parseFloat(examVal);
+                        if (!isNaN(yearNum) && !isNaN(examNum) && examVal && examVal !== '—') {
+                          const finalAvg = (yearNum + examNum) / 2;
+                          return Math.round(finalAvg * 10) / 10 % 1 === 0 ? String(Math.round(finalAvg)) : (Math.round(finalAvg * 10) / 10).toString();
+                        }
+                        if (!isNaN(yearNum) && isNaN(examNum)) return String(Math.round(yearNum));
+                        return yearVal || '';
+                      }
+                      return '';
+                    };
+
+                    const getCellValue = (field: string): string => {
+                      if (!grade) return '—';
+                      if (field === 'year') {
+                        const val = grade.year;
+                        return (val && val !== '') ? val : calcAutoGrade('year') || '—';
+                      }
+                      if (field === 'final') {
+                        const val = grade.final;
+                        return (val && val !== '') ? val : calcAutoGrade('final') || '—';
+                      }
+                      return grade[field as keyof typeof grade] || '—';
+                    };
+
                     return (
                       <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-rose-50"}>
                         <td className="border border-rose-200 px-2 py-1.5">
-                          <span className="text-gray-800 font-bold">{subj.name}</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-800 font-bold">{subj.name}</span>
+                            {isPassFail && <span className="text-[10px] bg-amber-100 text-amber-700 px-1 rounded font-bold">з/н</span>}
+                          </div>
                         </td>
-                        {["q1", "q2", "q3", "q4", "year", "exam", "final"].map((field) => (
+                        {["q1", "q2", "q3", "q4"].map((field) => (
                           <td key={field} className="border border-rose-200 px-1 py-1.5 text-center">
-                            <span className="font-bold text-gray-800">{grade?.[field as keyof typeof grade] || "—"}</span>
+                            <span className={`font-bold ${
+                              isPassFail 
+                                ? (getCellValue(field) === 'Зачёт' || getCellValue(field) === 'зачёт' || getCellValue(field) === 'З' ? 'text-emerald-600' : getCellValue(field) === 'Незачёт' || getCellValue(field) === 'незачёт' || getCellValue(field) === 'Н' ? 'text-red-500' : 'text-gray-800')
+                                : 'text-gray-800'
+                            }`}>{getCellValue(field)}</span>
                           </td>
                         ))}
+                        <td className="border border-rose-200 px-1 py-1.5 text-center bg-rose-50/50">
+                          <span className={`font-bold ${
+                            isPassFail 
+                              ? (getCellValue('year') === 'Зачёт' ? 'text-emerald-600' : getCellValue('year') === 'Незачёт' ? 'text-red-500' : 'text-gray-800')
+                              : 'text-rose-700'
+                          }`}>{getCellValue('year')}</span>
+                          {!isPassFail && getCellValue('year') !== '—' && getCellValue('year') !== '' && (
+                            <span className="block text-[9px] text-rose-400 font-normal">авто</span>
+                          )}
+                        </td>
+                        <td className="border border-rose-200 px-1 py-1.5 text-center bg-rose-50/50">
+                          <span className="font-bold text-gray-800">{getCellValue('exam')}</span>
+                        </td>
+                        <td className="border border-rose-200 px-1 py-1.5 text-center bg-rose-100/50">
+                          <span className={`font-bold ${
+                            isPassFail 
+                              ? (getCellValue('final') === 'Зачёт' ? 'text-emerald-700' : getCellValue('final') === 'Незачёт' ? 'text-red-600' : 'text-gray-800')
+                              : 'text-rose-800'
+                          }`}>{getCellValue('final')}</span>
+                          {!isPassFail && getCellValue('final') !== '—' && getCellValue('final') !== '' && (
+                            <span className="block text-[9px] text-rose-400 font-normal">авто</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   }) : data.grades.length > 0 ? data.grades.map((grade, i) => (
@@ -2769,12 +2919,22 @@ export default function StudentDiaryPage({
 
         {/* Модальное окно редактирования урока */}
         {lessonEditModal.visible && canEditSchedule() && (
-          <div className="fixed inset-0 backdrop-blur-md bg-black/30 z-[80] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div 
+            className="fixed inset-0 backdrop-blur-md bg-black/30 z-[80] flex items-center justify-center p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) closeLessonEditModal(); }}
+          >
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-800">
-                  {lessonEditModal.dayName}, урок {lessonEditModal.lessonNumber}
-                </h3>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">
+                    {lessonEditModal.dayName}, урок {lessonEditModal.lessonNumber}
+                  </h3>
+                  {lessonEditModal.dayDate && (
+                    <p className="text-sm text-gray-500">
+                      {lessonEditModal.dayDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    </p>
+                  )}
+                </div>
                 <button
                   onClick={closeLessonEditModal}
                   className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600"
@@ -2783,19 +2943,43 @@ export default function StudentDiaryPage({
                 </button>
               </div>
 
+              {/* Чекбокс для выбора режима изменения */}
+              <div className="mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={lessonEditModal.applyToSingleDay}
+                    onChange={(e) => setLessonEditModal(prev => ({ ...prev, applyToSingleDay: e.target.checked }))}
+                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Только на эту дату</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  {lessonEditModal.applyToSingleDay 
+                    ? 'Изменение будет применено только к выбранной дате' 
+                    : 'Изменение будет применено ко всей четверти'}
+                </p>
+              </div>
+
               {/* Сменить предмет */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Изменить предмет:</label>
                 <select
                   value={lessonEditModal.currentSubject}
                   onChange={(e) => {
-                    updateScheduleItem(selectedQuarter, lessonEditModal.dayName, lessonEditModal.lessonNumber - 1, e.target.value);
+                    updateScheduleItem(
+                      selectedQuarter, 
+                      lessonEditModal.dayName, 
+                      lessonEditModal.lessonNumber - 1, 
+                      e.target.value,
+                      lessonEditModal.applyToSingleDay ? lessonEditModal.dayDate || undefined : undefined
+                    );
                     setLessonEditModal(prev => ({ ...prev, currentSubject: e.target.value }));
                   }}
                   className="w-full border-2 border-emerald-200 rounded-lg px-3 py-2 text-gray-800 focus:border-emerald-500 focus:outline-none"
                 >
                   <option value="">— Нет урока —</option>
-                  {availableSubjects.map((subject) => (
+                  {sortedAvailableSubjects.map((subject) => (
                     <option key={subject} value={subject}>{subject}</option>
                   ))}
                 </select>
@@ -2924,8 +3108,11 @@ export default function StudentDiaryPage({
 
         {/* Модальное окно добавления урока */}
         {addLessonModal.visible && canEditSchedule() && (
-          <div className="fixed inset-0 backdrop-blur-md bg-black/30 z-[80] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div 
+            className="fixed inset-0 backdrop-blur-md bg-black/30 z-[80] flex items-center justify-center p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) closeAddLessonModal(); }}
+          >
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-800">
                   Добавить урок — {addLessonModal.dayName}
