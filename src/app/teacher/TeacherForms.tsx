@@ -130,9 +130,9 @@ export default function TeacherForms({ teacherId, groupId, groupName, students, 
   // Загрузка предметов и расписания
   useEffect(() => {
     if (groupId) {
-      // Загружаем предметы
+      // Загружаем предметы (фильтр по группе И учителю)
       setLoadingSubjects(true);
-      fetch(`/api/subjects?groupId=${groupId}`)
+      fetch(`/api/subjects?groupId=${groupId}&teacherId=${teacherId}`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
@@ -682,9 +682,11 @@ export default function TeacherForms({ teacherId, groupId, groupName, students, 
                       type="button"
                       onClick={() => setGradeForm({ ...gradeForm, value: grade.toString() })}
                       className={`relative px-4 py-3 rounded-xl font-bold text-white transition-all transform hover:scale-105 active:scale-95 shadow-md border-2 ${
+                        getGradeColor(grade)
+                      } ${
                         isSelected
-                          ? `${getGradeColor(grade)} ring-4 ring-offset-2 ring-${grade >= 9 ? 'emerald' : grade >= 7 ? 'blue' : grade >= 5 ? 'yellow' : grade >= 4 ? 'orange' : 'red'}-300`
-                          : "bg-gray-400 hover:bg-gray-500 border-gray-500 opacity-60 hover:opacity-100"
+                          ? `ring-4 ring-offset-2 ring-${grade >= 9 ? 'emerald' : grade >= 7 ? 'blue' : grade >= 5 ? 'yellow' : grade >= 4 ? 'orange' : 'red'}-300 scale-105`
+                          : "opacity-80 hover:opacity-100"
                       }`}
                     >
                       <span className="text-xl">{grade}</span>

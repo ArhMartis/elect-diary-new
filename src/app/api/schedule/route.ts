@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { schedule, subjects, user } from "@/db/schema/auth_schema";
-import { eq, and, gte, lte, asc } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 
 /**
  * API: GET /api/schedule
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Формируем условия WHERE
-    const conditions: (ReturnType<typeof eq> | ReturnType<typeof gte> | ReturnType<typeof lte>)[] = [
+    const conditions: ReturnType<typeof eq>[] = [
       eq(schedule.groupId, parseInt(groupId)),
     ];
 
@@ -55,12 +55,7 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(schedule.subjectId, parseInt(subjectId)));
     }
 
-    if (startDate && endDate) {
-      conditions.push(gte(schedule.lessonDate, startDate));
-      conditions.push(lte(schedule.lessonDate, endDate));
-    }
-
-    const whereCondition = conditions.length > 1 ? and(...conditions) : conditions[0];
+    const whereCondition = and(...conditions) as any;
 
     // Получаем расписание с связанными данными
     const scheduleList = await db
