@@ -1302,8 +1302,16 @@ export default function StudentDiaryPage({
     
     // Загрузка данных дневника
     const savedData = getDiaryDataLocal(studentId);
+    console.log('[StudentDiary] Loaded from localStorage:', { 
+      hasData: !!(savedData && Object.keys(savedData).length > 0),
+      subjects: savedData?.subjects?.map((s: any) => ({ name: s.name, gradeType: s.gradeType }))
+    });
     if (savedData && Object.keys(savedData).length > 0) {
-      setData(prev => ({ ...prev, ...savedData }));
+      setData(prev => {
+        const merged = { ...prev, ...savedData };
+        console.log('[StudentDiary] Merged with localStorage, subjects:', merged.subjects?.map((s: any) => ({ name: s.name, gradeType: s.gradeType })));
+        return merged;
+      });
     } else {
       // Инициализация начальными данными
       // Приоритет: 1) classSubjectNames (фильтр предметов для класса), 2) schedule
@@ -1340,6 +1348,7 @@ export default function StudentDiaryPage({
         console.log('[StudentDiary] Loaded final grades:', finalGradesData);
         if (Array.isArray(finalGradesData) && finalGradesData.length > 0) {
           setData(prev => {
+            console.log('[StudentDiary] Current subjects before merge:', prev.subjects.map(s => ({ name: s.name, gradeType: s.gradeType })));
             const newGrades = finalGradesData.map(fg => ({
               subject: fg.subjectName || '',
               q1: fg.q1 || '',
@@ -1353,9 +1362,11 @@ export default function StudentDiaryPage({
             }));
             const mergedSubjects = prev.subjects.map(s => {
               const fromApi = finalGradesData.find(fg => fg.subjectName === s.name);
-              console.log(`[StudentDiary] Merging subject ${s.name}:`, { fromApiGradeType: fromApi?.gradeType, currentGradeType: s.gradeType });
-              return fromApi ? { ...s, gradeType: fromApi.gradeType || s.gradeType } : s;
+              const newGradeType = fromApi ? (fromApi.gradeType || s.gradeType) : s.gradeType;
+              console.log(`[StudentDiary] Merging subject "${s.name}": API gradeType="${fromApi?.gradeType}", current="${s.gradeType}", result="${newGradeType}"`);
+              return fromApi ? { ...s, gradeType: newGradeType } : s;
             });
+            console.log('[StudentDiary] Subjects after merge:', mergedSubjects.map(s => ({ name: s.name, gradeType: s.gradeType })));
             return { ...prev, grades: newGrades, subjects: mergedSubjects };
           });
         }
