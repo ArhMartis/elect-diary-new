@@ -1299,19 +1299,14 @@ export default function StudentDiaryPage({
       }));
     }
     
-    // Загрузка данных дневника - НЕ загружаем subjects из localStorage, 
-    // так как gradeType должен приходить из API
+    // Загрузка данных дневника - вообще не загружаем subjects из localStorage
+    // subjects будут загружены из API в отдельном useEffect
     const savedData = getDiaryDataLocal(studentId);
-    console.log('[StudentDiary] Loaded from localStorage:', { 
-      hasData: !!(savedData && Object.keys(savedData).length > 0),
-      subjects: savedData?.subjects?.map((s: any) => ({ name: s.name, gradeType: s.gradeType }))
-    });
     if (savedData && Object.keys(savedData).length > 0) {
       setData(prev => {
-        // Не перезаписываем subjects из localStorage, только другие поля
-        const { subjects: _, ...savedWithoutSubjects } = savedData;
-        const merged = { ...prev, ...savedWithoutSubjects };
-        console.log('[StudentDiary] Merged with localStorage (excluding subjects):', merged.subjects?.map((s: any) => ({ name: s.name, gradeType: s.gradeType })));
+        // Не перезаписываем никакие поля, связанные с аттестацией
+        const { subjects, grades, behavior, ...savedWithoutAttestation } = savedData;
+        const merged = { ...prev, ...savedWithoutAttestation };
         return merged;
       });
     } else {
@@ -1370,10 +1365,8 @@ export default function StudentDiaryPage({
             const mergedSubjects = prev.subjects.map(s => {
               const fromApi = finalGradesData.find(fg => fg.subjectName === s.name);
               const newGradeType = fromApi?.gradeType || s.gradeType || 'numeric';
-              console.log(`[StudentDiary] Merging subject "${s.name}": API gradeType="${fromApi?.gradeType}", result="${newGradeType}"`);
               return { ...s, gradeType: newGradeType };
             });
-            console.log('[StudentDiary] Subjects after merge:', mergedSubjects.map(s => ({ name: s.name, gradeType: s.gradeType })));
             return { ...prev, grades: newGrades, subjects: mergedSubjects };
           });
         }
@@ -1381,11 +1374,6 @@ export default function StudentDiaryPage({
       .catch((err) => { console.error('[StudentDiary] Error loading final grades:', err); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, studentId]); // Не зависим от data, загружаем один раз
-
-  // Отслеживаем изменения subjects для отладки
-  useEffect(() => {
-    console.log('[StudentDiary] data.subjects changed:', data.subjects.map(s => ({ name: s.name, gradeType: s.gradeType })));
-  }, [data.subjects]);
 
   // Загрузка замечаний
   useEffect(() => {
@@ -2622,7 +2610,6 @@ export default function StudentDiaryPage({
               <div className="mb-6 bg-white rounded-2xl shadow-lg p-4 border border-rose-100">
                 <h3 className="text-sm font-bold text-rose-700 mb-3">⚙️ Тип оценок по предметам</h3>
                 <p className="text-xs text-gray-500 mb-3">Отметьте предметы с зачётной системой оценок (зачёт/незачёт вместо числовых)</p>
-                {(() => { console.log('[DEBUG] Before render buttons:', data.subjects.map(s => ({name: s.name, gradeType: s.gradeType}))); return null; })()}
                 {console.log('[StudentDiary] Rendering grade type buttons:', data.subjects.map(s => ({ name: s.name, gradeType: s.gradeType })))}
                 <div className="flex flex-wrap gap-2">
                   {data.subjects.map((subj, i) => (
