@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import { user, parentsToStudents } from "@/db/schema/auth_schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 // ==========================
@@ -59,6 +59,17 @@ export async function linkParentToStudent(formData: FormData) {
 
   if (existing) {
     throw new Error("Связь уже существует");
+  }
+
+  // Проверяем, не превышен ли лимит в 3 родителя на ученика
+  const currentParentsCount = await db
+    .select({ count: sql`count(*)` })
+    .from(parentsToStudents)
+    .where(eq(parentsToStudents.studentId, studentId))
+    .get();
+
+  if (currentParentsCount && currentParentsCount.count >= 3) {
+    throw new Error("Ученик не может иметь более 3 родителей");
   }
 
   await db.insert(parentsToStudents).values({

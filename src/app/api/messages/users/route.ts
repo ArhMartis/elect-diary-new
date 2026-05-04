@@ -101,19 +101,26 @@ export async function GET() {
       groupName: u.groupId ? groupMap.get(u.groupId) || null : null,
       isHomeroomTeacher: u.role === "teacher" && homeroomTeacherIds.has(u.id),
     }));
-
-    // Получаем связи родитель-ученик
-    const { parentStudentLinks } = await import("@/db/schema/diary-extra");
-    const allParentLinks = await db.select().from(parentStudentLinks);
     
-    // Создаем мапу studentId -> parentIds
-    const studentParentsMap = new Map<string, string[]>();
-    allParentLinks.forEach(link => {
-      if (!studentParentsMap.has(link.studentId)) {
-        studentParentsMap.set(link.studentId, []);
-      }
-      studentParentsMap.get(link.studentId)?.push(link.parentId);
-    });
+    console.log(`API: Found ${enrichedUsers.length} other users`);
+
+    // Получаем связи родитель-ученик из таблицы parents_to_students
+    let studentParentsMap = new Map<string, string[]>();
+    try {
+      const { parentsToStudents } = await import("@/db/schema/auth_schema");
+      const allParentLinks = await db.select().from(parentsToStudents);
+      
+      // Создаем мапу studentId -> parentIds
+      allParentLinks.forEach(link => {
+        if (!studentParentsMap.has(link.studentId)) {
+          studentParentsMap.set(link.studentId, []);
+        }
+        studentParentsMap.get(link.studentId)?.push(link.parentId);
+      });
+      
+    } catch (e) {
+      console.log("Parents to students table not available");
+    }
 
     if (userRole === "admin" || userRole === "principal") {
       // Admin и Principal видят всех, сгруппированных по ролям
@@ -184,6 +191,16 @@ export async function GET() {
       }
     }
 
+    console.log(`API: Returning users for role ${userRole}:`, {
+      admins: result.admins.length,
+      principals: result.principals.length,
+      teachers: result.teachers.length,
+      homeroomTeachers: result.homeroomTeachers.length,
+      students: result.students.length,
+      classmates: result.classmates.length,
+      parents: result.parents.length,
+    });
+    
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("Error fetching users:", error);

@@ -108,6 +108,9 @@ export default function MessagesPage() {
       if (res.ok) {
         const data = await res.json();
         setGroupedUsers(data);
+      } else {
+        const error = await res.json();
+        console.error("Error fetching users:", error);
       }
     } catch (error) {
       console.error("Error fetching users:", error);
