@@ -1341,8 +1341,9 @@ export default function StudentDiaryPage({
   // Загрузка аттестации (итоговых оценок) из БД после инициализации
   useEffect(() => {
     if (!isLoaded || !studentId) return;
-    console.log('[StudentDiary] Loading final grades from API for student:', studentId);
-    fetch(`/api/final-grades?studentId=${studentId}`)
+    const academicYear = data.academicYear || getCurrentAcademicYear();
+    console.log('[StudentDiary] Loading final grades from API for student:', studentId, 'academicYear:', academicYear);
+    fetch(`/api/final-grades?studentId=${studentId}&academicYear=${encodeURIComponent(academicYear)}`)
       .then(res => res.json())
       .then((finalGradesData: any[]) => {
         console.log('[StudentDiary] Loaded final grades:', finalGradesData);
@@ -1372,7 +1373,7 @@ export default function StudentDiaryPage({
         }
       })
       .catch((err) => { console.error('[StudentDiary] Error loading final grades:', err); });
-  }, [isLoaded, studentId]);
+  }, [isLoaded, studentId, data.academicYear]);
 
   // Загрузка замечаний
   useEffect(() => {

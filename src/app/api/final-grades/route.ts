@@ -55,6 +55,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Не указан studentId" }, { status: 400 });
     }
 
+    // Build where conditions dynamically
+    const whereConditions: any[] = [eq(finalGradesTable.studentId, studentId)];
+    if (academicYear) {
+      whereConditions.push(eq(finalGradesTable.academicYear, academicYear));
+    }
+
     const rows = await db
       .select({
         subjectId: finalGradesTable.subjectId,
@@ -70,12 +76,7 @@ export async function GET(request: NextRequest) {
       })
       .from(finalGradesTable)
       .leftJoin(subjects, eq(finalGradesTable.subjectId, subjects.id))
-      .where(
-        and(
-          eq(finalGradesTable.studentId, studentId),
-          academicYear ? eq(finalGradesTable.academicYear, academicYear) : undefined
-        )
-      );
+      .where(and(...whereConditions));
 
     console.log(`[FinalGrades API] GET result:`, { count: rows.length, rows: rows.map(r => ({ subject: r.subjectName, gradeType: r.gradeType })) });
 
