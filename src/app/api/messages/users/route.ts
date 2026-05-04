@@ -21,6 +21,7 @@ interface GroupedUsers {
   principals: UserGroup[];
   students: UserGroup[];
   classmates: UserGroup[];
+  parents: UserGroup[];
 }
 
 export async function GET() {
@@ -41,6 +42,7 @@ export async function GET() {
       principals: [],
       students: [],
       classmates: [],
+      parents: [],
     };
 
     // Получаем информацию о группе текущего пользователя
@@ -100,6 +102,19 @@ export async function GET() {
       isHomeroomTeacher: u.role === "teacher" && homeroomTeacherIds.has(u.id),
     }));
 
+    // Получаем связи родитель-ученик
+    const { parentStudentLinks } = await import("@/db/schema/diary-extra");
+    const allParentLinks = await db.select().from(parentStudentLinks);
+    
+    // Создаем мапу studentId -> parentIds
+    const studentParentsMap = new Map<string, string[]>();
+    allParentLinks.forEach(link => {
+      if (!studentParentsMap.has(link.studentId)) {
+        studentParentsMap.set(link.studentId, []);
+      }
+      studentParentsMap.get(link.studentId)?.push(link.parentId);
+    });
+
     if (userRole === "admin" || userRole === "principal") {
       // Admin и Principal видят всех, сгруппированных по ролям
       result.admins = enrichedUsers.filter(u => u.role === "admin");
@@ -107,21 +122,34 @@ export async function GET() {
       result.homeroomTeachers = enrichedUsers.filter(u => u.role === "teacher" && u.isHomeroomTeacher);
       result.teachers = enrichedUsers.filter(u => u.role === "teacher" && !u.isHomeroomTeacher);
       result.students = enrichedUsers.filter(u => u.role === "student");
+      result.parents = enrichedUsers.filter(u => u.role === "parent");
     } else if (userRole === "teacher") {
       // Teacher видит:
       // - Других учителей (всех)
       // - Классных руководителей (отдельно помечаем)
       // - Директора и админа
       // - Своих учеников (если классный)
+      // - Родителей своих учеников (если классный)
       
       result.admins = enrichedUsers.filter(u => u.role === "admin");
       result.principals = enrichedUsers.filter(u => u.role === "principal");
       result.homeroomTeachers = enrichedUsers.filter(u => u.role === "teacher" && u.isHomeroomTeacher && u.id !== userId);
       result.teachers = enrichedUsers.filter(u => u.role === "teacher" && !u.isHomeroomTeacher);
       
-      // Если классный руководитель - добавляем своих учеников
+      // Если классный руководитель - добавляем своих учеников и их родителей
       if (isCurrentUserHomeroomTeacher && userGroupId) {
-        result.students = enrichedUsers.filter(u => u.role === "student" && u.groupId === userGroupId);
+        const classStudents = enrichedUsers.filter(u => u.role === "student" && u.groupId === userGroupId);
+        result.students = classStudents;
+        
+        // Находим родителей учеников этого класса
+        const classStudentIds = classStudents.map(s => s.id);
+        const parentIdsInClass = new Set<string>();
+        classStudentIds.forEach(studentId => {
+          const parents = studentParentsMap.get(studentId) || [];
+          parents.forEach(parentId => parentIdsInClass.add(parentId));
+        });
+        
+        result.parents = enrichedUsers.filter(u => u.role === "parent" && parentIdsInClass.has(u.id));
       }
     } else if (userRole === "student") {
       // Student видит:

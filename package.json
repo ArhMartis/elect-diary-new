@@ -11,7 +11,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:messages": "tsx scripts/migrate-messages.ts"
+    "db:messages": "tsx scripts/migrate-messages.ts",
+    "db:files": "tsx scripts/migrate-files.ts"
   },
   "dependencies": {
     "better-auth": "^1.4.18",

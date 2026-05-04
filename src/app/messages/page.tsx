@@ -14,6 +14,10 @@ interface Message {
   isBroadcast: boolean;
   createdAt: string;
   readAt: string | null;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+  fileType?: string | null;
   sender?: {
     id: string;
     fullName: string | null;
@@ -42,6 +46,7 @@ interface GroupedUsers {
   principals: UserGroup[];
   students: UserGroup[];
   classmates: UserGroup[];
+  parents: UserGroup[];
 }
 
 export default function MessagesPage() {
@@ -58,6 +63,7 @@ export default function MessagesPage() {
     principals: [],
     students: [],
     classmates: [],
+    parents: [],
   });
   const [isBroadcast, setIsBroadcast] = useState(false);
   const [customSenderName, setCustomSenderName] = useState("");
@@ -66,6 +72,9 @@ export default function MessagesPage() {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const userRole = session?.user?.role as string | undefined;
   const userId = session?.user?.id as string | undefined;
@@ -137,29 +146,65 @@ export default function MessagesPage() {
     });
   }, [messages, userId]);
 
+  // Обработка выбора файла
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Проверка размера (10 МБ = 10 * 1024 * 1024 байт)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(`Файл слишком большой. Максимальный размер: 10 МБ`);
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
+  // Удаление выбранного файла
+  const removeSelectedFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Форматирование размера файла
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Б';
+    const k = 1024;
+    const sizes = ['Б', 'КБ', 'МБ'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || (!selectedReceiver && !isBroadcast)) return;
+    if ((!newMessage.trim() && !selectedFile) || (!selectedReceiver && !isBroadcast)) return;
 
     setSending(true);
+    setUploadProgress(0);
+    
     try {
-      const body: any = {
-        content: newMessage.trim(),
-      };
+      const formData = new FormData();
+      formData.append('content', newMessage.trim());
+      
+      if (selectedFile) {
+        formData.append('file', selectedFile);
+      }
 
       if (isBroadcast) {
-        body.isBroadcast = true;
+        formData.append('isBroadcast', 'true');
         if (customSenderName) {
-          body.senderName = customSenderName;
+          formData.append('senderName', customSenderName);
         }
       } else if (selectedReceiver) {
-        body.receiverId = selectedReceiver.id;
+        formData.append('receiverId', selectedReceiver.id);
       }
 
       const res = await fetch("/api/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: formData,
       });
 
       if (res.ok) {
@@ -167,6 +212,11 @@ export default function MessagesPage() {
         setSelectedReceiver(null);
         setIsBroadcast(false);
         setCustomSenderName("");
+        setSelectedFile(null);
+        setUploadProgress(0);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
         fetchMessages();
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       } else {
@@ -177,6 +227,7 @@ export default function MessagesPage() {
       alert("Ошибка отправки сообщения");
     } finally {
       setSending(false);
+      setUploadProgress(0);
     }
   };
 
@@ -512,6 +563,33 @@ export default function MessagesPage() {
                                 ))}
                               </div>
                             )}
+
+                            {/* Родители */}
+                            {groupedUsers.parents.length > 0 && (
+                              <div className="p-2 border-t border-indigo-100">
+                                <div className="px-3 py-1 text-xs font-black text-pink-600 uppercase tracking-wider">
+                                  Родители
+                                </div>
+                                {groupedUsers.parents.map(user => (
+                                  <button
+                                    key={user.id}
+                                    type="button"
+                                    onClick={() => { setSelectedReceiver(user); setShowUserDropdown(false); }}
+                                    className="w-full px-3 py-2 text-left hover:bg-indigo-50 rounded-xl transition-colors flex items-center gap-2"
+                                  >
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white text-sm font-bold">
+                                      {user.fullName?.charAt(0).toUpperCase() || "?"}
+                                    </div>
+                                    <div>
+                                      <span className="font-bold text-indigo-900 block">{user.fullName || "Без имени"}</span>
+                                      <span className="text-xs text-indigo-500 font-medium">
+                                        Родитель {user.groupName && `• ${user.groupName}`}
+                                      </span>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
@@ -530,13 +608,74 @@ export default function MessagesPage() {
                     placeholder="Напишите ваше сообщение..."
                     rows={5}
                     className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100 transition-all font-medium text-indigo-900 resize-none"
-                    required
                   />
+                </div>
+
+                {/* File Upload */}
+                <div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,.zip,.rar"
+                  />
+                  
+                  {!selectedFile ? (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full py-3 px-4 border-2 border-dashed border-indigo-300 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 text-indigo-700 font-medium"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>
+                      📎 Прикрепить файл (до 10 МБ)
+                    </button>
+                  ) : (
+                    <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="font-bold text-indigo-900 truncate max-w-[200px]">{selectedFile.name}</p>
+                            <p className="text-sm text-indigo-600">{formatFileSize(selectedFile.size)}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={removeSelectedFile}
+                          className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-500"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      
+                      {/* Upload Progress */}
+                      {sending && uploadProgress > 0 && (
+                        <div className="mt-3">
+                          <div className="h-2 bg-indigo-200 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-indigo-600 mt-1 text-center">{uploadProgress}%</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <button
                   type="submit"
-                  disabled={sending || (!isBroadcast && !selectedReceiver) || !newMessage.trim()}
+                  disabled={sending || (!isBroadcast && !selectedReceiver) || (!newMessage.trim() && !selectedFile)}
                   className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl text-lg flex items-center justify-center gap-2"
                 >
                   {sending ? (
@@ -747,6 +886,39 @@ export default function MessagesPage() {
                           </span>
                         </div>
                         <p className="text-indigo-900 font-medium leading-relaxed whitespace-pre-wrap pl-[52px]">{msg.content}</p>
+                        
+                        {/* File Attachment */}
+                        {msg.fileUrl && (
+                          <div className="mt-3 pl-[52px]">
+                            <a
+                              href={msg.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-3 p-3 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-xl border-2 border-indigo-200 hover:border-indigo-400 hover:shadow-md transition-all group"
+                            >
+                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                                {msg.fileType?.startsWith('image/') ? (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                ) : (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-indigo-900 truncate max-w-[200px]">{msg.fileName || "Файл"}</p>
+                                {msg.fileSize && (
+                                  <p className="text-sm text-indigo-600">{formatFileSize(msg.fileSize)}</p>
+                                )}
+                              </div>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-400 group-hover:text-indigo-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </a>
+                          </div>
+                        )}
                       </div>
                     ))}
                     <div ref={messagesEndRef} />

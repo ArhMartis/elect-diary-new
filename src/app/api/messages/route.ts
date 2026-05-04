@@ -5,6 +5,11 @@ import { messages } from "@/db/schema/messages";
 import { user, groups } from "@/db/schema/auth_schema";
 import { eq, or, and, desc, isNull, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
+import { writeFile } from "fs/promises";
+import { existsSync, mkdirSync } from "fs";
+import path from "path";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 МБ
 
 // GET - получить сообщения для текущего пользователя
 export async function GET(request: NextRequest) {
@@ -182,7 +187,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - отправить сообщение
+// POST - отправить сообщение с файлом
 export async function POST(request: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -191,12 +196,20 @@ export async function POST(request: NextRequest) {
     }
 
     const currentUser = session.user;
-    const body = await request.json();
-    const { content, receiverId, groupId, isBroadcast, senderName } = body;
+    
+    // Парсим FormData
+    const formData = await request.formData();
+    const content = formData.get("content") as string || "";
+    const receiverId = formData.get("receiverId") as string | null;
+    const groupId = formData.get("groupId") ? parseInt(formData.get("groupId") as string) : null;
+    const isBroadcast = formData.get("isBroadcast") === "true";
+    const senderName = formData.get("senderName") as string | null;
+    const file = formData.get("file") as File | null;
 
-    if (!content || content.trim().length === 0) {
+    // Проверка обязательных полей
+    if (!content.trim() && !file) {
       return NextResponse.json(
-        { error: "Message content is required" },
+        { error: "Message content or file is required" },
         { status: 400 }
       );
     }
@@ -210,6 +223,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let fileUrl: string | null = null;
+    let fileName: string | null = null;
+    let fileSize: number | null = null;
+    let fileType: string | null = null;
+
+    // Обработка файла
+    if (file) {
+      // Проверка размера
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: "File size exceeds 10 MB limit" },
+          { status: 400 }
+        );
+      }
+
+      // Создаем директорию для загрузок если не существует
+      const uploadDir = path.join(process.cwd(), "public", "uploads", "messages");
+      if (!existsSync(uploadDir)) {
+        mkdirSync(uploadDir, { recursive: true });
+      }
+
+      // Генерируем уникальное имя файла
+      const timestamp = Date.now();
+      const originalName = file.name;
+      const extension = path.extname(originalName);
+      const baseName = path.basename(originalName, extension);
+      const safeName = `${baseName}-${timestamp}${extension}`.replace(/[^a-zA-Z0-9.-]/g, "_");
+      
+      const filePath = path.join(uploadDir, safeName);
+      
+      // Сохраняем файл
+      const bytes = await file.arrayBuffer();
+      await writeFile(filePath, Buffer.from(bytes));
+      
+      fileUrl = `/uploads/messages/${safeName}`;
+      fileName = originalName;
+      fileSize = file.size;
+      fileType = file.type;
+    }
+
     // Создаем сообщение
     const newMessage = await db.insert(messages).values({
       content: content.trim(),
@@ -218,13 +271,17 @@ export async function POST(request: NextRequest) {
       receiverId: receiverId || null,
       groupId: groupId || null,
       isBroadcast: isBroadcast || false,
+      fileUrl,
+      fileName,
+      fileSize,
+      fileType,
     }).returning();
 
     return NextResponse.json(newMessage[0]);
   } catch (error: any) {
     console.error("Error sending message:", error);
     return NextResponse.json(
-      { error: "Failed to send message" },
+      { error: "Failed to send message", details: error.message },
       { status: 500 }
     );
   }
@@ -262,8 +319,8 @@ export async function PATCH(request: NextRequest) {
 // Функция проверки прав на отправку сообщения
 async function checkSendPermission(
   currentUser: any,
-  receiverId?: string,
-  groupId?: number,
+  receiverId?: string | null,
+  groupId?: number | null,
   isBroadcast?: boolean
 ): Promise<{ allowed: boolean; reason?: string }> {
   const userRole = currentUser.role;
@@ -307,18 +364,38 @@ async function checkSendPermission(
   }
 
   if (userRole === "teacher") {
+    // Учитель может писать: другим учителям, директору, админу, ученикам своего класса, родителям своего класса
     if (receiver.role === "teacher" || receiver.role === "principal" || receiver.role === "admin") {
       return { allowed: true };
     }
+    
+    const teacherGroup = await db.query.groups.findFirst({
+      where: eq(groups.teacherId, userId),
+    });
+    
     if (receiver.role === "student") {
-      const teacherGroup = await db.query.groups.findFirst({
-        where: eq(groups.teacherId, userId),
-      });
       if (teacherGroup && receiver.groupId === teacherGroup.id) {
         return { allowed: true };
       }
     }
-    return { allowed: false, reason: "You can only message teachers, staff, or your students" };
+    
+    if (receiver.role === "parent") {
+      // Проверяем, является ли родитель родителем ученика этого класса
+      const { parentStudentLinks } = await import("@/db/schema/diary-extra");
+      const parentLinks = await db.select().from(parentStudentLinks).where(eq(parentStudentLinks.parentId, receiverId));
+      
+      for (const link of parentLinks) {
+        const student = await db.query.user.findFirst({
+          where: eq(user.id, link.studentId),
+          columns: { groupId: true },
+        });
+        if (student?.groupId === teacherGroup?.id) {
+          return { allowed: true };
+        }
+      }
+    }
+    
+    return { allowed: false, reason: "You can only message teachers, staff, your students, or parents of your class" };
   }
 
   if (userRole === "student") {

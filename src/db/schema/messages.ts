@@ -15,6 +15,11 @@ export const messages = sqliteTable("messages", {
   isBroadcast: integer("is_broadcast", { mode: "boolean" }).default(false),
   createdAt: text("created_at").default("CURRENT_TIMESTAMP").notNull(),
   readAt: text("read_at"),
+  // File attachment fields
+  fileUrl: text("file_url"),
+  fileName: text("file_name"),
+  fileSize: integer("file_size"),
+  fileType: text("file_type"),
 });
 
 export const messagesRelations = relations(messages, ({ one }) => ({
