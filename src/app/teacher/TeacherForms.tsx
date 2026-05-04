@@ -930,6 +930,9 @@ export default function TeacherForms({
               <span className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 text-lg">📋</span>
               Отметка отсутствующих
             </h3>
+            <p className="text-sm text-amber-700 font-medium ml-[52px]">
+              {selectedQuarter === "1" ? "I" : selectedQuarter === "2" ? "II" : selectedQuarter === "3" ? "III" : "IV"} четверть
+            </p>
 
             {attendanceMessage && (
               <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${attendanceMessage.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
