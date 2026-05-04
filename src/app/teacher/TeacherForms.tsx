@@ -925,14 +925,44 @@ export default function TeacherForms({
 
         {/* ===== ATTENDANCE TAB ===== */}
         {activeTab === "attendance" && (
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-100">
+          <div 
+            className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-100"
+            style={{ 
+              overflowAnchor: 'none',
+              contain: 'layout style paint'
+            }}
+          >
             <h3 className="text-xl font-bold text-gray-900 mb-1 tracking-tight flex items-center gap-3">
               <span className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 text-lg">📋</span>
               Отметка отсутствующих
             </h3>
-            <p className="text-sm text-amber-700 font-medium ml-[52px]">
-              {selectedQuarter === "1" ? "I" : selectedQuarter === "2" ? "II" : selectedQuarter === "3" ? "III" : "IV"} четверть
-            </p>
+            
+            {/* Селектор четверти */}
+            <div className="ml-[52px] mt-2 flex items-center gap-3">
+              <select
+                value={selectedQuarter}
+                onChange={(e) => {
+                  const q = e.target.value;
+                  setSelectedQuarter(q);
+                  // Устанавливаем неделю на начало выбранной четверти
+                  const quarterStart = getQuarterStartDate(q);
+                  const day = quarterStart.getDay();
+                  const monday = new Date(quarterStart);
+                  monday.setDate(quarterStart.getDate() - ((day + 6) % 7));
+                  monday.setHours(0, 0, 0, 0);
+                  setSelectedWeek(monday);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-white border-2 border-amber-300 text-amber-800 text-sm font-semibold focus:outline-none focus:border-amber-500 cursor-pointer hover:bg-amber-50 transition-colors"
+              >
+                <option value="1">I четверть</option>
+                <option value="2">II четверть</option>
+                <option value="3">III четверть</option>
+                <option value="4">IV четверть</option>
+              </select>
+              <span className="text-xs text-amber-600">
+                Выберите четверть для просмотра расписания
+              </span>
+            </div>
 
             {attendanceMessage && (
               <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${attendanceMessage.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
