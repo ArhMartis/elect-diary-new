@@ -776,6 +776,9 @@ export default function StudentDiaryPage({
   const [addingComment, setAddingComment] = useState(false);
   const [showConfirmComment, setShowConfirmComment] = useState(false);
   
+  // Ref для отслеживания что данные из API уже загружены
+  const apiDataLoaded = useRef(false);
+   
   const normalizedHolidays = initialHolidays && Object.values(initialHolidays).some(v => v && v.trim() !== "")
     ? initialHolidays
     : { autumn: "28.10 - 03.11", winter: "25.12 - 08.01", spring: "24.03 - 30.03", summer: "01.06 - 31.08" };
@@ -1299,17 +1302,22 @@ export default function StudentDiaryPage({
       }));
     }
     
-    // Загрузка данных дневника - вообще не загружаем subjects из localStorage
-    // subjects будут загружены из API в отдельном useEffect
-    const savedData = getDiaryDataLocal(studentId);
-    if (savedData && Object.keys(savedData).length > 0) {
-      setData(prev => {
-        // Не перезаписываем никакие поля, связанные с аттестацией
-        const { subjects, grades, behavior, ...savedWithoutAttestation } = savedData;
-        const merged = { ...prev, ...savedWithoutAttestation };
-        return merged;
-      });
+    // Загрузка данных дневника - только если API еще не загрузил данные
+    if (!apiDataLoaded.current) {
+      const savedData = getDiaryDataLocal(studentId);
+      if (savedData && Object.keys(savedData).length > 0) {
+        setData(prev => {
+          // Не перезаписываем никакие поля, связанные с аттестацией
+          const { subjects, grades, behavior, ...savedWithoutAttestation } = savedData;
+          const merged = { ...prev, ...savedWithoutAttestation };
+          return merged;
+        });
+      }
     } else {
+      console.log('[StudentDiary] Skipping localStorage - API data already loaded');
+    }
+    
+    if (!getDiaryDataLocal(studentId) || Object.keys(getDiaryDataLocal(studentId) || {}).length === 0) {
       // Инициализация начальными данными
       // Приоритет: 1) classSubjectNames (фильтр предметов для класса), 2) schedule
       const initialSubjects = classSubjectNames.length > 0
@@ -1369,6 +1377,8 @@ export default function StudentDiaryPage({
             });
             return { ...prev, grades: newGrades, subjects: mergedSubjects };
           });
+          // Отмечаем что API загрузил данные
+          apiDataLoaded.current = true;
         }
       })
       .catch((err) => { console.error('[StudentDiary] Error loading final grades:', err); });
@@ -2612,9 +2622,7 @@ export default function StudentDiaryPage({
                 <p className="text-xs text-gray-500 mb-3">Отметьте предметы с зачётной системой оценок (зачёт/незачёт вместо числовых)</p>
                 {console.log('[StudentDiary] Rendering grade type buttons:', data.subjects.map(s => ({ name: s.name, gradeType: s.gradeType })))}
                 <div className="flex flex-wrap gap-2">
-                   {data.subjects.map((subj, i) => {
-                    console.log(`[RENDER] ${subj.name}: gradeType="${subj.gradeType}", isPassFail=${(subj.gradeType||'numeric')==='passfail'}`);
-                    return (
+                   {data.subjects.map((subj, i) => (
                     <button
                       key={i}
                       type="button"
