@@ -3,6 +3,9 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { unstable_noStore as noStore } from "next/cache";
 import HeroCarousel from "@/components/HeroCarousel";
+import { db } from "@/db";
+import { posts } from "@/db/schema/posts";
+import { desc } from "drizzle-orm";
 
 export default async function HomePage() {
   noStore();
@@ -11,6 +14,12 @@ export default async function HomePage() {
   });
 
   const role = session?.user.role ?? "guest";
+
+  // Get posts for display on homepage
+  const allPosts = await db.query.posts.findMany({
+    orderBy: [desc(posts.createdAt)],
+    limit: 6,
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
@@ -151,6 +160,39 @@ export default async function HomePage() {
 
         {/* Карусель фотографий */}
         <HeroCarousel />
+
+        {/* Посты / Новости */}
+        <section id="posts-section" className="mt-16">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-white mb-2">📰 Новости</h2>
+            <p className="text-white/80">Последние события и объявления</p>
+          </div>
+          
+          {allPosts.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {allPosts.map((post) => (
+                <div key={post.id} className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+                  <h3 className="text-xl font-bold text-indigo-700 mb-3">{post.title}</h3>
+                  <p className="text-gray-600 line-clamp-3 mb-4">{post.content}</p>
+                  <div className="flex justify-between items-center text-sm text-gray-400">
+                    <span>{post.createdAt ? new Date(post.createdAt).toLocaleDateString('ru-RU') : ''}</span>
+                    <Link href={`/posts`} className="text-indigo-600 hover:text-indigo-800 font-medium">
+                      Читать далее →
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {allPosts.length === 0 && (
+            <div className="text-center py-12 bg-white/10 backdrop-blur-sm rounded-2xl max-w-2xl mx-auto">
+              <div className="text-6xl mb-4">📝</div>
+              <h3 className="text-2xl font-bold text-white mb-2">Новостей пока нет</h3>
+              <p className="text-white/70">Загляните позже для обновлений</p>
+            </div>
+          )}
+        </section>
 
         {/* Футер */}
         <div className="text-center mt-16 text-white/70 text-sm">
