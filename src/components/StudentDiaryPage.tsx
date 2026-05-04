@@ -1342,9 +1342,11 @@ export default function StudentDiaryPage({
   }, [studentFullName, studentGrade, studentGroupId, studentId, schedule, classSubjectNames]);
 
   // Загрузка аттестации (итоговых оценок) из БД после инициализации
+  // Загружаем только один раз при isLoaded=true, не зависим от data
   useEffect(() => {
     if (!isLoaded || !studentId) return;
-    const academicYear = data.academicYear || getCurrentAcademicYear();
+    // Используем getCurrentAcademicYear() напрямую, не берем из data
+    const academicYear = getCurrentAcademicYear();
     console.log('[StudentDiary] Loading final grades from API for student:', studentId, 'academicYear:', academicYear);
     // Добавляем timestamp чтобы избежать кэширования
     const timestamp = Date.now();
@@ -1368,9 +1370,10 @@ export default function StudentDiaryPage({
             }));
             const mergedSubjects = prev.subjects.map(s => {
               const fromApi = finalGradesData.find(fg => fg.subjectName === s.name);
-              const newGradeType = fromApi ? (fromApi.gradeType || s.gradeType) : s.gradeType;
+              // API имеет приоритет, перезаписываем даже если уже есть значение
+              const newGradeType = fromApi?.gradeType || s.gradeType;
               console.log(`[StudentDiary] Merging subject "${s.name}": API gradeType="${fromApi?.gradeType}", current="${s.gradeType}", result="${newGradeType}"`);
-              return fromApi ? { ...s, gradeType: newGradeType } : s;
+              return { ...s, gradeType: newGradeType };
             });
             console.log('[StudentDiary] Subjects after merge:', mergedSubjects.map(s => ({ name: s.name, gradeType: s.gradeType })));
             return { ...prev, grades: newGrades, subjects: mergedSubjects };
@@ -1378,7 +1381,8 @@ export default function StudentDiaryPage({
         }
       })
       .catch((err) => { console.error('[StudentDiary] Error loading final grades:', err); });
-  }, [isLoaded, studentId, data.academicYear]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, studentId]); // Не зависим от data, загружаем один раз
 
   // Загрузка замечаний
   useEffect(() => {
