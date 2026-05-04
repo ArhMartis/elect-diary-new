@@ -1384,6 +1384,11 @@ export default function StudentDiaryPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, studentId]); // Не зависим от data, загружаем один раз
 
+  // Отслеживаем изменения subjects для отладки
+  useEffect(() => {
+    console.log('[StudentDiary] data.subjects changed:', data.subjects.map(s => ({ name: s.name, gradeType: s.gradeType })));
+  }, [data.subjects]);
+
   // Загрузка замечаний
   useEffect(() => {
     if (!isLoaded || !studentId) return;
@@ -2626,9 +2631,12 @@ export default function StudentDiaryPage({
                       key={i}
                       type="button"
                       onClick={async () => {
+                        console.log(`[StudentDiary] Clicked ${subj.name}, current gradeType in UI:`, subj.gradeType);
                         const newSubjects = [...data.subjects];
                         const current = newSubjects[i].gradeType || 'numeric';
+                        console.log(`[StudentDiary] Current gradeType in data:`, current);
                         const newGradeType = current === 'numeric' ? 'passfail' : 'numeric';
+                        console.log(`[StudentDiary] Will change to:`, newGradeType);
                         newSubjects[i] = { 
                           ...newSubjects[i], 
                           gradeType: newGradeType 
