@@ -1343,7 +1343,9 @@ export default function StudentDiaryPage({
     if (!isLoaded || !studentId) return;
     const academicYear = data.academicYear || getCurrentAcademicYear();
     console.log('[StudentDiary] Loading final grades from API for student:', studentId, 'academicYear:', academicYear);
-    fetch(`/api/final-grades?studentId=${studentId}&academicYear=${encodeURIComponent(academicYear)}`)
+    // Добавляем timestamp чтобы избежать кэширования
+    const timestamp = Date.now();
+    fetch(`/api/final-grades?studentId=${studentId}&academicYear=${encodeURIComponent(academicYear)}&_t=${timestamp}`)
       .then(res => res.json())
       .then((finalGradesData: any[]) => {
         console.log('[StudentDiary] Loaded final grades:', finalGradesData);
