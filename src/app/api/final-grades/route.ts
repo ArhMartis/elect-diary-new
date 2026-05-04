@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
     if (existing) {
       await db
         .update(finalGradesTable)
-        .set({ q1, q2, q3, q4, year, exam, final, gradeType: body.gradeType })
+        .set({ q1, q2, q3, q4, year, exam, final, gradeType: body.gradeType || existing.gradeType || 'numeric' })
         .where(eq(finalGradesTable.id, existing.id));
     } else {
       await db.insert(finalGradesTable).values({

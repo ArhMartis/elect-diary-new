@@ -2596,33 +2596,41 @@ export default function StudentDiaryPage({
                     <button
                       key={i}
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         const newSubjects = [...data.subjects];
                         const current = newSubjects[i].gradeType || 'numeric';
+                        const newGradeType = current === 'numeric' ? 'passfail' : 'numeric';
                         newSubjects[i] = { 
                           ...newSubjects[i], 
-                          gradeType: current === 'numeric' ? 'passfail' : 'numeric' 
+                          gradeType: newGradeType 
                         };
                         setData(prev => ({ ...prev, subjects: newSubjects }));
                         saveDiaryDataLocal(studentId, { ...data, subjects: newSubjects });
                         const existingGrade = data.grades.find(g => g.subject === subj.name);
-                        fetch('/api/final-grades', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            studentId,
-                            subjectName: subj.name,
-                            academicYear: data.academicYear || getCurrentAcademicYear(),
-                            gradeType: current === 'numeric' ? 'passfail' : 'numeric',
-                            q1: existingGrade?.q1 || '',
-                            q2: existingGrade?.q2 || '',
-                            q3: existingGrade?.q3 || '',
-                            q4: existingGrade?.q4 || '',
-                            year: existingGrade?.year || '',
-                            exam: existingGrade?.exam || '',
-                            final: existingGrade?.final || '',
-                          }),
-                        }).catch(() => {});
+                        try {
+                          const res = await fetch('/api/final-grades', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              studentId,
+                              subjectName: subj.name,
+                              academicYear: data.academicYear || getCurrentAcademicYear(),
+                              gradeType: newGradeType,
+                              q1: existingGrade?.q1 || '',
+                              q2: existingGrade?.q2 || '',
+                              q3: existingGrade?.q3 || '',
+                              q4: existingGrade?.q4 || '',
+                              year: existingGrade?.year || '',
+                              exam: existingGrade?.exam || '',
+                              final: existingGrade?.final || '',
+                            }),
+                          });
+                          if (!res.ok) {
+                            console.error('Ошибка сохранения типа оценок:', await res.text());
+                          }
+                        } catch (err) {
+                          console.error('Ошибка сети при сохранении типа оценок:', err);
+                        }
                       }}
                       className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                         (subj.gradeType || 'numeric') === 'passfail'
