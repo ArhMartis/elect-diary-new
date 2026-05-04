@@ -1300,7 +1300,8 @@ export default function StudentDiaryPage({
       }));
     }
     
-    // Загрузка данных дневника
+    // Загрузка данных дневника - НЕ загружаем subjects из localStorage, 
+    // так как gradeType должен приходить из API
     const savedData = getDiaryDataLocal(studentId);
     console.log('[StudentDiary] Loaded from localStorage:', { 
       hasData: !!(savedData && Object.keys(savedData).length > 0),
@@ -1308,8 +1309,10 @@ export default function StudentDiaryPage({
     });
     if (savedData && Object.keys(savedData).length > 0) {
       setData(prev => {
-        const merged = { ...prev, ...savedData };
-        console.log('[StudentDiary] Merged with localStorage, subjects:', merged.subjects?.map((s: any) => ({ name: s.name, gradeType: s.gradeType })));
+        // Не перезаписываем subjects из localStorage, только другие поля
+        const { subjects: _, ...savedWithoutSubjects } = savedData;
+        const merged = { ...prev, ...savedWithoutSubjects };
+        console.log('[StudentDiary] Merged with localStorage (excluding subjects):', merged.subjects?.map((s: any) => ({ name: s.name, gradeType: s.gradeType })));
         return merged;
       });
     } else {
@@ -1484,7 +1487,9 @@ export default function StudentDiaryPage({
     if (isReadOnly()) return;
     const newData = { ...data, behavior: { ...data.behavior, [quarter]: value } };
     setData(newData);
-    saveDiaryDataLocal(studentId, newData);
+    // Не сохраняем subjects в localStorage
+    const { subjects: _, ...dataWithoutSubjects } = newData;
+    saveDiaryDataLocal(studentId, dataWithoutSubjects);
   };
 
   const updateContact = (field: keyof typeof contacts, value: string) => {
@@ -1511,7 +1516,9 @@ export default function StudentDiaryPage({
   };
 
   const handleSaveDiary = async () => {
-    saveDiaryDataLocal(studentId, data);
+    // Не сохраняем subjects в localStorage (gradeType должен приходить из API)
+    const { subjects: _, ...dataWithoutSubjects } = data;
+    saveDiaryDataLocal(studentId, dataWithoutSubjects);
     const merged = { ...sharedData, ...contacts };
     setSharedData(merged);
     localStorage.setItem("diary_shared_data", JSON.stringify(merged));
@@ -2608,6 +2615,7 @@ export default function StudentDiaryPage({
               <div className="mb-6 bg-white rounded-2xl shadow-lg p-4 border border-rose-100">
                 <h3 className="text-sm font-bold text-rose-700 mb-3">⚙️ Тип оценок по предметам</h3>
                 <p className="text-xs text-gray-500 mb-3">Отметьте предметы с зачётной системой оценок (зачёт/незачёт вместо числовых)</p>
+                {console.log('[StudentDiary] Rendering grade type buttons:', data.subjects.map(s => ({ name: s.name, gradeType: s.gradeType })))}
                 <div className="flex flex-wrap gap-2">
                   {data.subjects.map((subj, i) => (
                     <button
@@ -2622,7 +2630,7 @@ export default function StudentDiaryPage({
                           gradeType: newGradeType 
                         };
                         setData(prev => ({ ...prev, subjects: newSubjects }));
-                        saveDiaryDataLocal(studentId, { ...data, subjects: newSubjects });
+                        // Не сохраняем subjects в localStorage больше
                         const existingGrade = data.grades.find(g => g.subject === subj.name);
                         const payload = {
                           studentId,
