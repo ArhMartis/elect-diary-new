@@ -775,9 +775,6 @@ export default function StudentDiaryPage({
   const [newComment, setNewComment] = useState("");
   const [addingComment, setAddingComment] = useState(false);
   const [showConfirmComment, setShowConfirmComment] = useState(false);
-  
-  // Ref для отслеживания что данные из API уже загружены
-  const apiDataLoaded = useRef(false);
    
   const normalizedHolidays = initialHolidays && Object.values(initialHolidays).some(v => v && v.trim() !== "")
     ? initialHolidays
@@ -1302,22 +1299,8 @@ export default function StudentDiaryPage({
       }));
     }
     
-    // Загрузка данных дневника - только если API еще не загрузил данные
-    if (!apiDataLoaded.current) {
-      const savedData = getDiaryDataLocal(studentId);
-      if (savedData && Object.keys(savedData).length > 0) {
-        setData(prev => {
-          // Не перезаписываем никакие поля, связанные с аттестацией
-          const { subjects, grades, behavior, ...savedWithoutAttestation } = savedData;
-          const merged = { ...prev, ...savedWithoutAttestation };
-          return merged;
-        });
-      }
-    } else {
-      console.log('[StudentDiary] Skipping localStorage - API data already loaded');
-    }
-    
-    if (!getDiaryDataLocal(studentId) || Object.keys(getDiaryDataLocal(studentId) || {}).length === 0) {
+    // Загрузка начальных subjects если их еще нет
+    if (data.subjects.length === 0) {
       // Инициализация начальными данными
       // Приоритет: 1) classSubjectNames (фильтр предметов для класса), 2) schedule
       const initialSubjects = classSubjectNames.length > 0
@@ -1370,15 +1353,29 @@ export default function StudentDiaryPage({
               final: fg.final || '',
               gradeType: fg.gradeType,
             }));
-            const mergedSubjects = prev.subjects.map(s => {
+            
+            // Обновляем существующие предметы
+            const existingNames = new Set(prev.subjects.map(s => s.name));
+            const updatedSubjects = prev.subjects.map(s => {
               const fromApi = finalGradesData.find(fg => fg.subjectName === s.name);
               const newGradeType = fromApi?.gradeType || s.gradeType || 'numeric';
               return { ...s, gradeType: newGradeType };
             });
+            
+            // Добавляем новые предметы из API которых нет в списке
+            const newSubjectsFromApi = finalGradesData
+              .filter(fg => fg.subjectName && !existingNames.has(fg.subjectName))
+              .map(fg => ({
+                name: fg.subjectName!,
+                teacher: '',
+                gradeType: fg.gradeType || 'numeric'
+              }));
+            
+            const mergedSubjects = [...updatedSubjects, ...newSubjectsFromApi];
+            console.log('[StudentDiary] Merged subjects:', mergedSubjects.map(s => ({ name: s.name, gradeType: s.gradeType })));
+            
             return { ...prev, grades: newGrades, subjects: mergedSubjects };
           });
-          // Отмечаем что API загрузил данные
-          apiDataLoaded.current = true;
         }
       })
       .catch((err) => { console.error('[StudentDiary] Error loading final grades:', err); });
@@ -2622,7 +2619,9 @@ export default function StudentDiaryPage({
                 <p className="text-xs text-gray-500 mb-3">Отметьте предметы с зачётной системой оценок (зачёт/незачёт вместо числовых)</p>
                 {console.log('[StudentDiary] Rendering grade type buttons:', data.subjects.map(s => ({ name: s.name, gradeType: s.gradeType })))}
                 <div className="flex flex-wrap gap-2">
-                   {data.subjects.map((subj, i) => (
+                   {data.subjects.map((subj, i) => {
+                    console.log(`[RENDER BUTTON] ${subj.name}: gradeType="${subj.gradeType}", isPassFail=${(subj.gradeType||'numeric')==='passfail'}`);
+                    return (
                     <button
                       key={i}
                       type="button"
@@ -2698,10 +2697,10 @@ export default function StudentDiaryPage({
                           ? 'bg-amber-100 text-amber-800 border-2 border-amber-400'
                           : 'bg-gray-100 text-gray-600 border-2 border-gray-200 hover:border-rose-300'
                       }`}
-                    >
-                       {subj.name} {(subj.gradeType || 'numeric') === 'passfail' ? '(зачёт)' : '(балл)'}
+                     >
+                        {subj.name} {(subj.gradeType || 'numeric') === 'passfail' ? '(зачёт)' : '(балл)'}
                     </button>
-                  ))}
+                  )})}
                 </div>
               </div>
             )}
