@@ -2622,6 +2622,7 @@ export default function StudentDiaryPage({
               <div className="mb-6 bg-white rounded-2xl shadow-lg p-4 border border-rose-100">
                 <h3 className="text-sm font-bold text-rose-700 mb-3">⚙️ Тип оценок по предметам</h3>
                 <p className="text-xs text-gray-500 mb-3">Отметьте предметы с зачётной системой оценок (зачёт/незачёт вместо числовых)</p>
+                {(() => { console.log('[DEBUG] Before render buttons:', data.subjects.map(s => ({name: s.name, gradeType: s.gradeType}))); return null; })()}
                 {console.log('[StudentDiary] Rendering grade type buttons:', data.subjects.map(s => ({ name: s.name, gradeType: s.gradeType })))}
                 <div className="flex flex-wrap gap-2">
                   {data.subjects.map((subj, i) => (
