@@ -164,7 +164,7 @@ export default async function HomePage() {
         {/* Посты / Новости */}
         <section id="posts-section" className="mt-16">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-2">📰 Новости</h2>
+            <h2 className="text-3xl font-bold text-white mb-2">Новости</h2>
             <p className="text-white/80">Последние события и объявления</p>
           </div>
           
@@ -187,7 +187,6 @@ export default async function HomePage() {
           
           {allPosts.length === 0 && (
             <div className="text-center py-12 bg-white/10 backdrop-blur-sm rounded-2xl max-w-2xl mx-auto">
-              <div className="text-6xl mb-4">📝</div>
               <h3 className="text-2xl font-bold text-white mb-2">Новостей пока нет</h3>
               <p className="text-white/70">Загляните позже для обновлений</p>
             </div>
