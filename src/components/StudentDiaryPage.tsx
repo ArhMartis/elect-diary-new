@@ -2612,7 +2612,9 @@ export default function StudentDiaryPage({
                 <p className="text-xs text-gray-500 mb-3">Отметьте предметы с зачётной системой оценок (зачёт/незачёт вместо числовых)</p>
                 {console.log('[StudentDiary] Rendering grade type buttons:', data.subjects.map(s => ({ name: s.name, gradeType: s.gradeType })))}
                 <div className="flex flex-wrap gap-2">
-                  {data.subjects.map((subj, i) => (
+                   {data.subjects.map((subj, i) => {
+                    console.log(`[RENDER] ${subj.name}: gradeType="${subj.gradeType}", isPassFail=${(subj.gradeType||'numeric')==='passfail'}`);
+                    return (
                     <button
                       key={i}
                       type="button"
@@ -2691,7 +2693,7 @@ export default function StudentDiaryPage({
                     >
                       {subj.name} {(subj.gradeType || 'numeric') === 'passfail' ? '(зачёт)' : '(балл)'}
                     </button>
-                  ))}
+                  )})}
                 </div>
               </div>
             )}
