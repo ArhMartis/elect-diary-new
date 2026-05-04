@@ -1333,9 +1333,11 @@ export default function StudentDiaryPage({
   // Загрузка аттестации (итоговых оценок) из БД после инициализации
   useEffect(() => {
     if (!isLoaded || !studentId) return;
+    console.log('[StudentDiary] Loading final grades from API for student:', studentId);
     fetch(`/api/final-grades?studentId=${studentId}`)
       .then(res => res.json())
       .then((finalGradesData: any[]) => {
+        console.log('[StudentDiary] Loaded final grades:', finalGradesData);
         if (Array.isArray(finalGradesData) && finalGradesData.length > 0) {
           setData(prev => {
             const newGrades = finalGradesData.map(fg => ({
@@ -1351,13 +1353,14 @@ export default function StudentDiaryPage({
             }));
             const mergedSubjects = prev.subjects.map(s => {
               const fromApi = finalGradesData.find(fg => fg.subjectName === s.name);
+              console.log(`[StudentDiary] Merging subject ${s.name}:`, { fromApiGradeType: fromApi?.gradeType, currentGradeType: s.gradeType });
               return fromApi ? { ...s, gradeType: fromApi.gradeType || s.gradeType } : s;
             });
             return { ...prev, grades: newGrades, subjects: mergedSubjects };
           });
         }
       })
-      .catch(() => {});
+      .catch((err) => { console.error('[StudentDiary] Error loading final grades:', err); });
   }, [isLoaded, studentId]);
 
   // Загрузка замечаний

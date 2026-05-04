@@ -49,6 +49,8 @@ export async function GET(request: NextRequest) {
     const studentId = searchParams.get("studentId");
     const academicYear = searchParams.get("academicYear");
 
+    console.log(`[FinalGrades API] GET request:`, { studentId, academicYear });
+
     if (!studentId) {
       return NextResponse.json({ error: "Не указан studentId" }, { status: 400 });
     }
@@ -74,6 +76,8 @@ export async function GET(request: NextRequest) {
           academicYear ? eq(finalGradesTable.academicYear, academicYear) : undefined
         )
       );
+
+    console.log(`[FinalGrades API] GET result:`, { count: rows.length, rows: rows.map(r => ({ subject: r.subjectName, gradeType: r.gradeType })) });
 
     return NextResponse.json(rows);
   } catch (error) {
@@ -109,6 +113,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     let { studentId, subjectId, academicYear, q1, q2, q3, q4, year, exam, final, subjectName } = body;
 
+    console.log(`[FinalGrades API] POST request:`, { studentId, subjectId, subjectName, academicYear, gradeType: body.gradeType });
+
     if (!studentId || !academicYear) {
       return NextResponse.json(
         { error: "studentId и academicYear обязательны" },
@@ -118,7 +124,12 @@ export async function POST(request: NextRequest) {
 
     if (!subjectId && subjectName) {
       const found = await db.query.subjects.findFirst({ where: eq(subjects.name, subjectName) });
-      if (found) subjectId = found.id;
+      if (found) {
+        subjectId = found.id;
+        console.log(`[FinalGrades API] Found subject by name:`, { subjectName, subjectId });
+      } else {
+        console.error(`[FinalGrades API] Subject not found:`, { subjectName });
+      }
     }
 
     if (!subjectId) {
@@ -153,6 +164,8 @@ export async function POST(request: NextRequest) {
         gradeType: body.gradeType || 'numeric',
       });
     }
+
+    console.log(`[FinalGrades API] POST success:`, { studentId, subjectId, gradeType: body.gradeType || existing?.gradeType || 'numeric' });
 
     return NextResponse.json({ success: true });
   } catch (error) {
