@@ -43,11 +43,12 @@ export default function SignInPage() {
       }
 
       // Сохраняем аккаунт для быстрого переключения
-      // fullName будет получен после загрузки профиля
+      const userData = (result.data as any)?.user;
       saveAccount({
         email,
         password,
-        fullName: email.split("@")[0], // временное значение, обновится после загрузки
+        fullName: userData?.fullName || userData?.name || email.split("@")[0],
+        role: userData?.role,
       });
 
       window.location.assign("/");

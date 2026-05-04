@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { sql } from "drizzle-orm";
+import { teacherComments } from "@/db/schema/diary-extra";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 /**
  * API: GET /api/teacher-comments
@@ -42,12 +43,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Не указан studentId" }, { status: 400 });
     }
 
-    // TODO: Создать таблицу teacher_comments и раскомментировать код
-    /*
-    let whereCondition = eq(teacherComments.studentId, studentId);
+    const conditions = [eq(teacherComments.studentId, studentId)];
     
     if (teacherId) {
-      whereCondition = and(whereCondition, eq(teacherComments.teacherId, teacherId));
+      conditions.push(eq(teacherComments.teacherId, teacherId));
     }
 
     const comments = await db
@@ -59,17 +58,10 @@ export async function GET(request: NextRequest) {
         date: teacherComments.date,
       })
       .from(teacherComments)
-      .where(whereCondition)
-      .orderBy(teacherComments.date);
+      .where(and(...conditions))
+      .orderBy(desc(teacherComments.date));
 
     return NextResponse.json(comments);
-    */
-
-    console.log("[API] GET /api/teacher-comments", { studentId, teacherId });
-    console.log("[DB] SELECT * FROM teacher_comments WHERE studentId = ?", studentId);
-
-    // Возвращаем заглушку
-    return NextResponse.json([]);
   } catch (error) {
     console.error("Ошибка при получении замечаний учителей:", error);
     return NextResponse.json(
@@ -105,20 +97,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Создать таблицу teacher_comments и раскомментировать код
-    /*
     await db.insert(teacherComments).values({
       studentId,
       teacherId,
       teacherName,
       comment,
-      date: date || sql`CURRENT_DATE`,
+      date: date ? new Date(date) : new Date(),
     });
-    */
-
-    console.log("[API] POST /api/teacher-comments", body);
-    console.log("[DB] INSERT INTO teacher_comments (studentId, teacherId, teacherName, comment, date) VALUES (?, ?, ?, ?, ?)",
-      studentId, teacherId, teacherName, comment, date);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -147,13 +132,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Не указан ID замечания" }, { status: 400 });
     }
 
-    // TODO: Создать таблицу teacher_comments и раскомментировать код
-    /*
     await db.delete(teacherComments).where(eq(teacherComments.id, id));
-    */
-
-    console.log("[API] DELETE /api/teacher-comments", { id });
-    console.log("[DB] DELETE FROM teacher_comments WHERE id = ?", id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -84,6 +84,16 @@ export default async function AdminStudentDiaryPage({ params }: PageProps) {
       ? numericGrades.reduce((a, b) => a + b, 0) / numericGrades.length
       : null;
 
+  // Получаем названия мероприятий (классный час, события) для зеленой подсветки
+  let eventSubjectNames: string[] = [];
+  try {
+    const eventSubjectsData = await db.select().from(subjects).where(eq(subjects.type, 'class_hour'));
+    const eventItemsData = await db.select().from(subjects).where(eq(subjects.type, 'event'));
+    eventSubjectNames = [...eventSubjectsData, ...eventItemsData].map((s) => s.name);
+  } catch {
+    eventSubjectNames = [];
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -146,6 +156,7 @@ export default async function AdminStudentDiaryPage({ params }: PageProps) {
               lessonDate: s.lessonDate,
               dayOfWeek: s.dayOfWeek,
             }))}
+            eventSubjectNames={eventSubjectNames}
           />
         </div>
       </div>

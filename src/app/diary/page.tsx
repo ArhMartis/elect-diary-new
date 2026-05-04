@@ -114,7 +114,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
 
   if (allSchedule.length > 0) {
     const subjectIds = [...new Set(allSchedule.map((s) => s.subjectId).filter(Boolean))];
-    const teacherIds = [...new Set(allSchedule.map((s) => s.teacherId).filter(Boolean))];
+    const teacherIds = [...new Set(allSchedule.map((s) => s.teacherId).filter((t): t is string => t !== null))];
 
     if (subjectIds.length > 0) {
       for (const id of subjectIds) {
@@ -142,9 +142,10 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     id: s.id,
     lessonNumber: s.lessonNumber,
     subjectName: subjectMap.get(s.subjectId) || null,
-    teacherName: teacherMap.get(s.teacherId) || null,
+    teacherName: s.teacherId ? (teacherMap.get(s.teacherId) ?? null) : null,
     lessonDate: s.lessonDate,
     dayOfWeek: s.dayOfWeek,
+    quarter: s.quarter,
   }));
 
   const directorData = await getDirector();
@@ -190,20 +191,19 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     const groupSubjectIds = groupSubjectRows.map(gs => gs.subjectId);
     
     if (groupSubjectIds.length > 0) {
-      // Если есть привязанные предметы в groupSubjects, используем их
-      for (const sid of groupSubjectIds) {
+      const uniqueIds = [...new Set(groupSubjectIds)];
+      for (const sid of uniqueIds) {
         const found = await db.query.subjects.findFirst({ where: eq(subjects.id, sid) });
         if (found) filteredSubjectNames.push(found.name);
       }
     }
     
-    // Если нет записей в groupSubjects или фильтрация вернула пустой результат, 
-    // используем предметы из расписания
-    if (filteredSubjectNames.length === 0 && classSubjectNames.length > 0) {
-      filteredSubjectNames = classSubjectNames;
+    // Добавляем предметы из расписания
+    if (classSubjectNames.length > 0) {
+      filteredSubjectNames.push(...classSubjectNames);
     }
     
-    // Если и расписание пустое и groupSubjects пустой (или нет groupId), загружаем все предметы
+    // Если ничего нет, загружаем все предметы
     if (filteredSubjectNames.length === 0) {
       const allSubjectsData = await db.select().from(subjects);
       filteredSubjectNames = allSubjectsData.map(s => s.name);
@@ -212,6 +212,8 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     // Если нет groupId, используем предметы из расписания
     filteredSubjectNames = classSubjectNames;
   }
+
+  filteredSubjectNames = [...new Set(filteredSubjectNames)];
 
   return (
     <StudentDiaryPage

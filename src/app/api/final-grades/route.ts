@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { sql } from "drizzle-orm";
+import { finalGrades as finalGradesTable } from "@/db/schema/diary-extra";
+import { subjects } from "@/db/schema/auth_schema";
+import { eq, and } from "drizzle-orm";
 
 /**
  * API: GET /api/final-grades
@@ -51,37 +53,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Не указан studentId" }, { status: 400 });
     }
 
-    // TODO: Создать таблицу final_grades и раскомментировать код
-    /*
-    const finalGrades = await db
+    const rows = await db
       .select({
-        subjectId: finalGrades.subjectId,
+        subjectId: finalGradesTable.subjectId,
         subjectName: subjects.name,
-        q1: finalGrades.q1,
-        q2: finalGrades.q2,
-        q3: finalGrades.q3,
-        q4: finalGrades.q4,
-        year: finalGrades.year,
-        exam: finalGrades.exam,
-        final: finalGrades.final,
+        q1: finalGradesTable.q1,
+        q2: finalGradesTable.q2,
+        q3: finalGradesTable.q3,
+        q4: finalGradesTable.q4,
+        year: finalGradesTable.year,
+        exam: finalGradesTable.exam,
+        final: finalGradesTable.final,
+        gradeType: finalGradesTable.gradeType,
       })
-      .from(finalGrades)
-      .leftJoin(subjects, eq(finalGrades.subjectId, subjects.id))
+      .from(finalGradesTable)
+      .leftJoin(subjects, eq(finalGradesTable.subjectId, subjects.id))
       .where(
         and(
-          eq(finalGrades.studentId, studentId),
-          academicYear ? eq(finalGrades.academicYear, academicYear) : undefined
+          eq(finalGradesTable.studentId, studentId),
+          academicYear ? eq(finalGradesTable.academicYear, academicYear) : undefined
         )
       );
 
-    return NextResponse.json(finalGrades);
-    */
-
-    console.log("[API] GET /api/final-grades", { studentId, academicYear });
-    console.log("[DB] SELECT * FROM final_grades WHERE studentId = ?", studentId);
-
-    // Возвращаем заглушку
-    return NextResponse.json([]);
+    return NextResponse.json(rows);
   } catch (error) {
     console.error("Ошибка при получении итоговых оценок:", error);
     return NextResponse.json(
@@ -113,32 +107,39 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { studentId, subjectId, academicYear, q1, q2, q3, q4, year, exam, final } = body;
+    let { studentId, subjectId, academicYear, q1, q2, q3, q4, year, exam, final, subjectName } = body;
 
-    if (!studentId || !subjectId || !academicYear) {
+    if (!studentId || !academicYear) {
       return NextResponse.json(
-        { error: "studentId, subjectId и academicYear обязательны" },
+        { error: "studentId и academicYear обязательны" },
         { status: 400 }
       );
     }
 
-    // TODO: Создать таблицу final_grades и раскомментировать код
-    /*
+    if (!subjectId && subjectName) {
+      const found = await db.query.subjects.findFirst({ where: eq(subjects.name, subjectName) });
+      if (found) subjectId = found.id;
+    }
+
+    if (!subjectId) {
+      return NextResponse.json({ error: "subjectId или subjectName обязательны" }, { status: 400 });
+    }
+
     const existing = await db.query.finalGrades.findFirst({
       where: and(
-        eq(finalGrades.studentId, studentId),
-        eq(finalGrades.subjectId, subjectId),
-        eq(finalGrades.academicYear, academicYear)
+        eq(finalGradesTable.studentId, studentId),
+        eq(finalGradesTable.subjectId, subjectId),
+        eq(finalGradesTable.academicYear, academicYear)
       ),
     });
 
     if (existing) {
       await db
-        .update(finalGrades)
-        .set({ q1, q2, q3, q4, year, exam, final })
-        .where(eq(finalGrades.id, existing.id));
+        .update(finalGradesTable)
+        .set({ q1, q2, q3, q4, year, exam, final, gradeType: body.gradeType })
+        .where(eq(finalGradesTable.id, existing.id));
     } else {
-      await db.insert(finalGrades).values({
+      await db.insert(finalGradesTable).values({
         studentId,
         subjectId,
         academicYear,
@@ -149,12 +150,9 @@ export async function POST(request: NextRequest) {
         year,
         exam,
         final,
+        gradeType: body.gradeType || 'numeric',
       });
     }
-    */
-
-    console.log("[API] POST /api/final-grades", body);
-    console.log("[DB] INSERT OR REPLACE INTO final_grades (...) VALUES (...)");
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -188,25 +186,19 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // TODO: Создать таблицу final_grades и раскомментировать код
-    /*
     for (const grade of grades) {
       await db
-        .insert(finalGrades)
+        .insert(finalGradesTable)
         .values({
           studentId,
           academicYear,
           ...grade,
         })
         .onConflictDoUpdate({
-          target: [finalGrades.studentId, finalGrades.subjectId, finalGrades.academicYear],
+          target: [finalGradesTable.studentId, finalGradesTable.subjectId, finalGradesTable.academicYear],
           set: grade,
         });
     }
-    */
-
-    console.log("[API] PUT /api/final-grades", body);
-    console.log("[DB] INSERT INTO final_grades ... ON CONFLICT DO UPDATE");
 
     return NextResponse.json({ success: true });
   } catch (error) {

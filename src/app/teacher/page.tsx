@@ -1,3 +1,4 @@
+import { Inter } from "next/font/google";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -7,6 +8,8 @@ import { eq } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import TeacherForms from "./TeacherForms";
+
+const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
 
 export default async function TeacherPage() {
   noStore();
@@ -55,8 +58,15 @@ export default async function TeacherPage() {
     .filter(([id]) => id !== teacherGroup?.id)
     .map(([id, name]) => ({ id, name }));
 
+  // Все доступные классы (классное руководство + преподавание)
+  const allAssignedGroups = teacherGroup 
+    ? [{ id: teacherGroup.id, name: teacherGroup.name }, ...taughtGroups]
+    : taughtGroups;
+
+  const canSwitchClass = allAssignedGroups.length > 1;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6">
+    <div className={`${inter.variable} font-sans min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6`}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Навигация */}
         <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
@@ -75,38 +85,77 @@ export default async function TeacherPage() {
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">Дневник класса</h1>
                 <div className="flex items-center gap-2 mt-1">
-                  {teacherGroup && (
+                  {teacherGroup?.teacherId === session.user.id && (
                     <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
                       {teacherGroup.name}
                     </span>
                   )}
-                  <span className="text-gray-600 text-sm">
-                    Вы классный руководитель этого класса
-                  </span>
+                  {teacherGroup?.teacherId === session.user.id && (
+                    <span className="text-gray-600 text-sm">
+                      Вы классный руководитель этого класса
+                    </span>
+                  )}
                 </div>
                 <div className="mt-2">
                   <span className="text-purple-700 font-bold">
                     {session.user.fullName}
+                  </span>
+                  <span className="text-gray-500 text-sm ml-2">
+                    {(() => {
+                      const roleNames: Record<string, string> = {
+                        admin: "Админ",
+                        principal: "Директор",
+                        teacher: "Учитель",
+                        student: "Ученик",
+                        parent: "Родитель",
+                      };
+                      return `(${roleNames[session.user.role] || session.user.role || "Пользователь"})`;
+                    })()}
                   </span>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <Link
-                href="/teacher/select-class"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-md"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
+              {canSwitchClass ? (
+                <Link
+                  href="/teacher/select-class"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-md"
                 >
-                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                </svg>
-                Изменить класс
-              </Link>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                  Изменить класс
+                </Link>
+              ) : (
+                <div className="relative group">
+                  <button
+                    disabled
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed font-medium"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                    Изменить класс
+                  </button>
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    {allAssignedGroups.length === 0
+                      ? "У вас на данный момент нет классов!"
+                      : "У вас единственный класс!"}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                  </div>
+                </div>
+              )}
               <Link
                 href="/"
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-medium"
@@ -159,6 +208,7 @@ export default async function TeacherPage() {
             groupName={teacherGroup.name}
             students={students.map(s => ({ id: s.id, fullName: s.fullName }))}
             taughtGroups={taughtGroups}
+            isHomeroomTeacher={true}
           />
         )}
 

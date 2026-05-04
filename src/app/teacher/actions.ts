@@ -150,13 +150,23 @@ export async function deleteHomework(formData: FormData) {
 }
 
 
+import { session as sessionTable } from "@/db/schema/auth_schema";
+
 /* =====================================================
    ВЫХОД ИЗ АККАУНТА
    ===================================================== */
-export async function logout() {
-  await auth.api.signOut({
+export async function logout(allDevices = false) {
+  const ses = await auth.api.getSession({
     headers: await headers(),
   });
+
+  if (allDevices && ses?.user.id) {
+    await db.delete(sessionTable).where(eq(sessionTable.userId, ses.user.id));
+  } else {
+    await auth.api.signOut({
+      headers: await headers(),
+    });
+  }
 
   redirect("/");
 }

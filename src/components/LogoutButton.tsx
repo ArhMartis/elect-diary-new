@@ -1,19 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
 import { useTransition } from "react";
+import { logout } from "@/app/actions";
 
 export default function LogoutButton() {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   function handleLogout() {
     startTransition(async () => {
-      await authClient.signOut();
-
-      router.replace("/");   // уходим на главную
-      router.refresh();      // 🔥 заставляем SSR перечитать сессию
+      await logout(false);
     });
   }
 

@@ -28,13 +28,15 @@ export default function SignUpPage() {
         };
 
         // @ts-ignore - fullName is defined in additionalFields config
-        await authClient.signUp.email(formDataObj);
+        const result = await authClient.signUp.email(formDataObj);
 
         // Сохраняем аккаунт для быстрого переключения
+        const userData = (result as any)?.data?.user;
         saveAccount({
           email: formDataObj.email,
           password: formDataObj.password,
-          fullName: formDataObj.fullName,
+          fullName: userData?.fullName || formDataObj.fullName,
+          role: userData?.role || "student",
         });
 
         window.location.assign("/");

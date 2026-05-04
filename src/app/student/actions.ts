@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { diaryNotes, diaryVerification, parentVerification } from "@/db/schema/diary";
-import { schoolContacts, schoolInfo, holidays as holidaysSchema } from "@/db/schema/diary-extra";
+import { schoolContacts, schoolInfo, holidays } from "@/db/schema/diary-extra";
 import { user, groups } from "@/db/schema/auth_schema";
 import { eq, and } from "drizzle-orm";
 
@@ -186,6 +186,13 @@ export async function saveDiarySettings(settings: {
   psychologistPhone?: string;
   socialPedagogue?: string;
   socialPedagoguePhone?: string;
+  holidays?: {
+    autumn: string;
+    winter: string;
+    spring: string;
+    summer: string;
+  };
+  academicYear?: string;
 }) {
   try {
     const existing = await db.query.schoolContacts.findFirst();
@@ -217,6 +224,53 @@ export async function saveDiarySettings(settings: {
       await db.update(schoolInfo).set(schoolValues).where(eq(schoolInfo.id, existingSchool.id));
     } else {
       await db.insert(schoolInfo).values(schoolValues);
+    }
+
+    // Сохраняем каникулы
+    if (settings.holidays && settings.academicYear) {
+      const parseHolidayDates = (value: string) => {
+        if (!value) return { start: null as string | null, end: null as string | null };
+        // Поддерживаем форматы "DD.MM.YYYY - DD.MM.YYYY" и "YYYY-MM-DD - YYYY-MM-DD"
+        const matchDot = value.match(/(\d{2})\.(\d{2})\.(\d{4})\s*-\s*(\d{2})\.(\d{2})\.(\d{4})/);
+        if (matchDot) {
+          return {
+            start: `${matchDot[3]}-${matchDot[2]}-${matchDot[1]}`,
+            end: `${matchDot[6]}-${matchDot[5]}-${matchDot[4]}`,
+          };
+        }
+        const matchDash = value.match(/(\d{4})-(\d{2})-(\d{2})\s*-\s*(\d{4})-(\d{2})-(\d{2})/);
+        if (matchDash) {
+          return {
+            start: `${matchDash[1]}-${matchDash[2]}-${matchDash[3]}`,
+            end: `${matchDash[4]}-${matchDash[5]}-${matchDash[6]}`,
+          };
+        }
+        return { start: null, end: null };
+      };
+
+      const autumn = parseHolidayDates(settings.holidays.autumn);
+      const winter = parseHolidayDates(settings.holidays.winter);
+      const spring = parseHolidayDates(settings.holidays.spring);
+      const summer = parseHolidayDates(settings.holidays.summer);
+
+      const existingHolidays = await db.query.holidays.findFirst();
+      const holidayValues = {
+        academicYear: settings.academicYear,
+        autumnStart: autumn.start,
+        autumnEnd: autumn.end,
+        winterStart: winter.start,
+        winterEnd: winter.end,
+        springStart: spring.start,
+        springEnd: spring.end,
+        summerStart: summer.start,
+        summerEnd: summer.end,
+      };
+
+      if (existingHolidays) {
+        await db.update(holidays).set(holidayValues).where(eq(holidays.id, existingHolidays.id));
+      } else {
+        await db.insert(holidays).values(holidayValues);
+      }
     }
 
     return { success: true };

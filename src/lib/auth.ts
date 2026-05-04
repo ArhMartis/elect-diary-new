@@ -16,6 +16,11 @@ export const auth = betterAuth({
 
   emailAndPassword: { enabled: true },
 
+  advanced: {
+    disableCSRFCheck: true,
+    disableOriginCheck: true,
+  },
+
   user: {
     additionalFields: {
       avatar: {

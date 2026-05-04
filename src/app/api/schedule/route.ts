@@ -1,31 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { schedule, subjects, user } from "@/db/schema/auth_schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, gte, lte, or, isNull } from "drizzle-orm";
 
-/**
- * API: GET /api/schedule
- * 
- * Получение расписания класса
- * 
- * Query параметры:
- * - groupId: number - ID класса (обязательно)
- * - startDate?: string - начало периода (YYYY-MM-DD)
- * - endDate?: string - конец периода (YYYY-MM-DD)
- * - subjectId?: number - фильтр по предмету
- * 
- * @returns Array<{
- *   id: number,
- *   groupId: number,
- *   subjectId: number,
- *   subjectName: string,
- *   teacherId: string,
- *   teacherName: string,
- *   lessonDate: string | null,
- *   dayOfWeek: number | null,
- *   lessonNumber: number,
- * }>
- */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -34,6 +11,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate");
     const subjectId = searchParams.get("subjectId");
     const teacherId = searchParams.get("teacherId");
+    const quarter = searchParams.get("quarter");
 
     if (!groupId) {
       return NextResponse.json(
@@ -42,8 +20,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Формируем условия WHERE
-    const conditions: ReturnType<typeof eq>[] = [
+    const conditions: any[] = [
       eq(schedule.groupId, parseInt(groupId)),
     ];
 
@@ -55,9 +32,30 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(schedule.subjectId, parseInt(subjectId)));
     }
 
-    const whereCondition = and(...conditions) as any;
+    if (quarter) {
+      // Фильтр по четверти: записи для этой четверти ИЛИ общие записи без четверти (null)
+      conditions.push(
+        or(
+          eq(schedule.quarter, parseInt(quarter)),
+          isNull(schedule.quarter)
+        )
+      );
+    }
 
-    // Получаем расписание с связанными данными
+    if (startDate && endDate) {
+      conditions.push(
+        or(
+          and(
+            gte(schedule.lessonDate, startDate),
+            lte(schedule.lessonDate, endDate)
+          ),
+          isNull(schedule.lessonDate)
+        )
+      );
+    }
+
+    const whereCondition = and(...conditions);
+
     const scheduleList = await db
       .select({
         id: schedule.id,
@@ -69,12 +67,13 @@ export async function GET(request: NextRequest) {
         lessonDate: schedule.lessonDate,
         dayOfWeek: schedule.dayOfWeek,
         lessonNumber: schedule.lessonNumber,
+        quarter: schedule.quarter,
       })
       .from(schedule)
       .leftJoin(subjects, eq(schedule.subjectId, subjects.id))
       .leftJoin(user, eq(schedule.teacherId, user.id))
       .where(whereCondition)
-      .orderBy(asc(schedule.lessonDate), asc(schedule.dayOfWeek), asc(schedule.lessonNumber));
+      .orderBy(asc(schedule.quarter), asc(schedule.dayOfWeek), asc(schedule.lessonNumber));
 
     return NextResponse.json(scheduleList);
   } catch (error) {

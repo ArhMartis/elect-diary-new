@@ -78,6 +78,7 @@ interface Lesson {
   teacherName: string | null;
   lessonDate: string | null;
   dayOfWeek: number | null;
+  quarter?: number | null;
 }
 
 interface StudentDiaryPageProps {
@@ -427,9 +428,20 @@ function getClassScheduleLocal(groupId: number): Record<string, string> {
   return data ? JSON.parse(data) : {};
 }
 
+async function saveClassScheduleServer(groupId: number, schedule: Record<string, string>) {
+  try {
+    await fetch('/api/schedule/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupId, scheduleData: schedule }),
+    });
+  } catch {}
+}
+
 function saveClassScheduleLocal(groupId: number, schedule: Record<string, string>) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(`diary_schedule_${groupId}`, JSON.stringify(schedule));
+  saveClassScheduleServer(groupId, schedule);
 }
 
 function getWeeklyAbsenceLocal(studentId: string): { absent: string; absentUnexcused: string } {
@@ -759,6 +771,10 @@ export default function StudentDiaryPage({
   const [parentVerification, setParentVerification] = useState<{ parentId: string; verifiedAt: Date } | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isParentVerifying, setIsParentVerifying] = useState(false);
+  const [comments, setComments] = useState<{id: number; teacherId: string; teacherName: string | null; comment: string; date: number}[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [addingComment, setAddingComment] = useState(false);
+  const [showConfirmComment, setShowConfirmComment] = useState(false);
   
   const normalizedHolidays = initialHolidays && Object.values(initialHolidays).some(v => v && v.trim() !== "")
     ? initialHolidays
@@ -895,6 +911,7 @@ export default function StudentDiaryPage({
   const [showNoClassModal, setShowNoClassModal] = useState(false);
   const [selectedQuarter, setSelectedQuarter] = useState<string>(() => getQuarterNumber(new Date()));
   const [scheduleData, setScheduleData] = useState<Record<string, string>>({});
+  const [dbSchedule, setDbSchedule] = useState<Lesson[]>([]);
   const [absence, setAbsence] = useState({ absent: "", absentUnexcused: "" });
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
@@ -992,9 +1009,10 @@ export default function StudentDiaryPage({
   const getScheduleForQuarter = useCallback((quarter: string): Record<string, string> => {
     const result: Record<string, string> = {};
     Object.entries(scheduleData).forEach(([key, value]) => {
-      if (key.startsWith(`${quarter}-`)) {
+      // Ищем записи для текущей четверти ИЛИ общие записи без четверти (начинаются с "-")
+      if (key.startsWith(`${quarter}-`) || key.startsWith('-')) {
         const parts = key.split('-');
-        // Обычный формат: quarter-day-lessonNum (3 части)
+        // Обычный формат: quarter-day-lessonNum (3 части) или -day-lessonNum для общих записей
         if (parts.length === 3) {
           result[`${parts[1]}-${parts[2]}`] = value;
         }
@@ -1010,8 +1028,9 @@ export default function StudentDiaryPage({
     const processedLessons = new Set<number>();
     
     // Сначала ищем специфические записи на эту дату (формат: quarter-YYYY-MM-DD-day-lessonNum)
+    // Или общие записи без четверти (-YYYY-MM-DD-day-lessonNum)
     Object.entries(scheduleData).forEach(([key, value]) => {
-      if (key.startsWith(`${quarter}-${dateStr}-${dayName}-`)) {
+      if (key.startsWith(`${quarter}-${dateStr}-${dayName}-`) || key.startsWith(`-${dateStr}-${dayName}-`)) {
         const parts = key.split('-');
         if (parts.length === 5) {
           const lessonNum = parseInt(parts[4]);
@@ -1021,9 +1040,9 @@ export default function StudentDiaryPage({
       }
     });
     
-    // Затем добавляем общие записи (формат: quarter-day-lessonNum)
+    // Затем добавляем общие записи (формат: quarter-day-lessonNum или -day-lessonNum)
     Object.entries(scheduleData).forEach(([key, value]) => {
-      if (key.startsWith(`${quarter}-${dayName}-`)) {
+      if (key.startsWith(`${quarter}-${dayName}-`) || key.startsWith(`-${dayName}-`)) {
         const parts = key.split('-');
         if (parts.length === 3) {
           const lessonNum = parseInt(parts[2]);
@@ -1230,13 +1249,35 @@ export default function StudentDiaryPage({
     if (isLoaded && studentGrade === "") setShowNoClassModal(true);
   }, [isLoaded, studentGrade]);
 
+  // Загрузка расписания из API при изменении четверти (как в /teacher)
   useEffect(() => {
-    // Загрузка расписания
-    if (studentGroupId) {
-      const saved = getClassScheduleLocal(studentGroupId);
-      setScheduleData(saved);
-    }
-    
+    if (!studentGroupId) return;
+    fetch(`/api/schedule?groupId=${studentGroupId}&quarter=${selectedQuarter}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setDbSchedule(data);
+          const fromDb: Record<string, string> = {};
+          for (const item of data) {
+            if (item.dayOfWeek && item.lessonNumber && item.subjectName) {
+              const dayFull = DAYS_OF_WEEK.find(d => d.dayOfWeek === item.dayOfWeek)?.name;
+              if (dayFull) {
+                const q = item.quarter ?? '';
+                const key = `${q}-${dayFull}-${item.lessonNumber - 1}`;
+                fromDb[key] = item.subjectName;
+              }
+            }
+          }
+          setScheduleData(fromDb);
+        }
+      })
+      .catch((err) => console.error("Ошибка загрузки расписания:", err));
+  }, [studentGroupId, selectedQuarter]);
+
+  useEffect(() => {
     // Загрузка пропусков
     const savedAbsence = getWeeklyAbsenceLocal(studentId);
     setAbsence(savedAbsence);
@@ -1288,6 +1329,49 @@ export default function StudentDiaryPage({
     
     setIsLoaded(true);
   }, [studentFullName, studentGrade, studentGroupId, studentId, schedule, classSubjectNames]);
+
+  // Загрузка аттестации (итоговых оценок) из БД после инициализации
+  useEffect(() => {
+    if (!isLoaded || !studentId) return;
+    fetch(`/api/final-grades?studentId=${studentId}`)
+      .then(res => res.json())
+      .then((finalGradesData: any[]) => {
+        if (Array.isArray(finalGradesData) && finalGradesData.length > 0) {
+          setData(prev => {
+            const newGrades = finalGradesData.map(fg => ({
+              subject: fg.subjectName || '',
+              q1: fg.q1 || '',
+              q2: fg.q2 || '',
+              q3: fg.q3 || '',
+              q4: fg.q4 || '',
+              year: fg.year || '',
+              exam: fg.exam || '',
+              final: fg.final || '',
+              gradeType: fg.gradeType,
+            }));
+            const mergedSubjects = prev.subjects.map(s => {
+              const fromApi = finalGradesData.find(fg => fg.subjectName === s.name);
+              return fromApi ? { ...s, gradeType: fromApi.gradeType || s.gradeType } : s;
+            });
+            return { ...prev, grades: newGrades, subjects: mergedSubjects };
+          });
+        }
+      })
+      .catch(() => {});
+  }, [isLoaded, studentId]);
+
+  // Загрузка замечаний
+  useEffect(() => {
+    if (!isLoaded || !studentId) return;
+    const params = new URLSearchParams({ studentId });
+    if (effectiveUserRole === "teacher" && !isHomeroomTeacher) {
+      params.set("teacherId", currentUserId || "");
+    }
+    fetch(`/api/teacher-comments?${params}`)
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setComments(data); })
+      .catch(() => {});
+  }, [isLoaded, studentId, effectiveUserRole, isHomeroomTeacher, currentUserId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1436,6 +1520,30 @@ export default function StudentDiaryPage({
         academicYear: merged.academicYear,
       });
     }
+
+    // Сохраняем аттестацию (итоговые оценки) в БД
+    if (Array.isArray(data.grades) && data.grades.length > 0) {
+      for (const grade of data.grades) {
+        const qs = data.subjects.find(s => s.name === grade.subject);
+        fetch('/api/final-grades', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentId,
+            subjectName: grade.subject,
+            academicYear: data.academicYear || getCurrentAcademicYear(),
+            q1: grade.q1 || '',
+            q2: grade.q2 || '',
+            q3: grade.q3 || '',
+            q4: grade.q4 || '',
+            year: grade.year || '',
+            exam: grade.exam || '',
+            final: grade.final || '',
+            gradeType: qs?.gradeType || grade.gradeType || 'numeric',
+          }),
+        }).catch(() => {});
+      }
+    }
     alert("Дневник сохранен!");
   };
 
@@ -1475,6 +1583,7 @@ export default function StudentDiaryPage({
   const baseSections = [
     { id: "week", label: "📅 Расписание" },
     { id: "title", label: "📝 Титульный" },
+    { id: "comments", label: "⚠️ Замечания" },
     { id: "contacts", label: "📞 Контакты" },
     { id: "subjects", label: "📚 Предметы" },
     { id: "grades", label: "📊 Аттестация" },
@@ -1832,6 +1941,127 @@ export default function StudentDiaryPage({
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* Замечания */}
+        {activeSection === "comments" && (
+          <div className="min-h-[600px] p-8 md:p-12 bg-gradient-to-b from-rose-50/50 to-white">
+            <div className="max-w-2xl mx-auto">
+              <div className="text-center mb-8">
+                <div className="text-5xl mb-3">⚠️</div>
+                <h2 className="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-red-600 tracking-tight">
+                  Замечания
+                </h2>
+                <p className="text-gray-400 text-sm mt-1 font-medium">учителей и классного руководителя</p>
+              </div>
+
+              <div className="space-y-4">
+                {comments.length === 0 ? (
+                  <div className="bg-white rounded-2xl shadow-sm border border-rose-100 p-10 text-center">
+                    <div className="text-5xl mb-4">✨</div>
+                    <p className="text-gray-500 text-lg font-semibold">Нет замечаний</p>
+                    <p className="text-gray-400 text-sm mt-1">У ученика пока нет замечаний от учителей</p>
+                  </div>
+                ) : (
+                  comments.map(c => (
+                    <div key={c.id} className="bg-white rounded-2xl shadow-sm border border-rose-100 p-5 hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-400 to-red-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                            {(c.teacherName || "У")[0]}
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-800 text-sm">{c.teacherName || "Учитель"}</p>
+                            <p className="text-[11px] text-gray-600 font-medium">{new Date(c.date).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-rose-50/70 rounded-xl p-4 border border-rose-100">
+                        <p className="text-gray-700 text-sm leading-relaxed">{c.comment}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+
+                {(effectiveUserRole === "admin" || effectiveUserRole === "teacher" || effectiveUserRole === "principal") && !showConfirmComment && (
+                  <div className="mt-8 bg-white rounded-2xl shadow-md border border-rose-200 p-6">
+                    <h3 className="font-extrabold text-gray-800 mb-4 text-base flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-sm">✏️</span>
+                      Добавить замечание
+                    </h3>
+                    <textarea
+                      value={newComment}
+                      onChange={e => setNewComment(e.target.value)}
+                      className="w-full border-2 border-gray-200 rounded-xl p-4 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 resize-none transition-all bg-white"
+                      rows={4}
+                      placeholder="Опишите замечание..."
+                    />
+                    <button
+                      onClick={() => { if (newComment.trim()) setShowConfirmComment(true); }}
+                      disabled={!newComment.trim() || addingComment}
+                      className="mt-3 px-6 py-2.5 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl hover:from-rose-600 hover:to-red-700 disabled:from-gray-300 disabled:to-gray-300 text-sm font-bold transition-all shadow-md"
+                    >
+                      Добавить замечание
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {showConfirmComment && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
+                  <div className="text-center mb-4">
+                    <div className="text-4xl mb-3">⚠️</div>
+                    <h3 className="text-xl font-extrabold text-gray-800">Подтверждение</h3>
+                    <p className="text-gray-500 text-sm mt-1">Вы уверены, что хотите добавить замечание?</p>
+                  </div>
+                  <div className="bg-rose-50 rounded-xl p-4 mb-5 text-sm text-gray-700 border border-rose-200 leading-relaxed">
+                    {newComment}
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowConfirmComment(false)}
+                      className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-bold transition-all"
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setAddingComment(true);
+                        try {
+                          await fetch('/api/teacher-comments', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              studentId,
+                              teacherId: currentUserId,
+                              teacherName: "",
+                              comment: newComment,
+                            }),
+                          });
+                          setNewComment("");
+                          setShowConfirmComment(false);
+                          const params = new URLSearchParams({ studentId });
+                          if (effectiveUserRole === "teacher" && !isHomeroomTeacher) {
+                            params.set("teacherId", currentUserId || "");
+                          }
+                          const res = await fetch(`/api/teacher-comments?${params}`);
+                          const data = await res.json();
+                          if (Array.isArray(data)) setComments(data);
+                        } catch {}
+                        setAddingComment(false);
+                      }}
+                      disabled={addingComment}
+                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl hover:from-rose-600 hover:to-red-700 disabled:from-gray-300 disabled:to-gray-300 text-sm font-bold transition-all shadow-md"
+                    >
+                      {addingComment ? "Сохранение..." : "Добавить"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -2375,6 +2605,24 @@ export default function StudentDiaryPage({
                         };
                         setData(prev => ({ ...prev, subjects: newSubjects }));
                         saveDiaryDataLocal(studentId, { ...data, subjects: newSubjects });
+                        const existingGrade = data.grades.find(g => g.subject === subj.name);
+                        fetch('/api/final-grades', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            studentId,
+                            subjectName: subj.name,
+                            academicYear: data.academicYear || getCurrentAcademicYear(),
+                            gradeType: current === 'numeric' ? 'passfail' : 'numeric',
+                            q1: existingGrade?.q1 || '',
+                            q2: existingGrade?.q2 || '',
+                            q3: existingGrade?.q3 || '',
+                            q4: existingGrade?.q4 || '',
+                            year: existingGrade?.year || '',
+                            exam: existingGrade?.exam || '',
+                            final: existingGrade?.final || '',
+                          }),
+                        }).catch(() => {});
                       }}
                       className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                         (subj.gradeType || 'numeric') === 'passfail'

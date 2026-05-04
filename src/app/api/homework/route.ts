@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { homework, subjects, user, groups } from "@/db/schema/auth_schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, lte } from "drizzle-orm";
 
 /**
  * API: GET /api/homework
@@ -33,12 +33,14 @@ import { eq, and } from "drizzle-orm";
  *   createdAt: number
  * }>
  */
-export async function GET(request: NextRequest) {
+  export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const groupId = searchParams.get("groupId");
     const lessonDate = searchParams.get("lessonDate");
     const studentId = searchParams.get("studentId");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
 
     let targetGroupId = groupId;
 
@@ -52,18 +54,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Формируем условие WHERE
-    let whereCondition = undefined;
+    const conditions: (ReturnType<typeof eq> | ReturnType<typeof and> | ReturnType<typeof gte> | ReturnType<typeof lte>)[] = [];
     
-    if (targetGroupId && lessonDate) {
-      whereCondition = and(
-        eq(homework.groupId, parseInt(targetGroupId)),
-        eq(homework.lessonDate, lessonDate)
-      );
-    } else if (targetGroupId) {
-      whereCondition = eq(homework.groupId, parseInt(targetGroupId));
-    } else if (lessonDate) {
-      whereCondition = eq(homework.lessonDate, lessonDate);
+    if (targetGroupId) {
+      conditions.push(eq(homework.groupId, parseInt(targetGroupId)));
     }
+    
+    if (lessonDate) {
+      conditions.push(eq(homework.lessonDate, lessonDate));
+    }
+    
+    // Фильтрация по диапазону дат
+    if (startDate && endDate) {
+      conditions.push(gte(homework.lessonDate, startDate));
+      conditions.push(lte(homework.lessonDate, endDate));
+    }
+    
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Получаем домашние задания с связанными данными
     const homeworkList = await db

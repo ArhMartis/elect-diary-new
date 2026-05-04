@@ -129,6 +129,9 @@ export const finalGrades = sqliteTable("final_grades", {
   q2: text("q2"), // II четверть
   q3: text("q3"), // III четверть
   q4: text("q4"), // IV четверть
+
+  // Тип оценки: numeric (балл) или passfail (зачёт)
+  gradeType: text("grade_type").default("numeric"),
   
   // Итоговые оценки
   year: text("year"), // Годовая

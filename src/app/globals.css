@@ -84,3 +84,13 @@ html {
   animation: slide-in 0.35s ease-out;
 }
 
+/* ===================================
+   CALLY CALENDAR OVERRIDES (белая тема)
+   CSS-переменные задаются inline на элементе,
+   т.к. cally использует Shadow DOM.
+   =================================== */
+
+calendar-date.cally {
+  color-scheme: light;
+}
+

@@ -272,7 +272,6 @@ export const schedule = sqliteTable("schedule", {
     .references(() => subjects.id, { onDelete: "cascade" }),
 
   teacherId: text("teacher_id")
-    .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
 
   // Название мероприятия/собрания/классного часа
@@ -285,6 +284,9 @@ export const schedule = sqliteTable("schedule", {
   dayOfWeek: integer("day_of_week"), // 1–6
 
   lessonNumber: integer("lesson_number").notNull(),
+
+  // Четверть (1-4) для разделения расписания по четвертям
+  quarter: integer("quarter"), // 1–4, null = для всех четвертей
 });
 
 /* =========================================================

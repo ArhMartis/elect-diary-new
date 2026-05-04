@@ -2,7 +2,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { groups } from "@/db/schema/auth_schema";
+import { groups, schedule } from "@/db/schema/auth_schema";
+import { eq } from "drizzle-orm";
 import Link from "next/link";
 
 export default async function SelectClassPage() {
@@ -14,8 +15,42 @@ export default async function SelectClassPage() {
     redirect("/");
   }
 
-  // Получаем все классы
-  const allGroups = await db.select().from(groups);
+  // Класс, где учитель классный руководитель
+  const teacherGroup = await db.query.groups.findFirst({
+    where: eq(groups.teacherId, session.user.id),
+  });
+
+  // Классы, где учитель преподает (через расписание)
+  const teacherSchedule = await db
+    .select({
+      groupId: schedule.groupId,
+      groupName: groups.name,
+    })
+    .from(schedule)
+    .leftJoin(groups, eq(schedule.groupId, groups.id))
+    .where(eq(schedule.teacherId, session.user.id));
+
+  const taughtGroupsMap = new Map<number, string>();
+  teacherSchedule.forEach((item) => {
+    if (item.groupId && item.groupName && !taughtGroupsMap.has(item.groupId)) {
+      taughtGroupsMap.set(item.groupId, item.groupName);
+    }
+  });
+
+  // Все доступные классы (без дубликатов)
+  const allAssignedGroups = new Map<number, string>();
+  if (teacherGroup) {
+    allAssignedGroups.set(teacherGroup.id, teacherGroup.name);
+  }
+  taughtGroupsMap.forEach((name, id) => {
+    if (!allAssignedGroups.has(id)) {
+      allAssignedGroups.set(id, name);
+    }
+  });
+
+  const availableGroups = Array.from(allAssignedGroups.entries())
+    .filter(([id, name]) => id > 0 && name && name.trim() !== '')
+    .map(([id, name]) => ({ id, name }));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6">
@@ -41,16 +76,17 @@ export default async function SelectClassPage() {
 
         {/* Список классов */}
         <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-          {allGroups.length === 0 ? (
+          {availableGroups.length === 0 ? (
             <div className="text-center py-12">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 text-gray-300" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
               </svg>
-              <p className="text-gray-500 text-lg">Классы ещё не созданы</p>
+              <p className="text-gray-500 text-lg">У вас нет закрепленных классов</p>
+              <p className="text-sm text-gray-400 mt-2">Обратитесь к администратору</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {allGroups.map((group) => (
+              {availableGroups.map((group) => (
                 <Link
                   key={group.id}
                   href={`/diary?groupId=${group.id}`}

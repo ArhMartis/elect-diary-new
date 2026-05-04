@@ -30,6 +30,7 @@ interface StudentDiaryProps {
   isHomeroomTeacher?: boolean;
   schedule?: Lesson[];
   showScheduleTable?: boolean;
+  eventSubjectNames?: string[];
 }
 
 const DAYS_OF_WEEK = [
@@ -126,6 +127,7 @@ export default function StudentDiary({
   isHomeroomTeacher = false,
   schedule = [],
   showScheduleTable = true,
+  eventSubjectNames = [],
 }: StudentDiaryProps) {
   const [selectedWeek, setSelectedWeek] = useState<Date>(getStartOfWeek(new Date()));
   const [studentNote, setStudentNote] = useState("");
@@ -428,10 +430,14 @@ export default function StudentDiary({
                     const lessons = allLessons[lessonNum] || [];
                     const subjectName = lessons[0]?.subjectName || subjectNames[lessonNum - 1] || "—";
 
+                    const isEventSubject = eventSubjectNames.includes(subjectName);
                     return (
-                      <tr key={lessonNum} className="hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0">
+                      <tr key={lessonNum} className={`hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0 ${isEventSubject ? 'bg-emerald-100 border-l-4 border-l-emerald-500' : ''}`}>
                         <td className="text-center py-4 font-mono text-gray-600 border-r border-gray-200">{lessonNum}</td>
-                        <td className="font-medium text-gray-800 px-4 py-4 border-r border-gray-200">{subjectName}</td>
+                        <td className={`px-4 py-4 border-r border-gray-200 ${isEventSubject ? 'text-emerald-900 font-bold' : 'font-medium text-gray-800'}`}>
+                          {isEventSubject && <span className="mr-1">🎯</span>}
+                          {subjectName}
+                        </td>
                         {DAYS_OF_WEEK.map((day) => {
                           const dayLesson = lessons.find((l) => {
                             if (l.lessonDate) {

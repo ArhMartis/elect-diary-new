@@ -19,9 +19,50 @@ export function useAccountSwitcher() {
   const [isSwitching, setIsSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Загружаем список аккаунтов при монтировании
+  // Загружаем список аккаунтов при монтировании и обновляем роль / ФИО из БД
   useEffect(() => {
-    setAccounts(getSavedAccounts());
+    const accounts = getSavedAccounts();
+    if (accounts.length === 0) {
+      setAccounts([]);
+      return;
+    }
+
+    fetch("/api/users/roles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emails: accounts.map((a) => a.email) }),
+    })
+      .then((res) => res.json())
+      .then((infoMap: Record<string, { role?: string; fullName?: string }>) => {
+        let updated = false;
+        const newAccounts = accounts.map((a) => {
+          const info = infoMap[a.email];
+          if (!info) return a;
+
+          const next: SavedAccount = { ...a };
+          // Обновляем роль, если в БД она есть
+          if (info.role && (!a.role || a.role !== info.role)) {
+            next.role = info.role;
+            updated = true;
+          }
+          // Обновляем ФИО, если в БД оно есть и отличается от текущего
+          // (или текущее выглядит как логин — нет пробела)
+          const looksLikeLogin = !a.fullName || a.fullName.includes("@") || !a.fullName.includes(" ");
+          if (info.fullName && (looksLikeLogin || a.fullName !== info.fullName)) {
+            next.fullName = info.fullName;
+            updated = true;
+          }
+          return next;
+        });
+
+        if (updated) {
+          localStorage.setItem("saved_accounts", JSON.stringify(newAccounts));
+          setAccounts(newAccounts);
+        } else {
+          setAccounts(accounts);
+        }
+      })
+      .catch(() => setAccounts(accounts));
   }, []);
 
   // Переключение на другой аккаунт

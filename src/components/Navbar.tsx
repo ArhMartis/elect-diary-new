@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import LogoutButton from "./LogoutButton";
 import AccountSwitcher from "./AccountSwitcher";
 import Avatar from "./Avatar";
+import Drawer from "./Drawer";
 import { unstable_noStore as noStore } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -29,8 +30,10 @@ export default async function Navbar() {
     <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 shadow-lg">
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
-          {/* Логотип */}
-          <Link href="/" className="flex items-center gap-3 group">
+          {/* Меню + Логотип */}
+          <div className="flex items-center">
+            <Drawer />
+            <Link href="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-all">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -51,6 +54,7 @@ export default async function Navbar() {
               KnowledgeBY
             </span>
           </Link>
+          </div>
 
           {/* Правая часть */}
           <div className="flex items-center gap-4">
@@ -86,7 +90,7 @@ export default async function Navbar() {
                     />
                     <div className="text-sm leading-tight text-white hidden sm:block">
                       <div className="font-medium">
-                        {session.user.name ?? "Пользователь"}
+                        {session.user.fullName || session.user.name || "Пользователь"}
                       </div>
                       <div className="opacity-75 text-xs max-w-[150px] truncate">
                         {session.user.email}
