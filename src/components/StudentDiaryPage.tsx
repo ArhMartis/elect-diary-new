@@ -2699,9 +2699,9 @@ export default function StudentDiaryPage({
                           : 'bg-gray-100 text-gray-600 border-2 border-gray-200 hover:border-rose-300'
                       }`}
                     >
-                      {subj.name} {(subj.gradeType || 'numeric') === 'passfail' ? '(зачёт)' : '(балл)'}
+                       {subj.name} {(subj.gradeType || 'numeric') === 'passfail' ? '(зачёт)' : '(балл)'}
                     </button>
-                  )})}
+                  ))}
                 </div>
               </div>
             )}
