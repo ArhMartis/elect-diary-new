@@ -799,9 +799,6 @@ export default function StudentDiaryPage({
     socialPedagogue: initialContacts?.socialPedagogue || "",
     holidays: normalizedHolidays,
   });
-  
-  // Ref для отслеживания последнего обновления gradeType
-  const lastGradeTypeUpdate = useRef<{ subject: string; time: number } | null>(null);
 
   const [contacts, setContacts] = useState({
     director: initialDirectorName || initialContacts?.director || "",
@@ -1372,18 +1369,8 @@ export default function StudentDiaryPage({
             }));
             const mergedSubjects = prev.subjects.map(s => {
               const fromApi = finalGradesData.find(fg => fg.subjectName === s.name);
-              // Проверяем, не было ли недавнего обновления этого предмета
-              const wasRecentlyUpdated = lastGradeTypeUpdate.current?.subject === s.name && 
-                (Date.now() - lastGradeTypeUpdate.current.time) < 5000; // 5 секунд
-              
-              if (wasRecentlyUpdated) {
-                console.log(`[StudentDiary] Skipping API merge for "${s.name}" - recently updated by user`);
-                return s; // Не перезаписываем
-              }
-              
-              // API имеет приоритет, перезаписываем даже если уже есть значение
-              const newGradeType = fromApi?.gradeType || s.gradeType;
-              console.log(`[StudentDiary] Merging subject "${s.name}": API gradeType="${fromApi?.gradeType}", current="${s.gradeType}", result="${newGradeType}"`);
+              const newGradeType = fromApi?.gradeType || s.gradeType || 'numeric';
+              console.log(`[StudentDiary] Merging subject "${s.name}": API gradeType="${fromApi?.gradeType}", result="${newGradeType}"`);
               return { ...s, gradeType: newGradeType };
             });
             console.log('[StudentDiary] Subjects after merge:', mergedSubjects.map(s => ({ name: s.name, gradeType: s.gradeType })));
@@ -2703,8 +2690,6 @@ export default function StudentDiaryPage({
                               console.log('[StudentDiary] Updated grades after save:', newGrades);
                               return { ...prev, grades: newGrades };
                             });
-                            // Отмечаем время обновления
-                            lastGradeTypeUpdate.current = { subject: subj.name, time: Date.now() };
                           }
                         } catch (err) {
                           console.error('Ошибка сети при сохранении типа оценок:', err);
