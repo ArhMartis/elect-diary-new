@@ -2621,26 +2621,30 @@ export default function StudentDiaryPage({
                         setData(prev => ({ ...prev, subjects: newSubjects }));
                         saveDiaryDataLocal(studentId, { ...data, subjects: newSubjects });
                         const existingGrade = data.grades.find(g => g.subject === subj.name);
+                        const payload = {
+                          studentId,
+                          subjectName: subj.name,
+                          academicYear: data.academicYear || getCurrentAcademicYear(),
+                          gradeType: newGradeType,
+                          q1: existingGrade?.q1 || '',
+                          q2: existingGrade?.q2 || '',
+                          q3: existingGrade?.q3 || '',
+                          q4: existingGrade?.q4 || '',
+                          year: existingGrade?.year || '',
+                          exam: existingGrade?.exam || '',
+                          final: existingGrade?.final || '',
+                        };
+                        console.log('[StudentDiary] Saving gradeType:', payload);
                         try {
                           const res = await fetch('/api/final-grades', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              studentId,
-                              subjectName: subj.name,
-                              academicYear: data.academicYear || getCurrentAcademicYear(),
-                              gradeType: newGradeType,
-                              q1: existingGrade?.q1 || '',
-                              q2: existingGrade?.q2 || '',
-                              q3: existingGrade?.q3 || '',
-                              q4: existingGrade?.q4 || '',
-                              year: existingGrade?.year || '',
-                              exam: existingGrade?.exam || '',
-                              final: existingGrade?.final || '',
-                            }),
+                            body: JSON.stringify(payload),
                           });
+                          const result = await res.json();
+                          console.log('[StudentDiary] Save result:', result);
                           if (!res.ok) {
-                            console.error('Ошибка сохранения типа оценок:', await res.text());
+                            console.error('Ошибка сохранения типа оценок:', result);
                           }
                         } catch (err) {
                           console.error('Ошибка сети при сохранении типа оценок:', err);

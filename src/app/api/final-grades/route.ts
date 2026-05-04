@@ -144,12 +144,16 @@ export async function POST(request: NextRequest) {
       ),
     });
 
+    console.log(`[FinalGrades API] Existing record:`, existing ? 'FOUND' : 'NOT FOUND', existing ? { id: existing.id, gradeType: existing.gradeType } : '');
+
     if (existing) {
+      console.log(`[FinalGrades API] UPDATING existing record ${existing.id} with gradeType:`, body.gradeType || existing.gradeType || 'numeric');
       await db
         .update(finalGradesTable)
         .set({ q1, q2, q3, q4, year, exam, final, gradeType: body.gradeType || existing.gradeType || 'numeric' })
         .where(eq(finalGradesTable.id, existing.id));
     } else {
+      console.log(`[FinalGrades API] INSERTING new record with gradeType:`, body.gradeType || 'numeric');
       await db.insert(finalGradesTable).values({
         studentId,
         subjectId,
@@ -165,7 +169,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(`[FinalGrades API] POST success:`, { studentId, subjectId, gradeType: body.gradeType || existing?.gradeType || 'numeric' });
+    // Проверяем что сохранилось
+    const afterSave = await db.query.finalGrades.findFirst({
+      where: and(
+        eq(finalGradesTable.studentId, studentId),
+        eq(finalGradesTable.subjectId, subjectId),
+        eq(finalGradesTable.academicYear, academicYear)
+      ),
+    });
+    console.log(`[FinalGrades API] Saved record gradeType:`, afterSave?.gradeType);
 
     return NextResponse.json({ success: true });
   } catch (error) {
