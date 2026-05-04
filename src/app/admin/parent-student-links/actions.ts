@@ -63,7 +63,7 @@ export async function linkParentToStudent(formData: FormData) {
 
   // Проверяем, не превышен ли лимит в 3 родителя на ученика
   const currentParentsCount = await db
-    .select({ count: sql`count(*)` })
+    .select({ count: sql<number>`count(*)` })
     .from(parentsToStudents)
     .where(eq(parentsToStudents.studentId, studentId))
     .get();

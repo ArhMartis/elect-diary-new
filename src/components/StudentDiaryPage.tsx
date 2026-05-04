@@ -797,9 +797,11 @@ export default function StudentDiaryPage({
     psychologist: initialContacts?.psychologist || "",
     psychologistPhone: initialContacts?.psychologistPhone || "",
     socialPedagogue: initialContacts?.socialPedagogue || "",
-    socialPedagoguePhone: initialContacts?.socialPedagoguePhone || "",
     holidays: normalizedHolidays,
   });
+  
+  // Ref для отслеживания последнего обновления gradeType
+  const lastGradeTypeUpdate = useRef<{ subject: string; time: number } | null>(null);
 
   const [contacts, setContacts] = useState({
     director: initialDirectorName || initialContacts?.director || "",
@@ -1370,6 +1372,15 @@ export default function StudentDiaryPage({
             }));
             const mergedSubjects = prev.subjects.map(s => {
               const fromApi = finalGradesData.find(fg => fg.subjectName === s.name);
+              // Проверяем, не было ли недавнего обновления этого предмета
+              const wasRecentlyUpdated = lastGradeTypeUpdate.current?.subject === s.name && 
+                (Date.now() - lastGradeTypeUpdate.current.time) < 5000; // 5 секунд
+              
+              if (wasRecentlyUpdated) {
+                console.log(`[StudentDiary] Skipping API merge for "${s.name}" - recently updated by user`);
+                return s; // Не перезаписываем
+              }
+              
               // API имеет приоритет, перезаписываем даже если уже есть значение
               const newGradeType = fromApi?.gradeType || s.gradeType;
               console.log(`[StudentDiary] Merging subject "${s.name}": API gradeType="${fromApi?.gradeType}", current="${s.gradeType}", result="${newGradeType}"`);
@@ -2668,6 +2679,32 @@ export default function StudentDiaryPage({
                           console.log('[StudentDiary] Save result:', result);
                           if (!res.ok) {
                             console.error('Ошибка сохранения типа оценок:', result);
+                          } else {
+                            // Обновляем grades в data, чтобы gradeType сохранился
+                            setData(prev => {
+                              const existingGradeIndex = prev.grades.findIndex(g => g.subject === subj.name);
+                              let newGrades;
+                              if (existingGradeIndex >= 0) {
+                                // Обновляем существующую запись
+                                newGrades = [...prev.grades];
+                                newGrades[existingGradeIndex] = {
+                                  ...newGrades[existingGradeIndex],
+                                  gradeType: newGradeType
+                                };
+                              } else {
+                                // Создаем новую запись
+                                newGrades = [...prev.grades, {
+                                  subject: subj.name,
+                                  q1: '', q2: '', q3: '', q4: '',
+                                  year: '', exam: '', final: '',
+                                  gradeType: newGradeType
+                                }];
+                              }
+                              console.log('[StudentDiary] Updated grades after save:', newGrades);
+                              return { ...prev, grades: newGrades };
+                            });
+                            // Отмечаем время обновления
+                            lastGradeTypeUpdate.current = { subject: subj.name, time: Date.now() };
                           }
                         } catch (err) {
                           console.error('Ошибка сети при сохранении типа оценок:', err);

@@ -56,9 +56,9 @@ export async function GET() {
       });
       userGroupId = studentData?.groupId || null;
     } else if (userRole === "parent") {
-      const { parentStudentLinks } = await import("@/db/schema/diary-extra");
-      const link = await db.query.parentStudentLinks.findFirst({
-        where: eq(parentStudentLinks.parentId, userId),
+      const { parentsToStudents } = await import("@/db/schema/auth_schema");
+      const link = await db.query.parentsToStudents.findFirst({
+        where: eq(parentsToStudents.parentId, userId),
       });
       if (link) {
         const studentData = await db.query.user.findFirst({

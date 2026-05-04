@@ -34,9 +34,9 @@ export async function GET(request: NextRequest) {
       });
       userGroupId = studentData?.groupId || null;
     } else if (userRole === "parent") {
-      const { parentStudentLinks } = await import("@/db/schema/diary-extra");
-      const link = await db.query.parentStudentLinks.findFirst({
-        where: eq(parentStudentLinks.parentId, userId),
+      const { parentsToStudents } = await import("@/db/schema/auth_schema");
+      const link = await db.query.parentsToStudents.findFirst({
+        where: eq(parentsToStudents.parentId, userId),
       });
       if (link) {
         const studentData = await db.query.user.findFirst({
@@ -381,8 +381,8 @@ async function checkSendPermission(
     
     if (receiver.role === "parent") {
       // Проверяем, является ли родитель родителем ученика этого класса
-      const { parentStudentLinks } = await import("@/db/schema/diary-extra");
-      const parentLinks = await db.select().from(parentStudentLinks).where(eq(parentStudentLinks.parentId, receiverId));
+      const { parentsToStudents } = await import("@/db/schema/auth_schema");
+      const parentLinks = await db.select().from(parentsToStudents).where(eq(parentsToStudents.parentId, receiverId));
       
       for (const link of parentLinks) {
         const student = await db.query.user.findFirst({
@@ -415,15 +415,15 @@ async function checkSendPermission(
 
   if (userRole === "parent") {
     if (receiver.role === "teacher") {
-      const { parentStudentLinks } = await import("@/db/schema/diary-extra");
-      const link = await db.query.parentStudentLinks.findFirst({
-        where: eq(parentStudentLinks.parentId, userId),
+      const { parentsToStudents } = await import("@/db/schema/auth_schema");
+      const link = await db.query.parentsToStudents.findFirst({
+        where: eq(parentsToStudents.parentId, userId),
       });
       if (link) {
         const studentData = await db.query.user.findFirst({
           where: eq(user.id, link.studentId),
         });
-        if (studentData) {
+        if (studentData?.groupId) {
           const studentGroup = await db.query.groups.findFirst({
             where: eq(groups.id, studentData.groupId),
           });

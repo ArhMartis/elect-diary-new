@@ -80,7 +80,12 @@ export async function GET(request: NextRequest) {
 
     console.log(`[FinalGrades API] GET result:`, { count: rows.length, rows: rows.map(r => ({ subject: r.subjectName, gradeType: r.gradeType })) });
 
-    return NextResponse.json(rows);
+    // Добавляем заголовки для предотвращения кэширования
+    const response = NextResponse.json(rows);
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    return response;
   } catch (error) {
     console.error("Ошибка при получении итоговых оценок:", error);
     return NextResponse.json(
