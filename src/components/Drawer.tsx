@@ -7,26 +7,30 @@ export default function Drawer() {
   const pathname = usePathname();
   const isHome = pathname === "/";
 
-  const handleNewsClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (isHome) {
-      e.preventDefault();
-      closeDrawer();
-      // Небольшая задержка чтобы drawer успел закрыться
-      setTimeout(() => {
-        const postsSection = document.getElementById("posts-section");
-        if (postsSection) {
-          postsSection.scrollIntoView({ behavior: "smooth" });
-        }
-      }, 300);
-    }
-    // Если не на главной, просто переходим на главную (Link сработает по умолчанию)
-  };
-
   const closeDrawer = () => {
     const checkbox = document.getElementById("my-drawer-1") as HTMLInputElement | null;
     if (checkbox) {
       checkbox.checked = false;
     }
+  };
+
+  const handleNewsClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    closeDrawer();
+    
+    // Небольшая задержка чтобы drawer успел закрыться
+    setTimeout(() => {
+      if (isHome) {
+        // Если уже на главной - просто скроллим к новостям
+        const postsSection = document.getElementById("posts-section");
+        if (postsSection) {
+          postsSection.scrollIntoView({ behavior: "smooth" });
+        }
+      } else {
+        // Если на другой странице - переходим на главную с хэшем
+        window.location.href = "/#posts-section";
+      }
+    }, 300);
   };
 
   return (
@@ -46,48 +50,96 @@ export default function Drawer() {
       </div>
       <div className="drawer-side z-[100]">
         <label htmlFor="my-drawer-1" aria-label="close sidebar" className="drawer-overlay"></label>
-        <ul className="menu bg-base-200 min-h-full w-80 p-4">
-          {/* Sidebar content here */}
-          <li>
-            <Link href="/" onClick={closeDrawer} className="flex items-center gap-3 text-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              Главная
-            </Link>
-          </li>
-          <li>
-            <Link href="/profile" onClick={closeDrawer} className="flex items-center gap-3 text-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Профиль
-            </Link>
-          </li>
-          <li>
-            <Link 
-              href="/" 
-              onClick={(e) => {
-                handleNewsClick(e);
-                closeDrawer();
-              }}
-              className="flex items-center gap-3 text-lg"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-              </svg>
-              Новости
-            </Link>
-          </li>
-          <li>
-            <Link href="/messages" onClick={closeDrawer} className="flex items-center gap-3 text-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-              </svg>
-              Сообщения
-            </Link>
-          </li>
-        </ul>
+        
+        {/* Яркий градиентный сайдбар в стиле сайта */}
+        <div className="min-h-full w-80 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4 flex flex-col">
+          {/* Декоративные элементы */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-20 -right-20 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+          </div>
+          
+          {/* Заголовок меню */}
+          <div className="relative z-10 mb-8 pt-4">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              KnowledgeBY
+            </h2>
+          </div>
+          
+          {/* Меню */}
+          <ul className="relative z-10 space-y-2 flex-1">
+            <li>
+              <Link 
+                href="/" 
+                onClick={closeDrawer} 
+                className="flex items-center gap-3 text-lg text-white/90 hover:text-white hover:bg-white/20 rounded-xl p-3 transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </div>
+                Главная
+              </Link>
+            </li>
+            <li>
+              <Link 
+                href="/profile" 
+                onClick={closeDrawer} 
+                className="flex items-center gap-3 text-lg text-white/90 hover:text-white hover:bg-white/20 rounded-xl p-3 transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                Профиль
+              </Link>
+            </li>
+            <li>
+              <a 
+                href="/#posts-section"
+                onClick={handleNewsClick}
+                className="flex items-center gap-3 text-lg text-white/90 hover:text-white hover:bg-white/20 rounded-xl p-3 transition-all cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                  </svg>
+                </div>
+                Новости
+              </a>
+            </li>
+            <li>
+              <Link 
+                href="/messages" 
+                onClick={closeDrawer} 
+                className="flex items-center gap-3 text-lg text-white/90 hover:text-white hover:bg-white/20 rounded-xl p-3 transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                </div>
+                Сообщения
+              </Link>
+            </li>
+          </ul>
+          
+          {/* Нижняя часть с декоративным элементом */}
+          <div className="relative z-10 mt-auto pt-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+              <p className="text-white/80 text-sm text-center">
+                Современная платформа для образования
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
