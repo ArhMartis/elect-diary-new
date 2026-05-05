@@ -61,6 +61,15 @@ export async function deleteSubject(formData: FormData) {
 
   if (!id) throw new Error("Некорректные данные");
 
+  // Запрет удаления классного часа и мероприятий
+  const subject = await db.query.subjects.findFirst({
+    where: eq(subjects.id, parseInt(id)),
+  });
+
+  if (subject?.type === "class_hour" || subject?.type === "event") {
+    throw new Error("Нельзя удалить классный час или мероприятие");
+  }
+
   await db.delete(subjects).where(eq(subjects.id, parseInt(id)));
 
   revalidatePath("/admin/subjects");
