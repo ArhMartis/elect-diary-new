@@ -1860,7 +1860,7 @@ export default function StudentDiaryPage({
             <div className="text-6xl mb-2">⚠️</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Вы не определили класс этого ученика!</h2>
             <p className="text-gray-600 mb-6">Назначьте класс через админ-панель или обратитесь к администрации.</p>
-            <button onClick={() => window.history.back()} className="block w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all shadow-md">Назад</button>
+            <button onClick={() => window.location.href = "/"} className="block w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all shadow-md">Назад</button>
           </div>
         </div>
       )}
@@ -1892,7 +1892,7 @@ export default function StudentDiaryPage({
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <a
-                href={effectiveUserRole === "admin" ? "/admin" : effectiveUserRole === "teacher" ? "/teacher" : "/diary"}
+                href={effectiveUserRole === "admin" ? "/admin" : effectiveUserRole === "teacher" ? "/teacher" : effectiveUserRole === "parent" ? "/" : "/diary"}
                 className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-all text-sm font-semibold"
               >
                 Назад
