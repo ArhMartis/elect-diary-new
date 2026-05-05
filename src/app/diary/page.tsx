@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { user, groups, grades, schedule, subjects, groupSubjects } from "@/db/schema/auth_schema";
+import { user, groups, grades, schedule, subjects, groupSubjects, teacherSubjects, teacherClasses } from "@/db/schema/auth_schema";
 import { eq, and } from "drizzle-orm";
 import StudentDiaryPage from "@/components/StudentDiaryPage";
 import { isTeacherHomeroomTeacher, isUserParentOfStudent, getDirector, getHomeroomTeacherByGroup, getDiarySettings } from "@/app/student/actions";
@@ -215,6 +215,32 @@ export default async function DiaryPage({ searchParams }: PageProps) {
 
   filteredSubjectNames = [...new Set(filteredSubjectNames)];
 
+  // Строим маппинг: предмет -> ФИО учителя для этого класса
+  const subjectTeacherMap: Record<string, string> = {};
+  if (targetStudentGroupId) {
+    // Учителя, которые ведут предметы в этом классе
+    const tsRows = await db.select().from(teacherSubjects);
+    const tcRows = await db.select().from(teacherClasses);
+    // Учителя, закрепленные за этим классом (классный руководитель + teacherClasses)
+    const teacherIdsForClass = new Set<string>();
+    const groupData = await db.select().from(groups).where(eq(groups.id, targetStudentGroupId));
+    if (groupData[0]?.teacherId) teacherIdsForClass.add(groupData[0].teacherId);
+    tcRows.filter(tc => tc.groupId === targetStudentGroupId).forEach(tc => teacherIdsForClass.add(tc.teacherId));
+    // Для каждого учителя в этом классе, получить его имя и предметы
+    for (const tid of teacherIdsForClass) {
+      const teacherUser = await db.query.user.findFirst({ where: eq(user.id, tid) });
+      if (!teacherUser) continue;
+      const teacherName = teacherUser.fullName || "";
+      const teacherSubjectRows = tsRows.filter(ts => ts.teacherId === tid);
+      for (const ts of teacherSubjectRows) {
+        const subj = await db.query.subjects.findFirst({ where: eq(subjects.id, ts.subjectId) });
+        if (subj?.name) {
+          subjectTeacherMap[subj.name] = teacherName;
+        }
+      }
+    }
+  }
+
   return (
     <StudentDiaryPage
       studentId={targetStudentId}
@@ -234,6 +260,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
       initialSchoolName={diarySettings?.schoolName || ""}
       initialSchoolAddress={diarySettings?.schoolAddress || ""}
       classSubjectNames={filteredSubjectNames}
+      subjectTeacherMap={subjectTeacherMap}
       eventSubjectNames={eventSubjectNames}
       initialContacts={diarySettings ? {
         director: effectiveDirector || diarySettings.director,

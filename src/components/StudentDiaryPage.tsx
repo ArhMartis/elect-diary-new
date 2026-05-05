@@ -99,6 +99,7 @@ interface StudentDiaryPageProps {
   initialSchoolName?: string;
   initialSchoolAddress?: string;
   classSubjectNames?: string[];
+  subjectTeacherMap?: Record<string, string>;
   eventSubjectNames?: string[];
   initialContacts?: {
     director: string;
@@ -1329,11 +1330,13 @@ export default function StudentDiaryPage({
       const initialSubjects = classSubjectNames.length > 0
         ? classSubjectNames.map(name => {
             const scheduleTeacher = schedule.find(l => l.subjectName === name && l.teacherName)?.teacherName || "";
-            return { name, teacher: scheduleTeacher || sharedData.homeroomTeacher };
+            const mappedTeacher = subjectTeacherMap?.[name] || "";
+            return { name, teacher: scheduleTeacher || mappedTeacher };
           })
         : schedule.reduce((acc: { name: string; teacher: string }[], lesson) => {
             if (lesson.subjectName && !acc.find(s => s.name === lesson.subjectName)) {
-              acc.push({ name: lesson.subjectName, teacher: lesson.teacherName || sharedData.homeroomTeacher || "" });
+              const mappedTeacher = subjectTeacherMap?.[lesson.subjectName] || "";
+              acc.push({ name: lesson.subjectName, teacher: lesson.teacherName || mappedTeacher || "" });
             }
             return acc;
           }, []);
@@ -1393,9 +1396,10 @@ export default function StudentDiaryPage({
               .filter(fg => fg.subjectName && !existingNames.has(fg.subjectName))
               .map(fg => {
                 const scheduleTeacher = schedule.find(l => l.subjectName === fg.subjectName && l.teacherName)?.teacherName || "";
+                const mappedTeacher = subjectTeacherMap?.[fg.subjectName!] || "";
                 return {
                   name: fg.subjectName!,
-                  teacher: scheduleTeacher || sharedData.homeroomTeacher || "",
+                  teacher: scheduleTeacher || mappedTeacher,
                   gradeType: fg.gradeType || 'numeric'
                 };
               });
@@ -2623,7 +2627,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                           </span>
                         </td>
                         <td className={`border border-emerald-200 p-3 ${isMySubject ? 'border-l-4 border-l-amber-400' : ''}`}>
-                          <span className={`font-bold ${isMySubject ? 'text-amber-700' : 'text-gray-800'}`}>{subject.teacher || sharedData.homeroomTeacher || ""}</span>
+                          <span className={`font-bold ${isMySubject ? 'text-amber-700' : 'text-gray-800'}`}>{subject.teacher || ""}</span>
                         </td>
                       </tr>
                     );
