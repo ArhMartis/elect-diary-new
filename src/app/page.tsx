@@ -73,7 +73,7 @@ export default async function HomePage() {
 
               {role !== "guest" && (
                 <Link
-                  href={`/${role}`}
+                  href={role === "parent" ? "/diary" : `/${role}`}
                   className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-lg font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
                 >
                   <svg
