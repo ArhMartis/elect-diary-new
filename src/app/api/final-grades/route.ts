@@ -49,8 +49,6 @@ export async function GET(request: NextRequest) {
     const studentId = searchParams.get("studentId");
     const academicYear = searchParams.get("academicYear");
 
-    console.log(`[FinalGrades API] GET request:`, { studentId, academicYear });
-
     if (!studentId) {
       return NextResponse.json({ error: "Не указан studentId" }, { status: 400 });
     }
@@ -77,8 +75,6 @@ export async function GET(request: NextRequest) {
       .from(finalGradesTable)
       .leftJoin(subjects, eq(finalGradesTable.subjectId, subjects.id))
       .where(and(...whereConditions));
-
-    console.log(`[FinalGrades API] GET result:`, { count: rows.length, rows: rows.map(r => ({ subject: r.subjectName, gradeType: r.gradeType })) });
 
     // Добавляем заголовки для предотвращения кэширования
     const response = NextResponse.json(rows);
@@ -119,8 +115,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     let { studentId, subjectId, academicYear, q1, q2, q3, q4, year, exam, final, subjectName } = body;
 
-    console.log(`[FinalGrades API] POST request:`, { studentId, subjectId, subjectName, academicYear, gradeType: body.gradeType });
-
     if (!studentId || !academicYear) {
       return NextResponse.json(
         { error: "studentId и academicYear обязательны" },
@@ -132,7 +126,6 @@ export async function POST(request: NextRequest) {
       const found = await db.query.subjects.findFirst({ where: eq(subjects.name, subjectName) });
       if (found) {
         subjectId = found.id;
-        console.log(`[FinalGrades API] Found subject by name:`, { subjectName, subjectId });
       } else {
         console.error(`[FinalGrades API] Subject not found:`, { subjectName });
       }
@@ -150,16 +143,12 @@ export async function POST(request: NextRequest) {
       ),
     });
 
-    console.log(`[FinalGrades API] Existing record:`, existing ? 'FOUND' : 'NOT FOUND', existing ? { id: existing.id, gradeType: existing.gradeType } : '');
-
     if (existing) {
-      console.log(`[FinalGrades API] UPDATING existing record ${existing.id} with gradeType:`, body.gradeType || existing.gradeType || 'numeric');
       await db
         .update(finalGradesTable)
         .set({ q1, q2, q3, q4, year, exam, final, gradeType: body.gradeType || existing.gradeType || 'numeric' })
         .where(eq(finalGradesTable.id, existing.id));
     } else {
-      console.log(`[FinalGrades API] INSERTING new record with gradeType:`, body.gradeType || 'numeric');
       await db.insert(finalGradesTable).values({
         studentId,
         subjectId,
@@ -183,8 +172,6 @@ export async function POST(request: NextRequest) {
         eq(finalGradesTable.academicYear, academicYear)
       ),
     });
-    console.log(`[FinalGrades API] Saved record gradeType:`, afterSave?.gradeType);
-
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Ошибка при сохранении итоговых оценок:", error);

@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { user, groups, subjects, teacherSubjects, teacherClasses, schedule } from "@/db/schema/auth_schema";
+import { user, groups, subjects, teacherSubjects, teacherClasses, schedule, groupSubjects } from "@/db/schema/auth_schema";
 import { eq } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
@@ -163,28 +163,26 @@ export default async function PrincipalPage() {
       const groupStudents = studentsWithGroups.filter((s) => s.groupId === group.id);
       const classTeacher = allTeachers.find((t) => t.id === group.teacherId);
       
-      const groupSchedule = await db
-        .select({
-          subjectId: schedule.subjectId,
-          subjectName: subjects.name,
-          teacherId: schedule.teacherId,
-          teacherName: user.fullName,
-        })
-        .from(schedule)
-        .leftJoin(subjects, eq(schedule.subjectId, subjects.id))
-        .leftJoin(user, eq(schedule.teacherId, user.id))
-        .where(eq(schedule.groupId, group.id));
-
-      const uniqueSubjects = groupSchedule.reduce((acc, curr) => {
-        if (!acc.find((s) => s.id === curr.subjectId)) {
-          acc.push({
-            id: curr.subjectId,
-            name: curr.subjectName || "",
-            teacherName: curr.teacherName || "",
-          });
+      // Получаем предметы класса через groupSubjects + имена учителей через teacherSubjects
+      const gsRows = await db.select().from(groupSubjects).where(eq(groupSubjects.groupId, group.id));
+      const gsSubjectIds = gsRows.map(gs => gs.subjectId);
+      
+      const uniqueSubjects: { id: number; name: string; teacherName: string }[] = [];
+      for (const sid of gsSubjectIds) {
+        const subject = await db.query.subjects.findFirst({ where: eq(subjects.id, sid) });
+        if (!subject) continue;
+        const tsRows = await db.select().from(teacherSubjects).where(eq(teacherSubjects.subjectId, sid));
+        const teacherNames = [];
+        for (const ts of tsRows) {
+          const t = allTeachers.find(tt => tt.id === ts.teacherId);
+          if (t?.fullName) teacherNames.push(t.fullName);
         }
-        return acc;
-      }, [] as { id: number; name: string; teacherName: string }[]);
+        uniqueSubjects.push({
+          id: subject.id,
+          name: subject.name,
+          teacherName: teacherNames.join(', '),
+        });
+      }
 
       return {
         id: group.id,

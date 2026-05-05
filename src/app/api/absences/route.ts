@@ -87,7 +87,6 @@ export async function POST(request: NextRequest) {
     if (date && type) {
       // TODO: Создать отдельную таблицу для дневной посещаемости
       // Пока просто логируем
-      console.log("[API] POST посещаемость:", { studentId, date, type });
       return NextResponse.json({ success: true, message: "Посещаемость отмечена (заглушка)" });
     }
 

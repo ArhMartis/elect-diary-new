@@ -60,9 +60,6 @@ export async function GET(request: NextRequest) {
     });
     */
 
-    console.log("[API] GET /api/holidays", { academicYear });
-    console.log("[DB] SELECT * FROM holidays WHERE academicYear = ?", academicYear);
-
     // Возвращаем заглушку
     return NextResponse.json({
       autumn: "",
@@ -150,10 +147,6 @@ export async function POST(request: NextRequest) {
       });
     }
     */
-
-    console.log("[API] POST /api/holidays", body);
-    console.log("[DB] INSERT INTO holidays (studentId, month, total, unexcused) VALUES (?, ?, ?, ?)",
-      academicYear, autumn, winter, spring, summer);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -155,7 +155,6 @@ export default function TeacherForms({
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleModalFor, setScheduleModalFor] = useState<"homework" | "grades">("homework");
   const [selectedDay, setSelectedDay] = useState<string>("");
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("");
 
   const [homeworkForm, setHomeworkForm] = useState({
     scheduleId: "",
@@ -374,7 +373,6 @@ export default function TeacherForms({
   const openScheduleModal = (forTab: "homework" | "grades") => {
     setScheduleModalFor(forTab);
     setSelectedDay("");
-    setSelectedPeriod("");
     setShowScheduleModal(true);
   };
 
@@ -494,9 +492,8 @@ export default function TeacherForms({
           subjectId={currentModalSubjectId}
           subjectName={currentModalSubjectName}
           schedule={schedule}
-          academicPeriods={academicPeriods}
-          selectedPeriod={selectedPeriod}
-          setSelectedPeriod={setSelectedPeriod}
+          selectedQuarter={selectedQuarter}
+          setSelectedQuarter={setSelectedQuarter}
           selectedDay={selectedDay}
           setSelectedDay={setSelectedDay}
           onSelectLesson={handleSelectLesson}
@@ -1070,29 +1067,20 @@ export default function TeacherForms({
 }
 
 function SchedulePickerModal({
-  subjectId, subjectName, schedule, academicPeriods, selectedPeriod, setSelectedPeriod, selectedDay, setSelectedDay, onSelectLesson, onClose,
+  subjectId, subjectName, schedule, selectedQuarter, setSelectedQuarter, selectedDay, setSelectedDay, onSelectLesson, onClose,
 }: {
-  subjectId: number; subjectName: string; schedule: ScheduleItem[]; academicPeriods: AcademicPeriod[];
-  selectedPeriod: string; setSelectedPeriod: (v: string) => void; selectedDay: string; setSelectedDay: (v: string) => void;
+  subjectId: number; subjectName: string; schedule: ScheduleItem[];
+  selectedQuarter: string; setSelectedQuarter: (v: string) => void; selectedDay: string; setSelectedDay: (v: string) => void;
   onSelectLesson: (item: ScheduleItem) => void; onClose: () => void;
 }) {
   const subjectSchedule = useMemo(() => schedule.filter((item) => item.subjectId === subjectId), [schedule, subjectId]);
 
-  const filteredSchedule = useMemo(() => {
-    if (!selectedPeriod) return subjectSchedule;
-    const period = academicPeriods.find((p) => String(p.id) === selectedPeriod);
-    if (!period) return subjectSchedule;
-    const start = new Date(period.startDate);
-    const end = new Date(period.endDate);
-    return subjectSchedule.filter((item) => { if (!item.lessonDate) return true; const d = new Date(item.lessonDate); return d >= start && d <= end; });
-  }, [subjectSchedule, selectedPeriod, academicPeriods]);
-
   const byDay = useMemo(() => {
     const map: Record<string, ScheduleItem[]> = {};
-    for (const item of filteredSchedule) { const key = String(item.dayOfWeek ?? 0); if (!map[key]) map[key] = []; map[key].push(item); }
+    for (const item of subjectSchedule) { const key = String(item.dayOfWeek ?? 0); if (!map[key]) map[key] = []; map[key].push(item); }
     for (const key of Object.keys(map)) { map[key].sort((a, b) => a.lessonNumber - b.lessonNumber); }
     return map;
-  }, [filteredSchedule]);
+  }, [subjectSchedule]);
 
   const dayKeys = useMemo(() => Object.keys(byDay).sort((a, b) => Number(a) - Number(b)), [byDay]);
 
@@ -1112,7 +1100,7 @@ function SchedulePickerModal({
         </div>
         <div className="px-6 pt-4 pb-2">
           <label className="block text-sm font-semibold text-gray-700 mb-1.5 tracking-wide">Четверть</label>
-          <select value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)} className="w-full px-4 py-2.5 border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:outline-none bg-white text-gray-900 font-medium text-sm">
+          <select value={selectedQuarter} onChange={(e) => setSelectedQuarter(e.target.value)} className="w-full px-4 py-2.5 border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:outline-none bg-white text-gray-900 font-medium text-sm">
             <option value="1">I четверть</option>
             <option value="2">II четверть</option>
             <option value="3">III четверть</option>

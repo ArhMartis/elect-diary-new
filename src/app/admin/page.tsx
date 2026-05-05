@@ -86,10 +86,31 @@ export default async function AdminPage() {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6">
       <div className="relative max-w-6xl mx-auto">
         
-        {/* ЗАГОЛОВОК ПО ЦЕНТРУ */}
-        <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
-          Админ панель
-        </h1>
+        {/* ЗАГОЛОВОК */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 mb-6">
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M2.166 4.999A10 10 0 0118.834 4.999c.322 1.188.098 2.398-.575 3.395L10 18l-8.259-9.606a4.5 4.5 0 01-.575-3.395z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800">Админ панель</h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-red-700 font-bold">{session.user.fullName}</span>
+                  <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-bold">Администратор</span>
+                </div>
+              </div>
+            </div>
+            <Link
+              href="/"
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-medium text-sm"
+            >
+              На главную
+            </Link>
+          </div>
+        </div>
 
         {/* КНОПКИ МЕНЮ */}
         <div className="flex justify-center gap-3 mb-10 flex-wrap">

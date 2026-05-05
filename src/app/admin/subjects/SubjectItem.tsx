@@ -186,11 +186,16 @@ export function SubjectItem({
               isTeachersOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
             }`}
           >
-            <div className="p-4 pt-0 space-y-2">
-              {teachers.map((teacher) => {
-                const isAssigned = assignedTeacherIds.has(teacher.id);
-                
-                return (
+<div className="p-4 pt-0 space-y-2">
+               {[...teachers].sort((a, b) => {
+                 const aAssigned = assignedTeacherIds.has(a.id);
+                 const bAssigned = assignedTeacherIds.has(b.id);
+                 if (aAssigned !== bAssigned) return aAssigned ? -1 : 1;
+                 return a.fullName.localeCompare(b.fullName, 'ru');
+               }).map((teacher) => {
+                 const isAssigned = assignedTeacherIds.has(teacher.id);
+                 
+                 return (
                   <div 
                     key={teacher.id}
                     className={`flex justify-between items-center p-3 rounded-lg transition-all ${

@@ -26,7 +26,7 @@ export default async function DashboardRouter() {
       redirect("/admin");
 
     case "parent":
-      redirect("/parent");
+      redirect("/diary");
 
     default:
       // если вдруг роль сломалась

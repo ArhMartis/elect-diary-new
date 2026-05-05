@@ -542,7 +542,7 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
                           key={idx}
                           className="px-3 py-1.5 bg-white border-2 border-emerald-300 text-emerald-800 rounded-lg text-sm font-bold"
                         >
-                          {subject.name} — {subject.teacherName}
+                          {subject.name}{subject.teacherName ? ` — ${subject.teacherName}` : ""}
                         </span>
                       ))}
                       {group.subjects.length > 4 && (
@@ -626,7 +626,7 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
                       >
                         <span className="font-bold text-gray-900">{subject.name}</span>
                         <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm font-bold">
-                          {subject.teacherName}
+                          {subject.teacherName || <span className="text-red-500">Не назначен</span>}
                         </span>
                       </div>
                     ))}

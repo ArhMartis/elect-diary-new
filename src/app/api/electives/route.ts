@@ -58,9 +58,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(electives);
     */
 
-    console.log("[API] GET /api/electives", { groupId });
-    console.log("[DB] SELECT * FROM electives WHERE groupId = ?", groupId);
-
     // Возвращаем заглушку
     return NextResponse.json([]);
   } catch (error) {
@@ -116,10 +113,6 @@ export async function POST(request: NextRequest) {
     }
     */
 
-    console.log("[API] POST /api/electives", body);
-    console.log("[DB] INSERT INTO electives (name, teacherId, teacherName, schedule, groupId) VALUES (?, ?, ?, ?, ?)",
-      name, teacherId, teacherName, schedule, groupId);
-
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Ошибка при сохранении факультатива:", error);
@@ -151,9 +144,6 @@ export async function DELETE(request: NextRequest) {
     /*
     await db.delete(electives).where(eq(electives.id, id));
     */
-
-    console.log("[API] DELETE /api/electives", { id });
-    console.log("[DB] DELETE FROM electives WHERE id = ?", id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

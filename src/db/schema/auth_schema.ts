@@ -599,4 +599,19 @@ export const groupSubjectsRelations = relations(groupSubjects, ({ one }) => ({
   }),
 }));
 
+export const quarterConfirmations = sqliteTable("quarter_confirmations", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  groupId: integer("group_id").notNull().references(() => groups.id),
+  quarter: integer("quarter").notNull(),
+  academicYear: text("academic_year").notNull(),
+  confirmedByTeacher: text("confirmed_by_teacher"),
+  confirmedByTeacherAt: integer("confirmed_by_teacher_at", { mode: "timestamp" }),
+  confirmedByParent: text("confirmed_by_parent"),
+  confirmedByParentAt: integer("confirmed_by_parent_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+}, (table) => ({
+  uniqueGroupQuarter: index("quarter_confirmations_unique").on(table.groupId, table.quarter, table.academicYear),
+}));
+
 

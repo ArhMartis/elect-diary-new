@@ -36,9 +36,6 @@ export async function GET() {
     return NextResponse.json(schedule);
     */
 
-    console.log("[API] GET /api/bell-schedule");
-    console.log("[DB] SELECT * FROM bell_schedule ORDER BY sortOrder");
-
     // Возвращаем заглушку
     return NextResponse.json([
       { number: "1", start: "8:00", end: "8:45", break: "15 мин" },
@@ -94,9 +91,6 @@ export async function POST(request: NextRequest) {
       }))
     );
     */
-
-    console.log("[API] POST /api/bell-schedule", schedule);
-    console.log("[DB] DELETE FROM bell_schedule; INSERT INTO bell_schedule (...) VALUES (...)");
 
     return NextResponse.json({ success: true });
   } catch (error) {

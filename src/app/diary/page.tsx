@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { user, groups, grades, schedule, subjects, groupSubjects, teacherSubjects, teacherClasses } from "@/db/schema/auth_schema";
+import { user, groups, grades, schedule, subjects, groupSubjects, teacherSubjects, teacherClasses, parentsToStudents } from "@/db/schema/auth_schema";
 import { eq, and } from "drizzle-orm";
 import StudentDiaryPage from "@/components/StudentDiaryPage";
 import { isTeacherHomeroomTeacher, isUserParentOfStudent, getDirector, getHomeroomTeacherByGroup, getDiarySettings } from "@/app/student/actions";
@@ -76,6 +76,30 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     targetStudentGrade = student.group?.name || "";
     targetStudentGroupId = student.groupId || null;
     targetStudentAvatar = student.avatar || student.image || "";
+  } else if (userRole === "parent") {
+    // Родитель — находим привязанного ученика
+    const parentLink = await db.select().from(parentsToStudents).where(eq(parentsToStudents.parentId, currentUserId)).get();
+    if (!parentLink) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100 max-w-md text-center">
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">Нет привязанного ученика</h1>
+            <p className="text-gray-600 mb-6">Обратитесь к администратору для привязки ученика к вашему аккаунту</p>
+          </div>
+        </div>
+      );
+    }
+    targetStudentId = parentLink.studentId;
+    const student = await db.query.user.findFirst({
+      where: eq(user.id, targetStudentId),
+      with: { group: true },
+    });
+    if (student) {
+      targetStudentName = student.fullName;
+      targetStudentGrade = student.group?.name || "";
+      targetStudentGroupId = student.groupId || null;
+      targetStudentAvatar = student.avatar || student.image || "";
+    }
   } else {
     targetStudentId = currentUserId;
     targetStudentName = currentUser.fullName || "";
@@ -175,16 +199,23 @@ export default async function DiaryPage({ searchParams }: PageProps) {
 
   // Получаем названия мероприятий (классный час, события) для зеленой подсветки
   let eventSubjectNames: string[] = [];
+  let specialSubjectNames: string[] = [];
   try {
     const eventSubjectsData = await db.select().from(subjects).where(eq(subjects.type, 'class_hour'));
     const eventItemsData = await db.select().from(subjects).where(eq(subjects.type, 'event'));
     eventSubjectNames = [...eventSubjectsData, ...eventItemsData].map(s => s.name);
+    const electiveData = await db.select().from(subjects).where(eq(subjects.type, 'elective'));
+    const olympiadData = await db.select().from(subjects).where(eq(subjects.type, 'olympiad'));
+    specialSubjectNames = [...electiveData, ...olympiadData].map(s => s.name);
   } catch {
     eventSubjectNames = [];
+    specialSubjectNames = [];
   }
 
   // Получаем названия предметов из groupSubjects (привязка предметов к классу)
   let filteredSubjectNames: string[] = [];
+  let allSubjectNamesForSchedule: string[] = [];
+  const nonRegularTypes = ['class_hour', 'event', 'olympiad', 'elective'];
   
   if (targetStudentGroupId) {
     const groupSubjectRows = await db.select().from(groupSubjects).where(eq(groupSubjects.groupId, targetStudentGroupId));
@@ -194,26 +225,42 @@ export default async function DiaryPage({ searchParams }: PageProps) {
       const uniqueIds = [...new Set(groupSubjectIds)];
       for (const sid of uniqueIds) {
         const found = await db.query.subjects.findFirst({ where: eq(subjects.id, sid) });
-        if (found) filteredSubjectNames.push(found.name);
+        if (found) {
+          allSubjectNamesForSchedule.push(found.name);
+          if (!nonRegularTypes.includes(found.type || 'regular')) {
+            filteredSubjectNames.push(found.name);
+          }
+        }
       }
     }
     
     // Добавляем предметы из расписания
     if (classSubjectNames.length > 0) {
-      filteredSubjectNames.push(...classSubjectNames);
+      allSubjectNamesForSchedule.push(...classSubjectNames);
+      const allSubjectsData = await db.select().from(subjects);
+      const nonRegularNames = new Set(allSubjectsData.filter(s => nonRegularTypes.includes(s.type || 'regular')).map(s => s.name));
+      for (const name of classSubjectNames) {
+        if (!nonRegularNames.has(name) && !filteredSubjectNames.includes(name)) {
+          filteredSubjectNames.push(name);
+        }
+      }
     }
     
     // Если ничего нет, загружаем все предметы
-    if (filteredSubjectNames.length === 0) {
+    if (allSubjectNamesForSchedule.length === 0) {
       const allSubjectsData = await db.select().from(subjects);
-      filteredSubjectNames = allSubjectsData.map(s => s.name);
+      allSubjectNamesForSchedule = allSubjectsData.map(s => s.name);
+      if (filteredSubjectNames.length === 0) {
+        filteredSubjectNames = allSubjectsData.filter(s => !nonRegularTypes.includes(s.type || 'regular')).map(s => s.name);
+      }
     }
   } else {
-    // Если нет groupId, используем предметы из расписания
+    allSubjectNamesForSchedule = classSubjectNames;
     filteredSubjectNames = classSubjectNames;
   }
 
   filteredSubjectNames = [...new Set(filteredSubjectNames)];
+  allSubjectNamesForSchedule = [...new Set(allSubjectNamesForSchedule)];
 
   // Строим маппинг: предмет -> ФИО учителя для этого класса
   const subjectTeacherMap: Record<string, string> = {};
@@ -260,8 +307,10 @@ export default async function DiaryPage({ searchParams }: PageProps) {
       initialSchoolName={diarySettings?.schoolName || ""}
       initialSchoolAddress={diarySettings?.schoolAddress || ""}
       classSubjectNames={filteredSubjectNames}
+      scheduleSubjectNames={allSubjectNamesForSchedule}
       subjectTeacherMap={subjectTeacherMap}
       eventSubjectNames={eventSubjectNames}
+      specialSubjectNames={specialSubjectNames}
       initialContacts={diarySettings ? {
         director: effectiveDirector || diarySettings.director,
         directorPhone: diarySettings.directorPhone,

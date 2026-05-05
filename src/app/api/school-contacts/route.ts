@@ -46,9 +46,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(contacts || {});
     */
 
-    console.log("[API] GET /api/school-contacts");
-    console.log("[DB] SELECT * FROM school_contacts LIMIT 1");
-
     // Возвращаем заглушку
     return NextResponse.json({
       schoolName: "ГУО \"Средняя школа № 1\"",
@@ -143,9 +140,6 @@ export async function POST(request: NextRequest) {
       });
     }
     */
-
-    console.log("[API] POST /api/school-contacts", body);
-    console.log("[DB] INSERT OR REPLACE INTO school_contacts (...) VALUES (...)");
 
     return NextResponse.json({ success: true });
   } catch (error) {

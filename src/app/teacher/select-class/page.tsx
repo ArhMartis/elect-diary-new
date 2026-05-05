@@ -2,8 +2,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { groups, schedule } from "@/db/schema/auth_schema";
-import { eq } from "drizzle-orm";
+import { groups, teacherSubjects, teacherClasses, groupSubjects } from "@/db/schema/auth_schema";
+import { eq, inArray } from "drizzle-orm";
 import Link from "next/link";
 
 export default async function SelectClassPage() {
@@ -20,36 +20,38 @@ export default async function SelectClassPage() {
     where: eq(groups.teacherId, session.user.id),
   });
 
-  // Классы, где учитель преподает (через расписание)
-  const teacherSchedule = await db
-    .select({
-      groupId: schedule.groupId,
-      groupName: groups.name,
-    })
-    .from(schedule)
-    .leftJoin(groups, eq(schedule.groupId, groups.id))
-    .where(eq(schedule.teacherId, session.user.id));
+  // Классы, где учитель преподает (через teacherSubjects + teacherClasses)
+  const teacherSubjectRows = await db.select().from(teacherSubjects).where(eq(teacherSubjects.teacherId, session.user.id));
+  const teacherSubjectIds = teacherSubjectRows.map(ts => ts.subjectId);
 
-  const taughtGroupsMap = new Map<number, string>();
-  teacherSchedule.forEach((item) => {
-    if (item.groupId && item.groupName && !taughtGroupsMap.has(item.groupId)) {
-      taughtGroupsMap.set(item.groupId, item.groupName);
-    }
+  const taughtGroupsSet = new Set<number>();
+  if (teacherSubjectIds.length > 0) {
+    const groupSubjectRows = await db.select().from(groupSubjects).where(
+      inArray(groupSubjects.subjectId, teacherSubjectIds)
+    );
+    groupSubjectRows.forEach(gs => {
+      if (gs.groupId) taughtGroupsSet.add(gs.groupId);
+    });
+  }
+
+  const teacherClassRows = await db.select().from(teacherClasses).where(eq(teacherClasses.teacherId, session.user.id));
+  teacherClassRows.forEach(tc => {
+    if (tc.groupId) taughtGroupsSet.add(tc.groupId);
   });
 
-  // Все доступные классы (без дубликатов)
   const allAssignedGroups = new Map<number, string>();
   if (teacherGroup) {
     allAssignedGroups.set(teacherGroup.id, teacherGroup.name);
   }
-  taughtGroupsMap.forEach((name, id) => {
-    if (!allAssignedGroups.has(id)) {
-      allAssignedGroups.set(id, name);
+  for (const gid of taughtGroupsSet) {
+    if (!allAssignedGroups.has(gid)) {
+      const g = await db.query.groups.findFirst({ where: eq(groups.id, gid) });
+      if (g) allAssignedGroups.set(g.id, g.name);
     }
-  });
+  }
 
   const availableGroups = Array.from(allAssignedGroups.entries())
-    .filter(([id, name]) => id > 0 && name && name.trim() !== '')
+    .filter(([id, name]) => id > 0 && name && name.trim() !== '' && id !== teacherGroup?.id)
     .map(([id, name]) => ({ id, name }));
 
   return (
@@ -89,7 +91,7 @@ export default async function SelectClassPage() {
               {availableGroups.map((group) => (
                 <Link
                   key={group.id}
-                  href={`/diary?groupId=${group.id}`}
+                  href={`/teacher?groupId=${group.id}`}
                   className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200 hover:border-purple-400 hover:shadow-lg transition-all group"
                 >
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold text-xl mb-3 group-hover:scale-110 transition-transform">

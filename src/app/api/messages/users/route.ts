@@ -102,8 +102,6 @@ export async function GET() {
       isHomeroomTeacher: u.role === "teacher" && homeroomTeacherIds.has(u.id),
     }));
     
-    console.log(`API: Found ${enrichedUsers.length} other users`);
-
     // Получаем связи родитель-ученик из таблицы parents_to_students
     let studentParentsMap = new Map<string, string[]>();
     try {
@@ -119,7 +117,6 @@ export async function GET() {
       });
       
     } catch (e) {
-      console.log("Parents to students table not available");
     }
 
     if (userRole === "admin" || userRole === "principal") {
@@ -191,16 +188,6 @@ export async function GET() {
       }
     }
 
-    console.log(`API: Returning users for role ${userRole}:`, {
-      admins: result.admins.length,
-      principals: result.principals.length,
-      teachers: result.teachers.length,
-      homeroomTeachers: result.homeroomTeachers.length,
-      students: result.students.length,
-      classmates: result.classmates.length,
-      parents: result.parents.length,
-    });
-    
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("Error fetching users:", error);

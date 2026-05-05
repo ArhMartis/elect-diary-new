@@ -63,11 +63,11 @@ export default function SubjectsAdminPage({
     ? classesData.filter(cls => cls.name.startsWith(`${selectedClassNumber}-`) || cls.name.startsWith(`${selectedClassNumber} `))
     : [];
 
-  const regularSubjects = allSubjectsData.filter(s => !s.type || s.type === "regular");
-  const classHourSubjects = allSubjectsData.filter(s => s.type === "class_hour");
-  const eventSubjects = allSubjectsData.filter(s => s.type === "event");
-  const olympiadSubjects = allSubjectsData.filter(s => s.type === "olympiad");
-  const electiveSubjects = allSubjectsData.filter(s => s.type === "elective");
+  const regularSubjects = allSubjectsData.filter(s => !s.type || s.type === "regular").sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  const classHourSubjects = allSubjectsData.filter(s => s.type === "class_hour").sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  const eventSubjects = allSubjectsData.filter(s => s.type === "event").sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  const olympiadSubjects = allSubjectsData.filter(s => s.type === "olympiad").sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  const electiveSubjects = allSubjectsData.filter(s => s.type === "elective").sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 
   const toggleSubject = (subjectId: number) => {
     setSelectedSubjects(prev =>

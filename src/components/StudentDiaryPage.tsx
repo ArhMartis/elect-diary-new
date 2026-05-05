@@ -99,8 +99,10 @@ interface StudentDiaryPageProps {
   initialSchoolName?: string;
   initialSchoolAddress?: string;
   classSubjectNames?: string[];
+  scheduleSubjectNames?: string[];
   subjectTeacherMap?: Record<string, string>;
   eventSubjectNames?: string[];
+  specialSubjectNames?: string[];
   initialContacts?: {
     director: string;
     directorPhone: string;
@@ -759,8 +761,10 @@ export default function StudentDiaryPage({
   initialSchoolName = "",
   initialSchoolAddress = "",
   classSubjectNames = [],
+  scheduleSubjectNames = [],
   subjectTeacherMap = {},
   eventSubjectNames = [],
+  specialSubjectNames = [],
   initialContacts,
   initialHolidays,
   userAvatar = "",
@@ -768,6 +772,7 @@ export default function StudentDiaryPage({
   // Состояния
   const [data, setData] = useState<DiaryData>(DEFAULT_DATA);
   const [activeSection, setActiveSection] = useState<string>("week");
+  const [quarterConfirmations, setQuarterConfirmations] = useState<Record<string, { confirmedByTeacher: string | null; confirmedByTeacherAt: string | null; confirmedByParent: string | null; confirmedByParentAt: string | null }>>({});
   const [isLoaded, setIsLoaded] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<Date>(getStartOfWeek(new Date()));
   const [viewMonthIdx, setViewMonthIdx] = useState<number>(() => {
@@ -1310,10 +1315,10 @@ export default function StudentDiaryPage({
     const savedAbsence = getWeeklyAbsenceLocal(studentId);
     setAbsence(savedAbsence);
     
-    // Загрузка предметов - используем только фильтр предметов для класса
-    setAvailableSubjects(classSubjectNames);
+    // Загрузка предметов - для расписания все предметы, для таблицы только обычные
+    setAvailableSubjects(scheduleSubjectNames.length > 0 ? scheduleSubjectNames : classSubjectNames);
     
-    // Обновляем data.subjects при изменении доступных предметов
+    // Обновляем data.subjects при изменении доступных предметов (только обычные)
     if (classSubjectNames.length > 0) {
       setData(prev => ({
         ...prev,
@@ -1367,16 +1372,13 @@ export default function StudentDiaryPage({
     if (!isLoaded || !studentId) return;
     // Используем getCurrentAcademicYear() напрямую, не берем из data
     const academicYear = getCurrentAcademicYear();
-    console.log('[StudentDiary] Loading final grades from API for student:', studentId, 'academicYear:', academicYear);
     // Добавляем timestamp чтобы избежать кэширования
     const timestamp = Date.now();
     fetch(`/api/final-grades?studentId=${studentId}&academicYear=${encodeURIComponent(academicYear)}&_t=${timestamp}`)
       .then(res => res.json())
       .then((finalGradesData: any[]) => {
-        console.log('[StudentDiary] Loaded final grades:', finalGradesData);
         if (Array.isArray(finalGradesData) && finalGradesData.length > 0) {
           setData(prev => {
-            console.log('[StudentDiary] Current subjects before merge:', prev.subjects.map(s => ({ name: s.name, gradeType: s.gradeType })));
             const newGrades = finalGradesData.map(fg => ({
               subject: fg.subjectName || '',
               q1: fg.q1 || '',
@@ -1411,8 +1413,6 @@ export default function StudentDiaryPage({
               });
             
             const mergedSubjects = [...updatedSubjects, ...newSubjectsFromApi];
-            console.log('[StudentDiary] Merged subjects:', mergedSubjects.map(s => ({ name: s.name, gradeType: s.gradeType })));
-            
             return { ...prev, grades: newGrades, subjects: mergedSubjects };
           });
         }
@@ -1433,6 +1433,28 @@ export default function StudentDiaryPage({
       .then(data => { if (Array.isArray(data)) setComments(data); })
       .catch(() => {});
   }, [isLoaded, studentId, effectiveUserRole, isHomeroomTeacher, currentUserId]);
+
+  // Загрузка подтверждений четвертей
+  useEffect(() => {
+    if (!isLoaded || !studentGroupId) return;
+    const academicYear = getCurrentAcademicYear();
+    fetch(`/api/quarter-confirm?groupId=${studentGroupId}&academicYear=${encodeURIComponent(academicYear)}`)
+      .then(res => res.json())
+      .then((data: any[]) => {
+        const map: Record<string, { confirmedByTeacher: string | null; confirmedByTeacherAt: string | null; confirmedByParent: string | null; confirmedByParentAt: string | null }> = {};
+        for (const row of data) {
+          const key = String(row.quarter);
+          map[key] = {
+            confirmedByTeacher: row.confirmedByTeacher || null,
+            confirmedByTeacherAt: row.confirmedByTeacherAt || null,
+            confirmedByParent: row.confirmedByParent || null,
+            confirmedByParentAt: row.confirmedByParentAt || null,
+          };
+        }
+        setQuarterConfirmations(map);
+      })
+      .catch(() => {});
+  }, [isLoaded, studentGroupId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1658,7 +1680,9 @@ export default function StudentDiaryPage({
     { id: "official", label: "🎉 Праздники" },
   ];
 
-  const sections = baseSections;
+  const sections = userRole === "admin" || userRole === "principal"
+    ? baseSections
+    : baseSections.filter(s => s.id !== "official");
 
   // ============================================================================
   // РЕНДЕРИНГ МОДАЛЬНЫХ ОКОН
@@ -1728,7 +1752,9 @@ export default function StudentDiaryPage({
                         >
                           <option value="" className="text-gray-400">—</option>
                           {sortedAvailableSubjects.map((subject) => (
-                            <option key={subject} value={subject} className="text-emerald-900 font-semibold">{subject}</option>
+                            <option key={subject} value={subject} className="text-emerald-900 font-semibold">
+                              {eventSubjectNames.includes(subject) ? '🎯 ' : specialSubjectNames.includes(subject) ? '🏆 ' : ''}{subject}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -1758,7 +1784,9 @@ export default function StudentDiaryPage({
                         >
                           <option value="" className="text-gray-400">—</option>
                           {sortedAvailableSubjects.map((subject) => (
-                            <option key={subject} value={subject} className="text-emerald-900 font-semibold">{subject}</option>
+                            <option key={subject} value={subject} className="text-emerald-900 font-semibold">
+                              {eventSubjectNames.includes(subject) ? '🎯 ' : specialSubjectNames.includes(subject) ? '🏆 ' : ''}{subject}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -2389,17 +2417,19 @@ const holidayName = getHolidayNameByDate(dayDate);
                               const markClass = lessonMarkType ? getLessonMarkColor(lessonMarkType) : 'bg-emerald-50 border-emerald-100';
                               const lessonKey = `${selectedQuarter}-${day.name}-${lesson.lessonNumber - 1}`;
                               const isEventLesson = eventSubjectNames.includes(lesson.subject);
-                              const eventClass = isEventLesson ? 'bg-emerald-200 border-emerald-500 shadow-sm' : '';
-                              const eventTextClass = isEventLesson ? 'text-emerald-900' : 'text-gray-900';
+                              const isSpecialLesson = specialSubjectNames.includes(lesson.subject);
+                              const eventClass = isEventLesson ? 'bg-emerald-200 border-emerald-500 shadow-sm' : isSpecialLesson ? 'bg-blue-200 border-blue-500 shadow-sm' : '';
+                              const eventTextClass = isEventLesson ? 'text-emerald-900' : isSpecialLesson ? 'text-blue-900' : 'text-gray-900';
                               return (
                               <div
                                 key={lesson.lessonNumber}
                                 className={`flex items-center gap-2 p-1.5 rounded border ${markClass} ${eventClass} group`}
                               >
-                                <span className={`w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold shrink-0 ${isEventLesson ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-200 text-emerald-800'}`}>{lesson.lessonNumber}</span>
+                                <span className={`w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold shrink-0 ${isEventLesson ? 'bg-emerald-600 text-white shadow-sm' : isSpecialLesson ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-200 text-emerald-800'}`}>{lesson.lessonNumber}</span>
                                 <div className="flex-1 min-w-0">
                                   <span className={`text-xs font-bold truncate block ${eventTextClass}`}>
                                     {isEventLesson && <span className="mr-0.5">🎯</span>}
+                                    {isSpecialLesson && <span className="mr-0.5">🏆</span>}
                                     {lesson.subject}
                                   </span>
                                   {lessonMarkInfo?.comment && (
@@ -2894,26 +2924,91 @@ const holidayName = getHolidayNameByDate(dayDate);
               <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">Сведения о результатах аттестации</h2>
             </div>
 
+            {/* Подтверждение четвертей */}
+            <div className="mb-6 bg-white rounded-2xl shadow-lg p-4 border border-rose-100">
+              <h3 className="text-sm font-bold text-rose-700 mb-3">📋 Подтверждение четвертей</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {["1", "2", "3", "4"].map((q) => {
+                  const conf = quarterConfirmations[q];
+                  const isTeacherConfirmed = !!conf?.confirmedByTeacher;
+                  const isParentConfirmed = !!conf?.confirmedByParent;
+                  return (
+                    <div key={q} className={`rounded-xl p-3 border-2 text-center transition-all ${isTeacherConfirmed && isParentConfirmed ? 'border-green-300 bg-green-50' : isTeacherConfirmed ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50'}`}>
+                      <div className="text-lg font-bold text-gray-800">{q} четверть</div>
+                      <div className="mt-2 space-y-1.5">
+                        <div className={`text-xs font-semibold px-2 py-1 rounded-full ${isTeacherConfirmed ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                          {isTeacherConfirmed ? `✓ ${conf.confirmedByTeacher}` : 'Кл. руководитель'}
+                        </div>
+                        <div className={`text-xs font-semibold px-2 py-1 rounded-full ${isParentConfirmed ? 'bg-green-500 text-white' : isTeacherConfirmed ? 'bg-amber-200 text-amber-700' : 'bg-gray-200 text-gray-500'}`}>
+                          {isParentConfirmed ? `✓ ${conf?.confirmedByParent}` : isTeacherConfirmed ? 'Ожидает родителя' : 'Ожидает учителя'}
+                        </div>
+                      </div>
+                      {(isHomeroomTeacher || effectiveUserRole === "admin") && !isTeacherConfirmed && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch("/api/quarter-confirm", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ groupId: studentGroupId, quarter: parseInt(q), academicYear: getCurrentAcademicYear(), confirmType: "teacher" }),
+                              });
+                              if (res.ok) {
+                                const map = { ...quarterConfirmations };
+                                map[q] = { ...map[q], confirmedByTeacher: currentUserName || "Учитель", confirmedByTeacherAt: new Date().toISOString() };
+                                setQuarterConfirmations(map);
+                              }
+                            } catch {}
+                          }}
+                          className="mt-2 w-full px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-all"
+                        >
+                          Подтвердить
+                        </button>
+                      )}
+                      {isParent && isTeacherConfirmed && !isParentConfirmed && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch("/api/quarter-confirm", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ groupId: studentGroupId, quarter: parseInt(q), academicYear: getCurrentAcademicYear(), confirmType: "parent" }),
+                              });
+                              if (res.ok) {
+                                const map = { ...quarterConfirmations };
+                                map[q] = { ...map[q], confirmedByParent: currentUserName || "Родитель", confirmedByParentAt: new Date().toISOString() };
+                                setQuarterConfirmations(map);
+                              }
+                            } catch {}
+                          }}
+                          className="mt-2 w-full px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-all"
+                        >
+                          Ознакомиться
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {isParent && (
+                <p className="text-xs text-gray-500 mt-2">⚠️ Родитель может ознакомиться с четвертью только после подтверждения классным руководителем</p>
+              )}
+            </div>
+
             {/* Тип оценок по предметам */}
             {canEditInstitution() && (
               <div className="mb-6 bg-white rounded-2xl shadow-lg p-4 border border-rose-100">
                 <h3 className="text-sm font-bold text-rose-700 mb-3">⚙️ Тип оценок по предметам</h3>
                 <p className="text-xs text-gray-500 mb-3">Отметьте предметы с зачётной системой оценок (зачёт/незачёт вместо числовых)</p>
-                {console.log('[StudentDiary] Rendering grade type buttons:', data.subjects.map(s => ({ name: s.name, gradeType: s.gradeType })))}
                 <div className="flex flex-wrap gap-2">
                    {data.subjects.map((subj, i) => {
-                    console.log(`[RENDER BUTTON] ${subj.name}: gradeType="${subj.gradeType}", isPassFail=${(subj.gradeType||'numeric')==='passfail'}`);
                     return (
                     <button
                       key={i}
                       type="button"
                       onClick={async () => {
-                        console.log(`[StudentDiary] Clicked ${subj.name}, current gradeType in UI:`, subj.gradeType);
                         const newSubjects = [...data.subjects];
                         const current = newSubjects[i].gradeType || 'numeric';
-                        console.log(`[StudentDiary] Current gradeType in data:`, current);
                         const newGradeType = current === 'numeric' ? 'passfail' : 'numeric';
-                        console.log(`[StudentDiary] Will change to:`, newGradeType);
                         newSubjects[i] = { 
                           ...newSubjects[i], 
                           gradeType: newGradeType 
@@ -2934,7 +3029,6 @@ const holidayName = getHolidayNameByDate(dayDate);
                           exam: existingGrade?.exam || '',
                           final: existingGrade?.final || '',
                         };
-                        console.log('[StudentDiary] Saving gradeType:', payload);
                         try {
                           const res = await fetch('/api/final-grades', {
                             method: 'POST',
@@ -2942,7 +3036,6 @@ const holidayName = getHolidayNameByDate(dayDate);
                             body: JSON.stringify(payload),
                           });
                           const result = await res.json();
-                          console.log('[StudentDiary] Save result:', result);
                           if (!res.ok) {
                             console.error('Ошибка сохранения типа оценок:', result);
                           } else {
@@ -2966,7 +3059,6 @@ const holidayName = getHolidayNameByDate(dayDate);
                                   gradeType: newGradeType
                                 }];
                               }
-                              console.log('[StudentDiary] Updated grades after save:', newGrades);
                               return { ...prev, grades: newGrades };
                             });
                           }
@@ -3582,7 +3674,9 @@ const holidayName = getHolidayNameByDate(dayDate);
                 >
                   <option value="">— Нет урока —</option>
                   {sortedAvailableSubjects.map((subject) => (
-                    <option key={subject} value={subject}>{subject}</option>
+                    <option key={subject} value={subject}>
+                      {eventSubjectNames.includes(subject) ? '🎯 ' : specialSubjectNames.includes(subject) ? '🏆 ' : ''}{subject}
+                    </option>
                   ))}
                 </select>
               </div>
