@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { teacherSubjects, groups } from "@/db/schema/auth_schema";
+import { teacherSubjects, teacherClasses, groups } from "@/db/schema/auth_schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -69,7 +69,6 @@ export async function assignClassToTeacher(formData: FormData) {
   }
 
   try {
-    // Обновляем группу - назначаем классного руководителя
     await db
       .update(groups)
       .set({ teacherId })
@@ -91,7 +90,6 @@ export async function removeClassFromTeacher(formData: FormData) {
   }
 
   try {
-    // Удаляем классного руководителя
     await db
       .update(groups)
       .set({ teacherId: null })
@@ -102,5 +100,60 @@ export async function removeClassFromTeacher(formData: FormData) {
   } catch (error) {
     console.error("Error removing class:", error);
     return { success: false, error: "Ошибка при удалении класса" };
+  }
+}
+
+export async function assignTeachingClassToTeacher(formData: FormData): Promise<void> {
+  const teacherId = formData.get("teacherId") as string;
+  const groupId = parseInt(formData.get("groupId") as string);
+  
+  if (!teacherId || isNaN(groupId)) {
+    return;
+  }
+
+  try {
+    const existing = await db.query.teacherClasses.findFirst({
+      where: and(
+        eq(teacherClasses.teacherId, teacherId),
+        eq(teacherClasses.groupId, groupId)
+      ),
+    });
+
+    if (existing) {
+      return;
+    }
+
+    await db.insert(teacherClasses).values({
+      teacherId,
+      groupId,
+    });
+
+    revalidatePath("/admin/teacher-classes");
+  } catch (error) {
+    console.error("Error assigning teaching class:", error);
+  }
+}
+
+export async function removeTeachingClassFromTeacher(formData: FormData): Promise<void> {
+  const teacherId = formData.get("teacherId") as string;
+  const groupId = parseInt(formData.get("groupId") as string);
+  
+  if (!teacherId || isNaN(groupId)) {
+    return;
+  }
+
+  try {
+    await db
+      .delete(teacherClasses)
+      .where(
+        and(
+          eq(teacherClasses.teacherId, teacherId),
+          eq(teacherClasses.groupId, groupId)
+        )
+      );
+
+    revalidatePath("/admin/teacher-classes");
+  } catch (error) {
+    console.error("Error removing teaching class:", error);
   }
 }

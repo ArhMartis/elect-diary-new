@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function Drawer() {
+export default function Drawer({ isLoggedIn }: { isLoggedIn: boolean }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
 
@@ -76,18 +76,29 @@ export default function Drawer() {
               </Link>
             </li>
             <li>
-              <Link 
-                href="/profile" 
-                onClick={closeDrawer} 
-                className="flex items-center gap-3 text-lg text-white/90 hover:text-white hover:bg-white/20 rounded-xl p-3 transition-all"
-              >
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+              {isLoggedIn ? (
+                <Link 
+                  href="/profile" 
+                  onClick={closeDrawer} 
+                  className="flex items-center gap-3 text-lg text-white/90 hover:text-white hover:bg-white/20 rounded-xl p-3 transition-all"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  Профиль
+                </Link>
+              ) : (
+                <div className="flex items-center gap-3 text-lg text-white/30 rounded-xl p-3 cursor-not-allowed">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <span className="relative">Профиль<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></span>
                 </div>
-                Профиль
-              </Link>
+              )}
             </li>
             <li>
               <a 
@@ -104,18 +115,29 @@ export default function Drawer() {
               </a>
             </li>
             <li>
-              <Link 
-                href="/messages" 
-                onClick={closeDrawer} 
-                className="flex items-center gap-3 text-lg text-white/90 hover:text-white hover:bg-white/20 rounded-xl p-3 transition-all"
-              >
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  </svg>
+              {isLoggedIn ? (
+                <Link 
+                  href="/messages" 
+                  onClick={closeDrawer} 
+                  className="flex items-center gap-3 text-lg text-white/90 hover:text-white hover:bg-white/20 rounded-xl p-3 transition-all"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                  </div>
+                  Сообщения
+                </Link>
+              ) : (
+                <div className="flex items-center gap-3 text-lg text-white/30 rounded-xl p-3 cursor-not-allowed">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                  </div>
+                  <span className="relative">Сообщения<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></span>
                 </div>
-                Сообщения
-              </Link>
+              )}
             </li>
           </ul>
           

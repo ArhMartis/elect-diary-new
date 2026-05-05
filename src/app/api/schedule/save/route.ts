@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { schedule, subjects } from "@/db/schema/auth_schema";
-import { eq } from "drizzle-orm";
+import { eq, and, inArray, isNull, or, sql } from "drizzle-orm";
 
 const DAYS_OF_WEEK: Record<string, number> = {
   "Понедельник": 1,
@@ -36,14 +36,33 @@ export async function POST(request: NextRequest) {
     let created = 0;
     let deleted = 0;
 
-    // Удаляем существующие записи для этой группы
-    const existing = await db
-      .select()
-      .from(schedule)
-      .where(eq(schedule.groupId, groupId));
+    // Собираем все четверти из scheduleData, чтобы удалить только их записи
+    const quartersInData = new Set<number | null>();
+    for (const key of Object.keys(scheduleData)) {
+      const parts = key.split("-");
+      if (parts.length >= 3) {
+        const q = parseInt(parts[0]);
+        if (!isNaN(q)) quartersInData.add(q);
+      }
+    }
 
-    for (const row of existing) {
-      if (!row.lessonDate) {
+    // Удаляем существующие записи для этой группы только по затронутым четвертям
+    if (quartersInData.size > 0) {
+      const quarterConditions = Array.from(quartersInData).map(q =>
+        eq(schedule.quarter, q as number)
+      );
+      
+      const existing = await db
+        .select({ id: schedule.id })
+        .from(schedule)
+        .where(
+          and(
+            eq(schedule.groupId, groupId),
+            or(...quarterConditions)
+          )
+        );
+
+      for (const row of existing) {
         await db.delete(schedule).where(eq(schedule.id, row.id));
         deleted++;
       }

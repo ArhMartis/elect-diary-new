@@ -2,10 +2,10 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { user, groups, subjects, teacherSubjects } from "@/db/schema/auth_schema";
-import { eq } from "drizzle-orm";
+import { user, groups, subjects, teacherSubjects, teacherClasses } from "@/db/schema/auth_schema";
+import { eq, and, ne } from "drizzle-orm";
 import Link from "next/link";
-import { assignSubjectToTeacher, removeSubjectFromTeacher } from "./actions";
+import { assignSubjectToTeacher, removeSubjectFromTeacher, assignTeachingClassToTeacher, removeTeachingClassFromTeacher } from "./actions";
 import AssignClassForm from "./AssignClassForm";
 
 // Иконки ролей
@@ -35,6 +35,9 @@ export default async function TeacherClassesPage() {
   
   // Получаем связи учителей с предметами
   const teacherSubjectsList = await db.select().from(teacherSubjects);
+
+  // Получаем связи учителей с классами (где преподают)
+  const teacherClassesList = await db.select().from(teacherClasses);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-blue-50 p-6">
@@ -71,13 +74,22 @@ export default async function TeacherClassesPage() {
               // Классы учителя (где он классный руководитель)
               const teacherClasses = allGroups.filter(g => g.teacherId === teacher.id);
               
-              // Доступные классы (без классного руководителя или текущего учителя)
+              // Классы где преподаёт (не классное руководство)
+              const teachingClassIds = teacherClassesList
+                .filter(tc => tc.teacherId === teacher.id)
+                .map(tc => tc.groupId);
+              const teachingClasses = allGroups.filter(g => teachingClassIds.includes(g.id));
+              
+              // Доступные классы для классного руководства (без классного руководителя)
               const availableGroups = allGroups.filter(g => !g.teacherId);
+              // Доступные классы для преподавания (не уже добавленные, не те где учитель уже классный руководитель — они и так есть)
+              const availableTeachingGroups = allGroups.filter(g => !teachingClassIds.includes(g.id) && g.id !== 0 && !teacherClasses.some(tc => tc.id === g.id));
 
                return (
                 <div
                   key={teacher.id}
-                  className="bg-white rounded-2xl shadow-lg border-2 border-cyan-100 overflow-hidden hover:shadow-xl transition-all"
+                  id={`teacher-${teacher.id}`}
+                  className="bg-white rounded-2xl shadow-lg border-2 border-cyan-100 overflow-hidden hover:shadow-xl transition-all scroll-mt-6"
                 >
                   {/* Шапка карточки */}
                   <div className="bg-gradient-to-r from-cyan-500 to-blue-500 px-6 py-4">
@@ -121,7 +133,7 @@ export default async function TeacherClassesPage() {
                       {/* Назначить класс */}
                       {teacherClasses.length > 0 ? (
                         <div className="text-amber-700 font-medium">
-                          ⚠️ Учитель уже является классным руководителем. Если произошла ошибка в выборе классного руководителя — смените его в <Link href="/admin/groups" className="text-emerald-600 hover:text-emerald-800 underline">Классы</Link>.
+                          ⚠️ Учитель уже является классным руководителем. Если произошла ошибка — смените его в <Link href={`/admin/groups#group-${teacherClasses[0].id}`} className="text-emerald-600 hover:text-emerald-800 underline">Классы</Link>.
                         </div>
                       ) : (
                         <AssignClassForm
@@ -129,6 +141,67 @@ export default async function TeacherClassesPage() {
                           availableGroups={availableGroups.map(g => ({ id: g.id, name: g.name }))}
                         />
                       )}
+                    </div>
+
+                    {/* Классы где преподаёт */}
+                    <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                      <h3 className="text-lg font-bold text-amber-800 mb-3 flex items-center gap-2">
+                        <span className="text-2xl">🏫</span>
+                        Классы где преподаёт
+                      </h3>
+                      
+                      {teachingClasses.length > 0 ? (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {teachingClasses.map((group) => (
+                            <div
+                              key={group.id}
+                              className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-amber-200 shadow-sm"
+                            >
+                              <span className="font-bold text-amber-800">🎓 {group.name}</span>
+                              {teacherClasses.some(tc => tc.id === group.id) && (
+                                <span className="text-xs text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-medium">
+                                  Классный руководитель
+                                </span>
+                              )}
+                              <form action={removeTeachingClassFromTeacher}>
+                                <input type="hidden" name="teacherId" value={teacher.id} />
+                                <input type="hidden" name="groupId" value={group.id} />
+                                <button type="submit" className="text-amber-400 hover:text-amber-700 ml-1 transition-colors" title="Удалить">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                  </svg>
+                                </button>
+                              </form>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-amber-700 italic mb-3 font-medium">Классы не добавлены</p>
+                      )}
+
+                      <form action={assignTeachingClassToTeacher} className="flex gap-2 items-center">
+                        <input type="hidden" name="teacherId" value={teacher.id} />
+                        <select
+                          name="groupId"
+                          className="border-2 border-amber-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-amber-500 bg-white flex-1 font-medium"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>Выберите класс</option>
+                          {availableTeachingGroups
+                            .filter(g => !teachingClassIds.includes(g.id))
+                            .map((group) => (
+                              <option key={group.id} value={group.id}>
+                                🎓 {group.name}
+                              </option>
+                            ))}
+                        </select>
+                        <button
+                          type="submit"
+                          className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all text-sm font-bold"
+                        >
+                          Добавить
+                        </button>
+                      </form>
                     </div>
 
                     {/* Предметы */}

@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { user, groups, subjects, teacherSubjects, schedule } from "@/db/schema/auth_schema";
+import { user, groups, subjects, teacherSubjects, teacherClasses, schedule } from "@/db/schema/auth_schema";
 import { eq } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
@@ -59,18 +59,72 @@ export default async function PrincipalPage() {
     .from(teacherSubjects)
     .leftJoin(subjects, eq(teacherSubjects.subjectId, subjects.id));
 
-  // Получаем расписание для подсчета часов
+  // Получаем расписание для подсчета часов (по четвертям)
   const allSchedule = await db
     .select({
-      teacherId: schedule.teacherId,
+      groupId: schedule.groupId,
       subjectId: schedule.subjectId,
+      quarter: schedule.quarter,
     })
     .from(schedule);
+
+  // Получаем связи учителей с классами (где преподают)
+  const allTeacherClasses = await db.select().from(teacherClasses);
+
+  // Определяем текущую четверть
+  function getCurrentQuarter(): number {
+    const now = new Date();
+    const month = now.getMonth(); // 0-11
+    const day = now.getDate();
+    // Q1: Sep 1 - Nov 3 (месяцы 8,9,10 до 3 ноя)
+    // Q2: Nov 4 - Dec 31 (месяцы 10 с 4 ноя, 11)
+    // Q3: Jan 9 - Mar 23 (месяцы 0 с 9 янв, 1, 2 до 23 мар)
+    // Q4: Mar 24 - May 31 (месяцы 2 с 24 мар, 3, 4, 5 до 31 мая)
+    if (month >= 8) return 1; // Sep-Dec (Q1 until Nov 3, Q2 after)
+    if (month === 10 && day <= 3) return 1; // Nov 1-3 still Q1
+    if (month === 10) return 2; // Nov 4+ is Q2
+    if (month === 11) return 2; // December is Q2
+    if (month === 0 && day < 9) return 2; // Jan 1-8 still holidays (Q2)
+    if (month === 0) return 3; // Jan 9+ is Q3
+    if (month === 1) return 3; // Feb is Q3
+    if (month === 2 && day <= 23) return 3; // Mar 1-23 is Q3
+    if (month === 2) return 4; // Mar 24+ is Q4
+    if (month === 3 || month === 4) return 4; // Apr-May is Q4
+    if (month === 5) return 4; // June is still Q4 (until summer)
+    if (month >= 6) return 1; // July-Aug - between years, default Q1
+    return 1;
+  }
+  const currentQuarter = getCurrentQuarter();
 
   // Формируем данные для учителей
   const teachersWithDetails = allTeachers.map((teacher) => {
     const teacherSubs = allTeacherSubjects.filter((ts) => ts.teacherId === teacher.id);
-    const teacherSchedule = allSchedule.filter((s) => s.teacherId === teacher.id);
+    const teacherSubjectIds = new Set(teacherSubs.map((ts) => ts.subjectId));
+    
+    // Классы где учитель преподает: классное руководство + teacherClasses
+    const homeroomGroups = allGroups.filter((g) => g.teacherId === teacher.id);
+    const teachingClassEntries = allTeacherClasses.filter((tc) => tc.teacherId === teacher.id);
+    const teachingGroupIds = teachingClassEntries.map((tc) => tc.groupId);
+    const teacherGroupIds = new Set([...homeroomGroups.map((g) => g.id), ...teachingGroupIds]);
+    
+    // Все классы учителя с подробностями
+    const allTeacherGroups = Array.from(teacherGroupIds).map((gid) => {
+      const g = allGroups.find((gr) => gr.id === gid);
+      return {
+        id: gid,
+        name: g?.name || "",
+        isHomeroom: homeroomGroups.some((hg) => hg.id === gid),
+      };
+    });
+    
+    // Расписание учителя (для каждой четверти)
+    const teacherScheduleEntries = allSchedule.filter((s) => {
+      return teacherSubjectIds.has(s.subjectId) && teacherGroupIds.has(s.groupId);
+    });
+    
+    // Часы за текущую четверть
+    const hoursCount = teacherScheduleEntries.filter((s) => s.quarter === currentQuarter || s.quarter === null).length;
+    
     const classTeacherGroup = allGroups.find((g) => g.teacherId === teacher.id);
     
     return {
@@ -80,7 +134,14 @@ export default async function PrincipalPage() {
       isClassTeacher: !!classTeacherGroup,
       className: classTeacherGroup?.name,
       subjects: teacherSubs.map((ts) => ({ id: ts.subjectId, name: ts.subjectName || "" })),
-      hoursCount: teacherSchedule.length,
+      hoursCount,
+      currentQuarter,
+      classes: allTeacherGroups,
+      scheduleEntries: teacherScheduleEntries.map((s) => ({
+        groupId: s.groupId,
+        subjectId: s.subjectId,
+        quarter: s.quarter,
+      })),
     };
   });
 

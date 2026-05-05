@@ -257,6 +257,26 @@ export const teacherSubjects = sqliteTable("teacher_subjects", {
 });
 
 /* =========================================================
+   TEACHER CLASSES (Справочник: учителя ↔ классы)
+   Связь многие-ко-многим: один учитель может преподавать в нескольких классах
+   ========================================================= */
+
+export const teacherClasses = sqliteTable("teacher_classes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  teacherId: text("teacher_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  groupId: integer("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  assignedAt: integer("assigned_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+}, (table) => [
+  index("teacher_classes_unique_idx").on(table.teacherId, table.groupId),
+]);
+
+/* =========================================================
    SCHEDULE (Расписание)
    ========================================================= */
 
@@ -424,6 +444,9 @@ export const userRelations = relations(user, ({ many, one }) => ({
     fields: [user.groupId],
     references: [groups.id],
   }),
+
+  // Классы где преподаёт
+  teacherClassAssignments: many(teacherClasses),
 }));
 
 
@@ -495,6 +518,9 @@ export const groupsRelations = relations(groups, ({ one, many }) => ({
 
   // Четверти класса
   academicPeriods: many(academicPeriods),
+
+  // Учителя преподающие в классе
+  teacherClassAssignments: many(teacherClasses),
 }));
 
 export const academicPeriodsRelations = relations(academicPeriods, ({ one }) => ({
@@ -530,6 +556,18 @@ export const teacherSubjectsRelations = relations(teacherSubjects, ({ one }) => 
   subject: one(subjects, {
     fields: [teacherSubjects.subjectId],
     references: [subjects.id],
+  }),
+}));
+
+export const teacherClassesRelations = relations(teacherClasses, ({ one }) => ({
+  teacher: one(user, {
+    fields: [teacherClasses.teacherId],
+    references: [user.id],
+  }),
+
+  group: one(groups, {
+    fields: [teacherClasses.groupId],
+    references: [groups.id],
   }),
 }));
 

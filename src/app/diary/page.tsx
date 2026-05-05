@@ -224,6 +224,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
       grades={gradesFlat}
       schedule={scheduleFlat}
       currentUserId={currentUserId}
+      currentUserName={currentUser.fullName || ""}
       isHomeroomTeacher={isHomeroomTeacher}
       isParent={isParent}
       userRole={userRole}

@@ -70,7 +70,8 @@ export default async function GroupsPage() {
                 return (
                   <div
                     key={group.id}
-                    className="bg-white rounded-2xl shadow-lg border-2 border-blue-100 overflow-hidden hover:border-blue-300 hover:shadow-xl transition-all"
+                    id={`group-${group.id}`}
+                    className="bg-white rounded-2xl shadow-lg border-2 border-blue-100 overflow-hidden hover:border-blue-300 hover:shadow-xl transition-all scroll-mt-6"
                   >
                     {/* Шапка карточки класса */}
                     <div className="bg-gradient-to-r from-blue-500 to-cyan-500 px-6 py-4">
