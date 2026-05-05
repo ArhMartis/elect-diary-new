@@ -1329,11 +1329,11 @@ export default function StudentDiaryPage({
       const initialSubjects = classSubjectNames.length > 0
         ? classSubjectNames.map(name => {
             const scheduleTeacher = schedule.find(l => l.subjectName === name && l.teacherName)?.teacherName || "";
-            return { name, teacher: scheduleTeacher };
+            return { name, teacher: scheduleTeacher || sharedData.homeroomTeacher };
           })
         : schedule.reduce((acc: { name: string; teacher: string }[], lesson) => {
             if (lesson.subjectName && !acc.find(s => s.name === lesson.subjectName)) {
-              acc.push({ name: lesson.subjectName, teacher: lesson.teacherName || "" });
+              acc.push({ name: lesson.subjectName, teacher: lesson.teacherName || sharedData.homeroomTeacher || "" });
             }
             return acc;
           }, []);
@@ -1395,7 +1395,7 @@ export default function StudentDiaryPage({
                 const scheduleTeacher = schedule.find(l => l.subjectName === fg.subjectName && l.teacherName)?.teacherName || "";
                 return {
                   name: fg.subjectName!,
-                  teacher: scheduleTeacher,
+                  teacher: scheduleTeacher || sharedData.homeroomTeacher || "",
                   gradeType: fg.gradeType || 'numeric'
                 };
               });
@@ -2623,7 +2623,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                           </span>
                         </td>
                         <td className={`border border-emerald-200 p-3 ${isMySubject ? 'border-l-4 border-l-amber-400' : ''}`}>
-                          <span className={`font-bold ${isMySubject ? 'text-amber-700' : 'text-gray-800'}`}>{subject.teacher || (isHomeroomTeacher ? currentUserName : "")}</span>
+                          <span className={`font-bold ${isMySubject ? 'text-amber-700' : 'text-gray-800'}`}>{subject.teacher || sharedData.homeroomTeacher || ""}</span>
                         </td>
                       </tr>
                     );
