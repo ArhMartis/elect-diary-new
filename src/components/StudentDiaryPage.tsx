@@ -759,6 +759,7 @@ export default function StudentDiaryPage({
   initialSchoolName = "",
   initialSchoolAddress = "",
   classSubjectNames = [],
+  subjectTeacherMap = {},
   eventSubjectNames = [],
   initialContacts,
   initialHolidays,
@@ -774,6 +775,7 @@ export default function StudentDiaryPage({
     const map: Record<number, number> = { 8:0, 9:1, 10:2, 11:3, 0:4, 1:5, 2:6, 3:7, 4:8 };
     return map[m] ?? 0;
   });
+  const prevGroupIdRef = useRef<number | null>(null);
   const [studentNote, setStudentNote] = useState("");
   const [teacherVerification, setTeacherVerification] = useState<{ teacherId: string; verifiedAt: Date } | null>(null);
   const [parentVerification, setParentVerification] = useState<{ parentId: string; verifiedAt: Date } | null>(null);
@@ -1278,22 +1280,26 @@ export default function StudentDiaryPage({
                 }
               }
             }
-            // Merge: keep entries for other quarters, replace current quarter entries with DB data
-            setScheduleData(prev => {
-              const quarterPrefix = `${selectedQuarter}-`;
-              const merged = { ...prev };
-              // Remove old entries for current quarter
-              for (const key of Object.keys(merged)) {
-                if (key.startsWith(quarterPrefix)) {
-                  delete merged[key];
+            // If group changed: replace entire schedule. If only quarter changed: merge.
+            const groupChanged = prevGroupIdRef.current !== studentGroupId;
+            if (groupChanged) {
+              setScheduleData(fromDb);
+              prevGroupIdRef.current = studentGroupId;
+            } else {
+              setScheduleData(prev => {
+                const quarterPrefix = `${selectedQuarter}-`;
+                const merged = { ...prev };
+                for (const key of Object.keys(merged)) {
+                  if (key.startsWith(quarterPrefix)) {
+                    delete merged[key];
+                  }
                 }
-              }
-              // Add DB entries for current quarter
-              for (const [key, value] of Object.entries(fromDb)) {
-                merged[key] = value;
-              }
-              return merged;
-            });
+                for (const [key, value] of Object.entries(fromDb)) {
+                  merged[key] = value;
+                }
+                return merged;
+              });
+            }
           }
         })
       .catch((err) => console.error("Ошибка загрузки расписания:", err));
