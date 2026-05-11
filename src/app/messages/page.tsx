@@ -70,6 +70,8 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [activeTab, setActiveTab] = useState<"inbox" | "sent">("inbox");
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showConfirmClearMessages, setShowConfirmClearMessages] = useState(false);
+  const [clearingMessages, setClearingMessages] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -350,11 +352,21 @@ export default function MessagesPage() {
             <h1 className="text-4xl font-black text-indigo-900 mb-2">Сообщения</h1>
             <p className="text-indigo-700 font-medium">Общение между участниками образовательного процесса</p>
           </div>
-          {unreadCount > 0 && (
-            <div className="px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full font-bold shadow-lg">
-              {unreadCount} новых
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {userRole === "admin" && messages.length > 0 && (
+              <button
+                onClick={() => setShowConfirmClearMessages(true)}
+                className="px-4 py-2 bg-red-100 text-red-700 rounded-xl text-sm font-bold hover:bg-red-200 transition-all border border-red-200"
+              >
+                Очистить все
+              </button>
+            )}
+            {unreadCount > 0 && (
+              <div className="px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full font-bold shadow-lg">
+                {unreadCount} новых
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -932,6 +944,47 @@ export default function MessagesPage() {
           </div>
         </div>
       </div>
+
+      {/* Подтверждение очистки сообщений */}
+      {showConfirmClearMessages && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-3">🗑️</div>
+              <h3 className="text-xl font-extrabold text-gray-800">Удалить все сообщения?</h3>
+              <p className="text-gray-500 text-sm mt-1">Это действие нельзя отменить. Все сообщения будут удалены навсегда.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirmClearMessages(false)}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-bold transition-all"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={async () => {
+                  setClearingMessages(true);
+                  try {
+                    const res = await fetch('/api/messages', {
+                      method: 'DELETE',
+                      headers: { 'Content-Type': 'application/json' },
+                    });
+                    if (res.ok) {
+                      setMessages([]);
+                      setShowConfirmClearMessages(false);
+                    }
+                  } catch {}
+                  setClearingMessages(false);
+                }}
+                disabled={clearingMessages}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 disabled:from-gray-300 disabled:to-gray-300 text-sm font-bold transition-all shadow-md"
+              >
+                {clearingMessages ? "Удаление..." : "Удалить все"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

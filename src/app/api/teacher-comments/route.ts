@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { db } from "@/db";
 import { teacherComments } from "@/db/schema/diary-extra";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -126,7 +128,19 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id } = body;
+    const { id, studentId, clearAll } = body;
+
+    if (clearAll) {
+      const session = await auth.api.getSession({ headers: await headers() });
+      if (!session?.user || session.user.role !== "admin") {
+        return NextResponse.json({ error: "Только для администратора" }, { status: 403 });
+      }
+      if (!studentId) {
+        return NextResponse.json({ error: "Не указан studentId" }, { status: 400 });
+      }
+      await db.delete(teacherComments).where(eq(teacherComments.studentId, studentId));
+      return NextResponse.json({ success: true });
+    }
 
     if (!id) {
       return NextResponse.json({ error: "Не указан ID замечания" }, { status: 400 });

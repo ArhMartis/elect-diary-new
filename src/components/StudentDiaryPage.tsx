@@ -790,6 +790,8 @@ export default function StudentDiaryPage({
   const [newComment, setNewComment] = useState("");
   const [addingComment, setAddingComment] = useState(false);
   const [showConfirmComment, setShowConfirmComment] = useState(false);
+  const [showConfirmClearComments, setShowConfirmClearComments] = useState(false);
+  const [clearingComments, setClearingComments] = useState(false);
   const [editingCell, setEditingCell] = useState<{ subjectIdx: number; field: string } | null>(null);
   const [editingValue, setEditingValue] = useState("");
 
@@ -2093,6 +2095,14 @@ export default function StudentDiaryPage({
                   Замечания
                 </h2>
                 <p className="text-gray-400 text-sm mt-1 font-medium">учителей и классного руководителя</p>
+                {effectiveUserRole === "admin" && comments.length > 0 && (
+                  <button
+                    onClick={() => setShowConfirmClearComments(true)}
+                    className="mt-2 px-4 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-bold hover:bg-red-200 transition-all border border-red-200"
+                  >
+                    Очистить все замечания
+                  </button>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -2201,6 +2211,48 @@ export default function StudentDiaryPage({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Подтверждение очистки замечаний */}
+        {showConfirmClearComments && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
+              <div className="text-center mb-4">
+                <div className="text-4xl mb-3">🗑️</div>
+                <h3 className="text-xl font-extrabold text-gray-800">Удалить все замечания?</h3>
+                <p className="text-gray-500 text-sm mt-1">Это действие нельзя отменить. Все замечания будут удалены навсегда.</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirmClearComments(false)}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-bold transition-all"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={async () => {
+                    setClearingComments(true);
+                    try {
+                      const res = await fetch('/api/teacher-comments', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ studentId, clearAll: true }),
+                      });
+                      if (res.ok) {
+                        setComments([]);
+                        setShowConfirmClearComments(false);
+                      }
+                    } catch {}
+                    setClearingComments(false);
+                  }}
+                  disabled={clearingComments}
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 disabled:from-gray-300 disabled:to-gray-300 text-sm font-bold transition-all shadow-md"
+                >
+                  {clearingComments ? "Удаление..." : "Удалить все"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

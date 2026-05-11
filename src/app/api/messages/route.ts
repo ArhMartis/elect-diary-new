@@ -438,3 +438,22 @@ async function checkSendPermission(
 
   return { allowed: false, reason: "Permission denied" };
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ error: "Только администратор может удалять все сообщения" }, { status: 403 });
+    }
+
+    await db.delete(messages);
+    return NextResponse.json({ success: true, message: "Все сообщения удалены" });
+  } catch (error) {
+    console.error("Ошибка при удалении сообщений:", error);
+    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
+  }
+}
