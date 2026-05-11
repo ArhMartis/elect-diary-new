@@ -96,7 +96,7 @@ export default async function Navbar() {
                         {session.user.email}
                       </div>
                       {session.user.role && (
-                        <div className="opacity-60 text-xs text-gray-200 mt-0.5">
+                        <div className="text-[10px] font-semibold mt-0.5 px-1.5 py-0.5 rounded bg-white/20 text-white/90">
                           {roleNames[session.user.role] || session.user.role}
                         </div>
                       )}

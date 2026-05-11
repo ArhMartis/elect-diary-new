@@ -183,6 +183,7 @@ export default async function TeacherClassesPage() {
                         <input type="hidden" name="teacherId" value={teacher.id} />
                         <select
                           name="groupId"
+                          id="teachingClassSelect"
                           className="border-2 border-amber-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-amber-500 bg-white flex-1 font-medium"
                           defaultValue=""
                         >
@@ -197,7 +198,9 @@ export default async function TeacherClassesPage() {
                         </select>
                         <button
                           type="submit"
-                          className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all text-sm font-bold"
+                          id="addClassBtn"
+                          disabled
+                          className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Добавить
                         </button>
@@ -244,6 +247,7 @@ export default async function TeacherClassesPage() {
                         <input type="hidden" name="teacherId" value={teacher.id} />
                         <select
                           name="subjectId"
+                          id="subjectSelect"
                           className="border-2 border-indigo-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-indigo-500 bg-white flex-1 font-medium"
                           defaultValue=""
                         >
@@ -258,7 +262,9 @@ export default async function TeacherClassesPage() {
                         </select>
                         <button
                           type="submit"
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all text-sm font-bold"
+                          id="addSubjectBtn"
+                          disabled
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Добавить
                         </button>
@@ -271,6 +277,20 @@ export default async function TeacherClassesPage() {
           )}
         </div>
       </div>
+      <script dangerouslySetInnerHTML={{ __html: `
+        document.querySelectorAll('#teachingClassSelect').forEach(s => {
+          s.addEventListener('change', function() {
+            var btn = this.parentElement.querySelector('#addClassBtn');
+            if (btn) btn.disabled = !this.value;
+          });
+        });
+        document.querySelectorAll('#subjectSelect').forEach(s => {
+          s.addEventListener('change', function() {
+            var btn = this.parentElement.querySelector('#addSubjectBtn');
+            if (btn) btn.disabled = !this.value;
+          });
+        });
+      ` }} />
     </div>
   );
 }
