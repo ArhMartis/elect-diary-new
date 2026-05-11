@@ -7,6 +7,7 @@ import AuthRefresh from "@/components/AuthRefresh";
 import { requireRole } from "@/lib/rbac";
 import { cookies } from "next/headers";
 import FlashToast from "@/components/FlashToast";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 
 export const dynamic = "force-dynamic";
@@ -38,14 +39,19 @@ export default async function RootLayout({
   const flash = cookieStore.get("flash")?.value;
 
 return (
-  <html lang="ru">
+  <html lang="ru" suppressHydrationWarning>
+    <head>
+      <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark')}else if(t==='light'){document.documentElement.setAttribute('data-theme','light');document.documentElement.classList.remove('dark')}else if(!t||t==='system'){var d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(d){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark')}else{document.documentElement.setAttribute('data-theme','light');document.documentElement.classList.remove('dark')}}}catch(e){}})()` }} />
+    </head>
     <body className={`${geistSans.variable} ${geistMono.variable} antialiased pt-16`}>
-      <Navbar />
-      <AuthRefresh />
+      <ThemeProvider>
+        <Navbar />
+        <AuthRefresh />
 
-      {flash && <FlashToast message={flash} />}
+        {flash && <FlashToast message={flash} />}
 
-      {children}
+        {children}
+      </ThemeProvider>
     </body>
   </html>
 );

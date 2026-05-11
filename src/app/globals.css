@@ -17,11 +17,85 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Dark mode overrides */
+html[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+html[data-theme="dark"] body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* ===================================
+   DARK MODE — глобальные переопределения
+   =================================== */
+
+html[data-theme="dark"] .bg-white { background-color: #1e1e2e !important; }
+html[data-theme="dark"] .bg-gray-50 { background-color: #11111b !important; }
+html[data-theme="dark"] .bg-gray-100 { background-color: #181825 !important; }
+html[data-theme="dark"] .bg-gray-200 { background-color: #1e1e2e !important; }
+
+html[data-theme="dark"] .text-gray-800 { color: #cdd6f4 !important; }
+html[data-theme="dark"] .text-gray-700 { color: #bac2de !important; }
+html[data-theme="dark"] .text-gray-600 { color: #a6adc8 !important; }
+html[data-theme="dark"] .text-gray-500 { color: #9399b2 !important; }
+html[data-theme="dark"] .text-gray-400 { color: #7f849c !important; }
+html[data-theme="dark"] .text-gray-300 { color: #6c7086 !important; }
+
+html[data-theme="dark"] .border-gray-100 { border-color: #313244 !important; }
+html[data-theme="dark"] .border-gray-200 { border-color: #45475a !important; }
+html[data-theme="dark"] .border-gray-300 { border-color: #585b70 !important; }
+
+html[data-theme="dark"] .bg-gradient-to-br.from-amber-50 { background-image: linear-gradient(to bottom right, #302018, #11111b) !important; }
+html[data-theme="dark"] .bg-gradient-to-br.from-indigo-50 { background-image: linear-gradient(to bottom right, #1e1e3a, #11111b) !important; }
+html[data-theme="dark"] .bg-gradient-to-br.from-rose-50 { background-image: linear-gradient(to bottom right, #301828, #11111b) !important; }
+html[data-theme="dark"] .bg-gradient-to-br.from-emerald-50 { background-image: linear-gradient(to bottom right, #182830, #11111b) !important; }
+html[data-theme="dark"] .bg-gradient-to-br.from-blue-50 { background-image: linear-gradient(to bottom right, #181828, #11111b) !important; }
+html[data-theme="dark"] .bg-gradient-to-br.from-violet-50 { background-image: linear-gradient(to bottom right, #201838, #11111b) !important; }
+
+html[data-theme="dark"] .bg-rose-50 { background-color: #301828 !important; }
+html[data-theme="dark"] .bg-rose-50\/70 { background-color: rgba(48, 24, 40, 0.7) !important; }
+html[data-theme="dark"] .border-rose-100 { border-color: #452838 !important; }
+html[data-theme="dark"] .border-rose-200 { border-color: #553848 !important; }
+
+html[data-theme="dark"] .bg-indigo-50 { background-color: #181828 !important; }
+html[data-theme="dark"] .border-indigo-100 { border-color: #282848 !important; }
+html[data-theme="dark"] .border-indigo-200 { border-color: #3838a0 !important; }
+
+html[data-theme="dark"] .shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5) !important; }
+html[data-theme="dark"] .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5) !important; }
+html[data-theme="dark"] .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6) !important; }
+
+html[data-theme="dark"] .hover\:bg-gray-100:hover { background-color: #282838 !important; }
+html[data-theme="dark"] .hover\:bg-gray-200:hover { background-color: #313244 !important; }
+
+/* Messages page */
+html[data-theme="dark"] .bg-gradient-to-br.from-indigo-50.via-purple-50 { background-image: linear-gradient(to bottom right, #181828, #1e1838, #281838) !important; }
+html[data-theme="dark"] .text-indigo-900 { color: #cdd6f4 !important; }
+html[data-theme="dark"] .text-indigo-700 { color: #b4befe !important; }
+html[data-theme="dark"] .text-indigo-600 { color: #89b4fa !important; }
+html[data-theme="dark"] .text-indigo-500 { color: #74c7ec !important; }
+html[data-theme="dark"] .text-indigo-400 { color: #6c7086 !important; }
+
+/* Auth / sign-in / sign-up fix */
+html[data-theme="dark"] .bg-white\/95 { background-color: rgba(30,30,46,0.95) !important; }
+html[data-theme="dark"] .bg-white\/90 { background-color: rgba(30,30,46,0.9) !important; }
+
+/* Logout button -- keep visible */
+html[data-theme="dark"] .bg-white\/10 { background-color: rgba(255,255,255,0.1) !important; }
+html[data-theme="dark"] .bg-white\/20 { background-color: rgba(255,255,255,0.2) !important; }
+
+/* Diary print mode — keep light */
+@media print {
+  html[data-theme="dark"] .bg-white { background-color: #fff !important; }
+  html[data-theme="dark"] .text-gray-800 { color: #1f2937 !important; }
+}
+
+/* Calendar dark mode */
+html[data-theme="dark"] calendar-date.cally {
+  color-scheme: dark;
 }
 
 body {
