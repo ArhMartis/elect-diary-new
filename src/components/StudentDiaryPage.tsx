@@ -790,6 +790,56 @@ export default function StudentDiaryPage({
   const [newComment, setNewComment] = useState("");
   const [addingComment, setAddingComment] = useState(false);
   const [showConfirmComment, setShowConfirmComment] = useState(false);
+  const [editingCell, setEditingCell] = useState<{ subjectIdx: number; field: string } | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+
+  const handleCellEdit = async (subjectIdx: number, field: string, value: string) => {
+    const subj = data.subjects[subjectIdx];
+    if (!subj) return;
+    const academicYear = data.academicYear || getCurrentAcademicYear();
+    const payload: Record<string, any> = {
+      studentId,
+      subjectName: subj.name,
+      academicYear,
+    };
+    const grade = data.grades.find(g => g.subject === subj.name);
+    if (grade) {
+      payload.q1 = field === "q1" ? value : grade.q1 || '';
+      payload.q2 = field === "q2" ? value : grade.q2 || '';
+      payload.q3 = field === "q3" ? value : grade.q3 || '';
+      payload.q4 = field === "q4" ? value : grade.q4 || '';
+      payload.year = field === "year" ? value : grade.year || '';
+      payload.exam = field === "exam" ? value : grade.exam || '';
+      payload.final = field === "final" ? value : grade.final || '';
+      payload.gradeType = subj.gradeType || grade.gradeType || 'numeric';
+    } else {
+      payload[field] = value;
+      payload.gradeType = subj.gradeType || 'numeric';
+    }
+    try {
+      await fetch('/api/final-grades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      setData((prev: DiaryData) => {
+        const existingGrade = prev.grades.find(g => g.subject === subj.name);
+        let newGrades: DiaryData['grades'];
+        if (existingGrade) {
+          newGrades = prev.grades.map(g => {
+            if (g.subject !== subj.name) return g;
+            return { ...g, [field]: value } as DiaryData['grades'][number];
+          });
+        } else {
+          const newGrade = { subject: subj.name, q1: field === "q1" ? value : '', q2: field === "q2" ? value : '', q3: field === "q3" ? value : '', q4: field === "q4" ? value : '', year: field === "year" ? value : '', exam: field === "exam" ? value : '', final: field === "final" ? value : '', gradeType: (subj.gradeType || 'numeric') as 'numeric' | 'passfail' };
+          newGrades = [...prev.grades, newGrade];
+        }
+        return { ...prev, grades: newGrades } as DiaryData;
+      });
+    } catch {}
+    setEditingCell(null);
+    setEditingValue("");
+  };
    
   const normalizedHolidays = initialHolidays && Object.values(initialHolidays).some(v => v && v.trim() !== "")
     ? initialHolidays
@@ -3166,35 +3216,80 @@ const holidayName = getHolidayNameByDate(dayDate);
                           </div>
                         </td>
                         {["q1", "q2", "q3", "q4"].map((field) => (
-                          <td key={field} className="border border-rose-200 px-1 py-1.5 text-center">
-                            <span className={`font-bold ${
-                              isPassFail 
-                                ? (getCellValue(field) === 'Зачёт' || getCellValue(field) === 'зачёт' || getCellValue(field) === 'З' ? 'text-emerald-600' : getCellValue(field) === 'Незачёт' || getCellValue(field) === 'незачёт' || getCellValue(field) === 'Н' ? 'text-red-500' : 'text-gray-800')
-                                : 'text-gray-800'
-                            }`}>{getCellValue(field)}</span>
+                          <td key={field} className="border border-rose-200 px-1 py-1.5 text-center relative group/cell">
+                            {(canEditInstitution() || isHomeroomTeacher) && editingCell && editingCell.subjectIdx === i && editingCell.field === field ? (
+                              <input
+                                autoFocus
+                                className="w-full text-center font-bold text-sm border-2 border-rose-400 rounded px-1 py-0.5 focus:outline-none focus:border-rose-500"
+                                value={editingValue}
+                                onChange={(e) => setEditingValue(e.target.value)}
+                                onBlur={() => { if (editingValue.trim()) handleCellEdit(i, field, editingValue.trim()); else setEditingCell(null); }}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { if (editingValue.trim()) handleCellEdit(i, field, editingValue.trim()); else setEditingCell(null); } if (e.key === 'Escape') setEditingCell(null); }}
+                                placeholder="—"
+                              />
+                            ) : (
+                              <span
+                                className={`font-bold cursor-default ${(canEditInstitution() || isHomeroomTeacher) ? 'hover:bg-rose-100 rounded px-1 cursor-pointer' : ''} ${
+                                  isPassFail 
+                                    ? (getCellValue(field) === 'Зачёт' || getCellValue(field) === 'зачёт' || getCellValue(field) === 'З' ? 'text-emerald-600' : getCellValue(field) === 'Незачёт' || getCellValue(field) === 'незачёт' || getCellValue(field) === 'Н' ? 'text-red-500' : 'text-gray-800')
+                                    : 'text-gray-800'
+                                }`}
+                                onClick={() => { if (canEditInstitution() || isHomeroomTeacher) { setEditingCell({ subjectIdx: i, field }); setEditingValue(getCellValue(field) === '—' ? '' : getCellValue(field)); } }}
+                              >{getCellValue(field)}</span>
+                            )}
+                            {(canEditInstitution() || isHomeroomTeacher) && !(editingCell && editingCell.subjectIdx === i && editingCell.field === field) && (
+                              <button
+                                onClick={() => { setEditingCell({ subjectIdx: i, field }); setEditingValue(getCellValue(field) === '—' ? '' : getCellValue(field)); }}
+                                className="absolute top-0.5 right-0.5 opacity-0 group-hover/cell:opacity-100 transition-opacity text-rose-400 hover:text-rose-600"
+                                title="Редактировать"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
+                              </button>
+                            )}
                           </td>
                         ))}
-                        <td className="border border-rose-200 px-1 py-1.5 text-center bg-rose-50/50">
-                          <span className={`font-bold ${
-                            isPassFail 
-                              ? (getCellValue('year') === 'Зачёт' ? 'text-emerald-600' : getCellValue('year') === 'Незачёт' ? 'text-red-500' : 'text-gray-800')
-                              : 'text-rose-700'
-                          }`}>{getCellValue('year')}</span>
-                          {!isPassFail && getCellValue('year') !== '—' && getCellValue('year') !== '' && (
+                        <td className="border border-rose-200 px-1 py-1.5 text-center bg-rose-50/50 relative group/cell">
+                          {(canEditInstitution() || isHomeroomTeacher) && editingCell && editingCell.subjectIdx === i && editingCell.field === "year" ? (
+                            <input autoFocus className="w-full text-center font-bold text-sm border-2 border-rose-400 rounded px-1 py-0.5 focus:outline-none focus:border-rose-500" value={editingValue} onChange={(e) => setEditingValue(e.target.value)} onBlur={() => { if (editingValue.trim()) handleCellEdit(i, "year", editingValue.trim()); else setEditingCell(null); }} onKeyDown={(e) => { if (e.key === 'Enter') { if (editingValue.trim()) handleCellEdit(i, "year", editingValue.trim()); else setEditingCell(null); } if (e.key === 'Escape') setEditingCell(null); }} placeholder="—" />
+                          ) : (
+                            <span className={`font-bold ${(canEditInstitution() || isHomeroomTeacher) ? 'hover:bg-rose-100 rounded px-1 cursor-pointer' : ''} ${
+                              isPassFail 
+                                ? (getCellValue('year') === 'Зачёт' ? 'text-emerald-600' : getCellValue('year') === 'Незачёт' ? 'text-red-500' : 'text-gray-800')
+                                : 'text-rose-700'
+                            }`} onClick={() => { if (canEditInstitution() || isHomeroomTeacher) { setEditingCell({ subjectIdx: i, field: "year" }); setEditingValue(getCellValue('year') === '—' ? '' : getCellValue('year')); } }}>{getCellValue('year')}</span>
+                          )}
+                          {!isPassFail && getCellValue('year') !== '—' && getCellValue('year') !== '' && !(editingCell && editingCell.subjectIdx === i && editingCell.field === "year") && (
                             <span className="block text-[9px] text-rose-400 font-normal">авто</span>
                           )}
+                          {(canEditInstitution() || isHomeroomTeacher) && !(editingCell && editingCell.subjectIdx === i && editingCell.field === "year") && (
+                            <button onClick={() => { setEditingCell({ subjectIdx: i, field: "year" }); setEditingValue(getCellValue('year') === '—' ? '' : getCellValue('year')); }} className="absolute top-0.5 right-0.5 opacity-0 group-hover/cell:opacity-100 transition-opacity text-rose-400 hover:text-rose-600" title="Редактировать"><svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>
+                          )}
                         </td>
-                        <td className="border border-rose-200 px-1 py-1.5 text-center bg-rose-50/50">
-                          <span className="font-bold text-gray-800">{getCellValue('exam')}</span>
+                        <td className="border border-rose-200 px-1 py-1.5 text-center bg-rose-50/50 relative group/cell">
+                          {(canEditInstitution() || isHomeroomTeacher) && editingCell && editingCell.subjectIdx === i && editingCell.field === "exam" ? (
+                            <input autoFocus className="w-full text-center font-bold text-sm border-2 border-rose-400 rounded px-1 py-0.5 focus:outline-none focus:border-rose-500" value={editingValue} onChange={(e) => setEditingValue(e.target.value)} onBlur={() => { if (editingValue.trim()) handleCellEdit(i, "exam", editingValue.trim()); else setEditingCell(null); }} onKeyDown={(e) => { if (e.key === 'Enter') { if (editingValue.trim()) handleCellEdit(i, "exam", editingValue.trim()); else setEditingCell(null); } if (e.key === 'Escape') setEditingCell(null); }} placeholder="—" />
+                          ) : (
+                            <span className={`font-bold ${(canEditInstitution() || isHomeroomTeacher) ? 'hover:bg-rose-100 rounded px-1 cursor-pointer' : ''} text-gray-800`} onClick={() => { if (canEditInstitution() || isHomeroomTeacher) { setEditingCell({ subjectIdx: i, field: "exam" }); setEditingValue(getCellValue('exam') === '—' ? '' : getCellValue('exam')); } }}>{getCellValue('exam')}</span>
+                          )}
+                          {(canEditInstitution() || isHomeroomTeacher) && !(editingCell && editingCell.subjectIdx === i && editingCell.field === "exam") && (
+                            <button onClick={() => { setEditingCell({ subjectIdx: i, field: "exam" }); setEditingValue(getCellValue('exam') === '—' ? '' : getCellValue('exam')); }} className="absolute top-0.5 right-0.5 opacity-0 group-hover/cell:opacity-100 transition-opacity text-rose-400 hover:text-rose-600" title="Редактировать"><svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>
+                          )}
                         </td>
-                        <td className="border border-rose-200 px-1 py-1.5 text-center bg-rose-100/50">
-                          <span className={`font-bold ${
-                            isPassFail 
-                              ? (getCellValue('final') === 'Зачёт' ? 'text-emerald-700' : getCellValue('final') === 'Незачёт' ? 'text-red-600' : 'text-gray-800')
-                              : 'text-rose-800'
-                          }`}>{getCellValue('final')}</span>
-                          {!isPassFail && getCellValue('final') !== '—' && getCellValue('final') !== '' && (
+                        <td className="border border-rose-200 px-1 py-1.5 text-center bg-rose-100/50 relative group/cell">
+                          {(canEditInstitution() || isHomeroomTeacher) && editingCell && editingCell.subjectIdx === i && editingCell.field === "final" ? (
+                            <input autoFocus className="w-full text-center font-bold text-sm border-2 border-rose-400 rounded px-1 py-0.5 focus:outline-none focus:border-rose-500" value={editingValue} onChange={(e) => setEditingValue(e.target.value)} onBlur={() => { if (editingValue.trim()) handleCellEdit(i, "final", editingValue.trim()); else setEditingCell(null); }} onKeyDown={(e) => { if (e.key === 'Enter') { if (editingValue.trim()) handleCellEdit(i, "final", editingValue.trim()); else setEditingCell(null); } if (e.key === 'Escape') setEditingCell(null); }} placeholder="—" />
+                          ) : (
+                            <span className={`font-bold ${(canEditInstitution() || isHomeroomTeacher) ? 'hover:bg-rose-100 rounded px-1 cursor-pointer' : ''} ${
+                              isPassFail 
+                                ? (getCellValue('final') === 'Зачёт' ? 'text-emerald-700' : getCellValue('final') === 'Незачёт' ? 'text-red-600' : 'text-gray-800')
+                                : 'text-rose-800'
+                            }`} onClick={() => { if (canEditInstitution() || isHomeroomTeacher) { setEditingCell({ subjectIdx: i, field: "final" }); setEditingValue(getCellValue('final') === '—' ? '' : getCellValue('final')); } }}>{getCellValue('final')}</span>
+                          )}
+                          {!isPassFail && getCellValue('final') !== '—' && getCellValue('final') !== '' && !(editingCell && editingCell.subjectIdx === i && editingCell.field === "final") && (
                             <span className="block text-[9px] text-rose-400 font-normal">авто</span>
+                          )}
+                          {(canEditInstitution() || isHomeroomTeacher) && !(editingCell && editingCell.subjectIdx === i && editingCell.field === "final") && (
+                            <button onClick={() => { setEditingCell({ subjectIdx: i, field: "final" }); setEditingValue(getCellValue('final') === '—' ? '' : getCellValue('final')); }} className="absolute top-0.5 right-0.5 opacity-0 group-hover/cell:opacity-100 transition-opacity text-rose-400 hover:text-rose-600" title="Редактировать"><svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>
                           )}
                         </td>
                       </tr>

@@ -144,9 +144,18 @@ export async function POST(request: NextRequest) {
     });
 
     if (existing) {
+      const updateData: Record<string, any> = {};
+      if (q1 !== undefined) updateData.q1 = q1 ?? existing.q1;
+      if (q2 !== undefined) updateData.q2 = q2 ?? existing.q2;
+      if (q3 !== undefined) updateData.q3 = q3 ?? existing.q3;
+      if (q4 !== undefined) updateData.q4 = q4 ?? existing.q4;
+      if (year !== undefined) updateData.year = year;
+      if (exam !== undefined) updateData.exam = exam;
+      if (final !== undefined) updateData.final = final;
+      if (body.gradeType) updateData.gradeType = body.gradeType;
       await db
         .update(finalGradesTable)
-        .set({ q1, q2, q3, q4, year, exam, final, gradeType: body.gradeType || existing.gradeType || 'numeric' })
+        .set(updateData)
         .where(eq(finalGradesTable.id, existing.id));
     } else {
       await db.insert(finalGradesTable).values({

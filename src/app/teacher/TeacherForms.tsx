@@ -131,7 +131,7 @@ export default function TeacherForms({
   taughtGroups = [],
   isHomeroomTeacher = false,
 }: TeacherFormsProps) {
-  const [activeTab, setActiveTab] = useState<"homework" | "grades" | "attendance">("homework");
+  const [activeTab, setActiveTab] = useState<"homework" | "grades" | "attendance" | "quarterly">("homework");
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
@@ -184,6 +184,23 @@ export default function TeacherForms({
   const [savingAttendance, setSavingAttendance] = useState(false);
   const [attendanceMessage, setAttendanceMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  const [quarterlyForm, setQuarterlyForm] = useState({
+    studentId: "",
+    subjectId: "",
+    quarter: "",
+    value: "",
+  });
+  const [savingQuarterly, setSavingQuarterly] = useState(false);
+  const [quarterlyMessage, setQuarterlyMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [gradeCounts, setGradeCounts] = useState<Record<string, number>>({});
+  const [existingQuarterlyGrades, setExistingQuarterlyGrades] = useState<Record<string, string>>({});
+
+  const getCurrentAcademicYear = () => {
+    const now = new Date();
+    const y = now.getMonth() < 8 ? now.getFullYear() - 1 : now.getFullYear();
+    return `${y}/${y + 1}`;
+  };
+
   // Загрузка предметов (один раз)
   useEffect(() => {
     if (groupId) {
@@ -214,6 +231,77 @@ export default function TeacherForms({
       .catch((err) => console.error("Ошибка загрузки расписания:", err))
       .finally(() => setLoadingSchedule(false));
   }, [groupId, selectedQuarter]);
+
+  const loadGradeCounts = async () => {
+    if (!quarterlyForm.studentId || !quarterlyForm.subjectId) return;
+    try {
+      const res = await fetch(`/api/grades?studentId=${quarterlyForm.studentId}`);
+      if (!res.ok) return;
+      const allGrades = await res.json();
+      const subjectGrades = allGrades.filter((g: any) => String(g.subjectId) === quarterlyForm.subjectId);
+      const quarter = quarterlyForm.quarter || "1";
+      const q = parseInt(quarter);
+      const quarterStarts: Record<number, { month: number; day: number }> = {
+        1: { month: 8, day: 1 },
+        2: { month: 10, day: 4 },
+        3: { month: 0, day: 9 },
+        4: { month: 3, day: 1 },
+      };
+      const now = new Date();
+      const academicYearStart = now.getMonth() < 8 ? now.getFullYear() - 1 : now.getFullYear();
+      const qs = quarterStarts[q];
+      if (!qs) return;
+      const qYear = q >= 3 ? academicYearStart + 1 : academicYearStart;
+      const qStart = new Date(qYear, qs.month, qs.day);
+      let qEnd: Date;
+      if (q < 4) {
+        const nextQs = quarterStarts[q + 1];
+        const nextQYear = (q + 1) >= 3 ? academicYearStart + 1 : academicYearStart;
+        qEnd = new Date(nextQYear, nextQs.month, nextQs.day);
+      } else {
+        const y = academicYearStart + 1;
+        qEnd = new Date(y, 5, 1);
+      }
+      const filtered = subjectGrades.filter((g: any) => {
+        if (!g.date) return true;
+        const d = new Date(g.date);
+        return d >= qStart && d < qEnd;
+      });
+      setGradeCounts((prev) => ({ ...prev, [quarter]: filtered.length }));
+
+      const numericGrades = filtered.filter((g: any) => !isNaN(Number(g.value)));
+      const avg = numericGrades.length > 0
+        ? (numericGrades.reduce((s: number, g: any) => s + Number(g.value), 0) / numericGrades.length).toFixed(1)
+        : "—";
+      setGradeCounts((prev) => ({ ...prev, [quarter + "_avg"]: avg as any, [quarter]: filtered.length }));
+    } catch {}
+  };
+
+  const loadExistingQuarterly = async () => {
+    if (!quarterlyForm.studentId) return;
+    try {
+      const ay = getCurrentAcademicYear();
+      const res = await fetch(`/api/final-grades?studentId=${quarterlyForm.studentId}&academicYear=${ay}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const map: Record<string, string> = {};
+      for (const row of data) {
+        const q = quarterlyForm.quarter;
+        if (q && row.subjectId === parseInt(quarterlyForm.subjectId)) {
+          const val = q === "1" ? row.q1 : q === "2" ? row.q2 : q === "3" ? row.q3 : row.q4;
+          if (val) map[q] = val;
+        }
+      }
+      setExistingQuarterlyGrades(map);
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (quarterlyForm.studentId && quarterlyForm.subjectId && quarterlyForm.quarter) {
+      loadGradeCounts();
+      loadExistingQuarterly();
+    }
+  }, [quarterlyForm.studentId, quarterlyForm.subjectId, quarterlyForm.quarter]);
 
   // Загружаем домашку
   useEffect(() => {
@@ -376,6 +464,39 @@ export default function TeacherForms({
     setShowScheduleModal(true);
   };
 
+  const handleQuarterlySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quarterlyForm.studentId || !quarterlyForm.subjectId || !quarterlyForm.quarter || !quarterlyForm.value) return;
+    setSavingQuarterly(true);
+    setQuarterlyMessage(null);
+    try {
+      const academicYear = getCurrentAcademicYear();
+      const quarterField = `q${quarterlyForm.quarter}` as "q1" | "q2" | "q3" | "q4";
+      const payload: Record<string, any> = {
+        studentId: quarterlyForm.studentId,
+        subjectId: parseInt(quarterlyForm.subjectId),
+        academicYear,
+      };
+      payload[quarterField] = quarterlyForm.value;
+      const res = await fetch("/api/final-grades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Ошибка сохранения");
+      }
+      setQuarterlyMessage({ type: "success", text: `Четвертная оценка ${quarterlyForm.value} за ${quarterlyForm.quarter === "1" ? "I" : quarterlyForm.quarter === "2" ? "II" : quarterlyForm.quarter === "3" ? "III" : "IV"} четверть сохранена!` });
+      setQuarterlyForm((prev) => ({ ...prev, value: "" }));
+      loadExistingQuarterly();
+    } catch (err: any) {
+      setQuarterlyMessage({ type: "error", text: err.message || "Ошибка сохранения" });
+    } finally {
+      setSavingQuarterly(false);
+    }
+  };
+
   const handleSelectLesson = (item: ScheduleItem) => {
     if (scheduleModalFor === "homework") {
       setHomeworkForm((prev) => ({ ...prev, scheduleId: String(item.id), subjectId: String(item.subjectId) }));
@@ -385,7 +506,7 @@ export default function TeacherForms({
     setShowScheduleModal(false);
   };
 
-  const handleLessonClick = (item: ScheduleItem, tab: "homework" | "grades") => {
+  const handleLessonClick = (item: ScheduleItem, tab: "homework" | "grades" | "quarterly" | "attendance") => {
     const dateStr = selectedWeek.toISOString().split("T")[0];
     const dayOfWeek = item.dayOfWeek ?? 1;
     const d = new Date(selectedWeek);
@@ -399,6 +520,12 @@ export default function TeacherForms({
         scheduleId: String(item.id),
         subjectId: String(item.subjectId),
         date: lessonDate,
+      }));
+    } else if (tab === "quarterly") {
+      setActiveTab("quarterly");
+      setQuarterlyForm((prev) => ({
+        ...prev,
+        subjectId: String(item.subjectId),
       }));
     } else {
       setActiveTab("grades");
@@ -707,6 +834,17 @@ export default function TeacherForms({
           <span className="flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
             Отметка отсутствующих
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab("quarterly")}
+          className={`px-5 py-3 font-semibold text-sm tracking-wide border-b-2 transition-all ${
+            activeTab === "quarterly" ? "border-emerald-600 text-emerald-700 bg-emerald-50/50" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
+            Выставить четвертную
           </span>
         </button>
       </div>
@@ -1057,6 +1195,126 @@ export default function TeacherForms({
 
               <button type="submit" disabled={savingAttendance || !attendanceForm.date} className="w-full py-3.5 px-6 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold rounded-xl hover:from-amber-600 hover:to-orange-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-amber-200/40 text-sm tracking-wide">
                 {savingAttendance ? (<span className="flex items-center justify-center gap-2"><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Сохранение...</span>) : (<span className="flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>Сохранить посещаемость</span>)}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* ===== QUARTERLY GRADE TAB ===== */}
+        {activeTab === "quarterly" && (
+          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
+            <h3 className="text-xl font-bold text-gray-900 mb-1 tracking-tight flex items-center gap-3">
+              <span className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-lg">📋</span>
+              Выставить четвертную оценку
+            </h3>
+            <p className="text-sm text-emerald-700 mt-1 ml-[52px]">Четвертные оценки по вашим предметам</p>
+
+            {quarterlyMessage && (
+              <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${quarterlyMessage.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
+                {quarterlyMessage.text}
+              </div>
+            )}
+
+            <form onSubmit={handleQuarterlySubmit} className="mt-5 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">Ученик <span className="text-red-400">*</span></label>
+                  <select value={quarterlyForm.studentId} onChange={(e) => setQuarterlyForm((prev) => ({ ...prev, studentId: e.target.value }))} required className="w-full px-4 py-3 border-2 border-emerald-200 rounded-xl focus:border-emerald-500 focus:outline-none bg-white text-gray-900 font-medium">
+                    <option value="">Выберите ученика</option>
+                    {students.map((s) => (<option key={s.id} value={s.id}>{s.fullName}</option>))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">Четверть <span className="text-red-400">*</span></label>
+                  <select value={quarterlyForm.quarter} onChange={(e) => setQuarterlyForm((prev) => ({ ...prev, quarter: e.target.value }))} required className="w-full px-4 py-3 border-2 border-emerald-200 rounded-xl focus:border-emerald-500 focus:outline-none bg-white text-gray-900 font-medium">
+                    <option value="">Выберите четверть</option>
+                    <option value="1">I четверть</option>
+                    <option value="2">II четверть</option>
+                    <option value="3">III четверть</option>
+                    <option value="4">IV четверть</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">Предмет <span className="text-red-400">*</span></label>
+                  {subjects.length === 0 ? (
+                    <div className="p-3 bg-amber-50 rounded-xl text-amber-700 border border-amber-200 text-sm font-medium">Нет предметов.</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {subjects.map((subject) => {
+                        const count = quarterlyForm.quarter && quarterlyForm.studentId ? (gradeCounts[quarterlyForm.quarter] ?? 0) : 0;
+                        return (
+                          <button key={subject.id} type="button" onClick={() => setQuarterlyForm((prev) => ({ ...prev, subjectId: String(subject.id) }))} className={`relative px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${quarterlyForm.subjectId === String(subject.id) ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-200/50" : "bg-white text-gray-700 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"}`}>
+                            {subject.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {quarterlyForm.studentId && quarterlyForm.subjectId && quarterlyForm.quarter && (
+                <div className="bg-white rounded-xl p-5 border-2 border-emerald-200 shadow-sm">
+                  <div className="flex items-center gap-6 mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-emerald-800">Оценок за четверть:</span>
+                      <span className="inline-flex items-center justify-center min-w-[32px] h-8 px-2 bg-emerald-100 text-emerald-800 rounded-lg text-lg font-extrabold">{gradeCounts[quarterlyForm.quarter] ?? 0}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-emerald-800">Средний балл:</span>
+                      <span className="inline-flex items-center justify-center min-w-[48px] h-8 px-2 bg-teal-100 text-teal-800 rounded-lg text-lg font-extrabold">{gradeCounts[quarterlyForm.quarter + "_avg"] ?? "—"}</span>
+                    </div>
+                    {existingQuarterlyGrades[quarterlyForm.quarter] && (
+                      <div className="flex items-center gap-2 ml-auto">
+                        <span className="text-sm font-bold text-amber-800">Текущая четвертная:</span>
+                        <span className="inline-flex items-center justify-center min-w-[40px] h-9 px-2 bg-amber-100 text-amber-900 rounded-lg text-xl font-extrabold">{existingQuarterlyGrades[quarterlyForm.quarter]}</span>
+                      </div>
+                    )}
+                  </div>
+                  {(() => {
+                    const count: number = Number(gradeCounts[quarterlyForm.quarter] ?? 0);
+                    const avg: string = String(gradeCounts[quarterlyForm.quarter + "_avg"] ?? "—");
+                    if (count > 0 && avg && avg !== "—") {
+                      const avgNum = parseFloat(avg);
+                      const suggested = Math.round(avgNum);
+                      return (
+                        <div className="flex items-center gap-2 text-sm text-teal-700 bg-teal-50 px-3 py-2 rounded-lg">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
+                          Рекомендуемая оценка: <strong className="text-teal-900">{suggested}</strong> (среднее: {avg})
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+
+              {quarterlyForm.studentId && quarterlyForm.subjectId && quarterlyForm.quarter && (
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-3 tracking-wide">Четвертная оценка (10-балльная) <span className="text-red-400">*</span></label>
+                  <div className="flex flex-wrap gap-2.5">
+                    {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => {
+                      const isSelected = quarterlyForm.value === grade.toString();
+                      const getGradeColor = (g: number) => { if (g >= 9) return "from-emerald-400 to-emerald-500"; if (g >= 7) return "from-blue-400 to-blue-500"; if (g >= 5) return "from-yellow-400 to-yellow-500"; if (g >= 4) return "from-orange-400 to-orange-500"; return "from-red-400 to-red-500"; };
+                      const getGradeLabel = (g: number) => { if (g >= 9) return "Отлично"; if (g >= 7) return "Хорошо"; if (g >= 5) return "Удовл."; if (g >= 4) return "Неуд."; return "Плохо"; };
+                      return (
+                        <button key={grade} type="button" onClick={() => setQuarterlyForm((prev) => ({ ...prev, value: grade.toString() }))}
+                          className={`relative w-16 h-20 rounded-2xl font-extrabold text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg bg-gradient-to-br ${getGradeColor(grade)} ${isSelected ? "ring-4 ring-offset-2 scale-110" : "opacity-75 hover:opacity-100"}`}
+                          style={isSelected ? { '--tw-ring-color': grade >= 9 ? '#34d399' : grade >= 7 ? '#60a5fa' : grade >= 5 ? '#facc15' : grade >= 4 ? '#fb923c' : '#f87171' } as React.CSSProperties : {}}
+                        >
+                          <span className="text-2xl">{grade}</span>
+                          <span className="block text-[10px] font-semibold mt-0.5 opacity-90">{getGradeLabel(grade)}</span>
+                          {isSelected && (<span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-md"><svg className="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg></span>)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input type="hidden" value={quarterlyForm.value} required />
+                </div>
+              )}
+
+              <button type="submit" disabled={savingQuarterly || !quarterlyForm.studentId || !quarterlyForm.subjectId || !quarterlyForm.quarter || !quarterlyForm.value} className="w-full py-3.5 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-200/40 text-sm tracking-wide">
+                {savingQuarterly ? (<span className="flex items-center justify-center gap-2"><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Сохранение...</span>) : (<span className="flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>Выставить четвертную</span>)}
               </button>
             </form>
           </div>
