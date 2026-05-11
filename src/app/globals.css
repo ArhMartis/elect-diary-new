@@ -249,6 +249,132 @@ html[data-theme="dark"] .focus\:ring-rose-100:focus { --tw-ring-color: rgba(244,
 html[data-theme="dark"] .placeholder-gray-500::placeholder { color: #7f849c !important; }
 html[data-theme="dark"] .placeholder-gray-400::placeholder { color: #6c7086 !important; }
 
+/* ===================================
+   DIARY-SPECIFIC DARK MODE FIXES
+   =================================== */
+
+/* Bell schedule: remove alternating row highlight */
+html[data-theme="dark"] .bg-amber-50\/50 { background-color: transparent !important; }
+
+/* Bell schedule: amber background card */
+html[data-theme="dark"] .bg-gradient-to-br.from-amber-50.to-orange-50 { background-image: linear-gradient(to bottom right, #2a1a0f, #1f1a0f) !important; }
+html[data-theme="dark"] .border-amber-200 { border-color: #4a3a20 !important; }
+html[data-theme="dark"] .border-amber-300 { border-color: #5a4a2a !important; }
+html[data-theme="dark"] .border-amber-400 { border-color: #7a6a3a !important; }
+html[data-theme="dark"] .border-amber-500 { border-color: #9a7a3a !important; }
+html[data-theme="dark"] .text-amber-800 { color: #fde68a !important; }
+html[data-theme="dark"] .text-amber-600 { color: #fbbf24 !important; }
+html[data-theme="dark"] .bg-amber-100 { background-color: #2a2010 !important; }
+html[data-theme="dark"] .bg-amber-200 { background-color: #3a3020 !important; }
+html[data-theme="dark"] .bg-amber-600 { background-color: #92610a !important; }
+html[data-theme="dark"] .bg-amber-400 { background-color: #b8860b !important; }
+
+/* Quarter confirmation cards */
+html[data-theme="dark"] .bg-green-50 { background-color: #0a1f1a !important; }
+html[data-theme="dark"] .border-green-300 { border-color: #2a6a4a !important; }
+html[data-theme="dark"] .bg-blue-50 { background-color: #0f1428 !important; }
+html[data-theme="dark"] .border-blue-300 { border-color: #2a4a8a !important; }
+html[data-theme="dark"] .bg-blue-500 { background-color: #3b82f6 !important; }
+html[data-theme="dark"] .bg-amber-200 { background-color: #3a3020 !important; }
+html[data-theme="dark"] .text-amber-700 { color: #fbbf24 !important; }
+
+/* Grade type button inactive */
+html[data-theme="dark"] .border-gray-200 { border-color: #45475a !important; }
+html[data-theme="dark"] .hover\:border-rose-300:hover { border-color: #f87171 !important; }
+
+/* Holidays section */
+html[data-theme="dark"] .bg-gradient-to-br.from-red-50.to-rose-50 { background-image: linear-gradient(to bottom right, #2a0f14, #301828) !important; }
+html[data-theme="dark"] .border-red-200 { border-color: #4a1a28 !important; }
+html[data-theme="dark"] .text-red-800 { color: #fca5a5 !important; }
+html[data-theme="dark"] .text-red-600 { color: #f87171 !important; }
+
+/* Holidays form */
+html[data-theme="dark"] .bg-gradient-to-br.from-amber-50.to-orange-50.border-2.border-amber-300 { background-image: linear-gradient(to bottom right, #2a1a0f, #1f1a0f) !important; border-color: #5a4a2a !important; }
+html[data-theme="dark"] .bg-gradient-to-br.from-pink-50.to-rose-50 { background-image: linear-gradient(to bottom right, #2a0f1a, #301828) !important; }
+html[data-theme="dark"] .bg-gradient-to-br.from-emerald-50.to-teal-50.border-2.border-emerald-300 { background-image: linear-gradient(to right, #0f1f1a, #0f2a22) !important; border-color: #2a5a4a !important; }
+
+/* Holiday items */
+html[data-theme="dark"] .bg-gradient-to-br.from-emerald-600.to-teal-600 { background-image: linear-gradient(to right, #059669, #0d9488) !important; }
+html[data-theme="dark"] .text-emerald-800 { color: #a7f3d0 !important; }
+
+/* Sky/holiday colors */
+html[data-theme="dark"] .bg-sky-50 { background-color: #0f1a2a !important; }
+html[data-theme="dark"] .border-sky-200 { border-color: #1a3a5a !important; }
+html[data-theme="dark"] .text-sky-700 { color: #7dd3fc !important; }
+html[data-theme="dark"] .text-sky-900 { color: #bae6fd !important; }
+html[data-theme="dark"] .hover\:bg-sky-50:hover { background-color: #0f1a2a !important; }
+
+/* Green colors */
+html[data-theme="dark"] .bg-green-50 { background-color: #0a1f1a !important; }
+html[data-theme="dark"] .border-green-200 { border-color: #1a4a3a !important; }
+html[data-theme="dark"] .text-green-700 { color: #6ee7b7 !important; }
+html[data-theme="dark"] .bg-green-500 { background-color: #22c55e !important; }
+html[data-theme="dark"] .bg-emerald-100 { background-color: #0f2a1a !important; }
+html[data-theme="dark"] .hover\:bg-emerald-200:hover { background-color: #1a3a2a !important; }
+html[data-theme="dark"] .text-emerald-600 { color: #6ee7b7 !important; }
+
+/* Pink colors */
+html[data-theme="dark"] .bg-pink-100 { background-color: #2a0f1a !important; }
+html[data-theme="dark"] .border-pink-300 { border-color: #4a1a2a !important; }
+html[data-theme="dark"] .text-pink-800 { color: #f9a8d4 !important; }
+
+/* Yellow colors */
+html[data-theme="dark"] .bg-yellow-100 { background-color: #2a2510 !important; }
+html[data-theme="dark"] .border-yellow-300 { border-color: #4a4020 !important; }
+html[data-theme="dark"] .text-yellow-800 { color: #fde68a !important; }
+
+/* Blue colors */
+html[data-theme="dark"] .bg-blue-100 { background-color: #151a3a !important; }
+html[data-theme="dark"] .border-blue-300 { border-color: #2a3a6a !important; }
+html[data-theme="dark"] .text-blue-800 { color: #93c5fd !important; }
+
+/* Orange */
+html[data-theme="dark"] .bg-orange-100 { background-color: #2a1a0f !important; }
+html[data-theme="dark"] .border-orange-300 { border-color: #4a3a1a !important; }
+html[data-theme="dark"] .text-orange-700 { color: #fdba74 !important; }
+html[data-theme="dark"] .bg-orange-50 { background-color: #1f1a0f !important; }
+
+/* Focus ring overrides for form elements */
+html[data-theme="dark"] .focus\:border-amber-400:focus { border-color: #b8860b !important; }
+html[data-theme="dark"] .focus\:border-amber-500:focus { border-color: #d97706 !important; }
+html[data-theme="dark"] .focus\:ring-amber-200:focus { --tw-ring-color: rgba(217,119,6,0.3) !important; }
+html[data-theme="dark"] .focus\:ring-emerald-100:focus { --tw-ring-color: rgba(16,185,129,0.3) !important; }
+html[data-theme="dark"] .focus\:ring-indigo-100:focus { --tw-ring-color: rgba(99,102,241,0.3) !important; }
+html[data-theme="dark"] .focus\:ring-rose-100:focus { --tw-ring-color: rgba(244,63,94,0.3) !important; }
+
+/* Diary section backgrounds (from-XX-50/50 to-white === from-XX to-dark) */
+html[data-theme="dark"] .bg-gradient-to-b.from-sky-50\/50.to-white { background-image: linear-gradient(to bottom, rgba(15,26,42,0.5), #1e1e2e) !important; }
+html[data-theme="dark"] .bg-gradient-to-b.from-amber-50\/50.to-white { background-image: linear-gradient(to bottom, rgba(31,26,15,0.5), #1e1e2e) !important; }
+html[data-theme="dark"] .bg-gradient-to-b.from-rose-50\/50.to-white { background-image: linear-gradient(to bottom, rgba(48,24,40,0.5), #1e1e2e) !important; }
+html[data-theme="dark"] .bg-gradient-to-b.from-violet-50\/50.to-white { background-image: linear-gradient(to bottom, rgba(26,15,42,0.5), #1e1e2e) !important; }
+html[data-theme="dark"] .bg-gradient-to-b.from-indigo-50\/50.to-white { background-image: linear-gradient(to bottom, rgba(30,30,58,0.5), #1e1e2e) !important; }
+
+/* Calendar dark mode - override cally */
+html[data-theme="dark"] cally-calendar {
+  --cally-color-primary: #818cf8;
+  --cally-color-text: #cdd6f4;
+  --cally-color-background: #1e1e2e;
+  --cally-color-border: #45475a;
+}
+
+/* Cally calendar popover dark */
+html[data-theme="dark"] .cally-popover,
+html[data-theme="dark"] [data-cally] {
+  color-scheme: dark;
+}
+
+/* Additional diary fixes */
+html[data-theme="dark"] .text-gray-200 { color: #9399b2 !important; }
+html[data-theme="dark"] .bg-gray-300 { background-color: #585b70 !important; }
+html[data-theme="dark"] .text-gray-500.line-through { color: #6c7086 !important; text-decoration: line-through; }
+html[data-theme="dark"] .bg-rose-100 { background-color: #3a1520 !important; }
+html[data-theme="dark"] .border-rose-200 { border-color: #4a2030 !important; }
+html[data-theme="dark"] .bg-indigo-100 { background-color: #1a1a3a !important; }
+html[data-theme="dark"] .border-indigo-200 { border-color: #2a2a5a !important; }
+html[data-theme="dark"] .bg-blue-600 { background-color: #2563eb !important; }
+html[data-theme="dark"] .border-violet-200 { border-color: #3a2060 !important; }
+html[data-theme="dark"] .bg-violet-100 { background-color: #1a0f2a !important; }
+
 body {
   background: var(--background);
   color: var(--foreground);
