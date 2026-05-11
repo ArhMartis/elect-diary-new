@@ -3,7 +3,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import { teacherComments } from "@/db/schema/diary-extra";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { user } from "@/db/schema/auth_schema";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 
 /**
  * API: GET /api/teacher-comments
@@ -63,6 +64,18 @@ export async function GET(request: NextRequest) {
       .where(and(...conditions))
       .orderBy(desc(teacherComments.date));
 
+    const missingNameIds = comments.filter(c => !c.teacherName).map(c => c.teacherId);
+    if (missingNameIds.length > 0) {
+      const uniqueIds = [...new Set(missingNameIds)];
+      const teachers = await db.select({ id: user.id, fullName: user.fullName }).from(user).where(inArray(user.id, uniqueIds));
+      const nameMap = new Map(teachers.map(t => [t.id, t.fullName]));
+      for (const c of comments) {
+        if (!c.teacherName && c.teacherId) {
+          c.teacherName = nameMap.get(c.teacherId) || null;
+        }
+      }
+    }
+
     return NextResponse.json(comments);
   } catch (error) {
     console.error("Ошибка при получении замечаний учителей:", error);
@@ -99,10 +112,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let resolvedTeacherName = teacherName;
+    if (!resolvedTeacherName) {
+      const teacherUser = await db.query.user.findFirst({ where: eq(user.id, teacherId) });
+      resolvedTeacherName = teacherUser?.fullName || null;
+    }
+
     await db.insert(teacherComments).values({
       studentId,
       teacherId,
-      teacherName,
+      teacherName: resolvedTeacherName,
       comment,
       date: date ? new Date(date) : new Date(),
     });
