@@ -83,22 +83,22 @@ export default async function AdminPage() {
   const groupsList = await db.select().from(groups);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-3 md:p-6">
       <div className="relative max-w-6xl mx-auto">
         
         {/* ЗАГОЛОВОК */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 border border-gray-100 mb-6">
           <div className="flex justify-between items-center flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+            <div className="flex items-center gap-3 md:gap-4">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M2.166 4.999A10 10 0 0118.834 4.999c.322 1.188.098 2.398-.575 3.395L10 18l-8.259-9.606a4.5 4.5 0 01-.575-3.395z" clipRule="evenodd" />
                 </svg>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-800">Админ панель</h1>
+                <h1 className="text-xl md:text-3xl font-bold text-gray-800">Админ панель</h1>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-red-700 font-bold">{session.user.fullName}</span>
+                  <span className="text-red-700 font-bold text-sm md:text-base">{session.user.fullName}</span>
                   <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-bold">Администратор</span>
                 </div>
               </div>
@@ -113,12 +113,12 @@ export default async function AdminPage() {
         </div>
 
         {/* КНОПКИ МЕНЮ */}
-        <div className="flex justify-center gap-3 mb-10 flex-wrap">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:justify-center gap-2 md:gap-3 mb-10">
           {menuButtons.map((btn) => (
             <Link
               key={btn.label}
               href={btn.href}
-              className={`inline-flex items-center gap-2 px-5 py-3 ${btn.color} text-white rounded-lg transition-all shadow-md hover:shadow-lg font-medium text-sm`}
+              className={`flex items-center justify-center gap-2 px-3 md:px-5 py-2.5 md:py-3 ${btn.color} text-white rounded-lg transition-all shadow-md hover:shadow-lg font-medium text-sm`}
             >
               {btn.icon}
               {btn.label}
@@ -128,10 +128,10 @@ export default async function AdminPage() {
 
         {/* ЗАГОЛОВОК РАЗДЕЛА */}
         <div className="flex items-center gap-3 mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
             <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
           </svg>
-          <h2 className="text-2xl font-bold text-gray-800">Пользователи</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Пользователи</h2>
         </div>
 
         {/* СПИСОК ПОЛЬЗОВАТЕЛЕЙ */}
@@ -145,14 +145,14 @@ export default async function AdminPage() {
             return (
               <div
                 key={u.id}
-                className="p-5 border border-gray-200 rounded-xl bg-white hover:border-blue-300 hover:shadow-md transition-all"
+                className="p-3 md:p-5 border border-gray-200 rounded-xl bg-white hover:border-blue-300 hover:shadow-md transition-all"
               >
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
                   {/* Левая часть: Аватар + Информация */}
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 md:gap-4">
                     {/* Аватар */}
                     {avatarUrl ? (
-                      <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200">
+                      <div className="relative w-10 h-10 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
                         <Image
                           src={avatarUrl}
                           alt={u.fullName}
@@ -161,25 +161,25 @@ export default async function AdminPage() {
                         />
                       </div>
                     ) : (
-                      <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
+                      <div className="w-10 h-10 md:w-14 md:h-14 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-md flex-shrink-0">
                         {roleInfo.icon}
                       </div>
                     )}
                     
                     {/* Информация */}
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="font-bold text-gray-800 text-lg">{u.fullName}</p>
-                        <span className="text-xl">{roleInfo.icon}</span>
+                        <p className="font-bold text-gray-800 text-base md:text-lg truncate">{u.fullName}</p>
+                        <span className="text-xl hidden md:inline">{roleInfo.icon}</span>
                       </div>
-                      <p className="text-sm text-gray-700 font-medium">{u.email}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <p className="text-sm text-gray-700 font-medium truncate">{u.email}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className={`px-2 py-1 rounded-md text-xs font-bold ${roleInfo.color}`}>
                           {roleInfo.name}
                         </span>
                         {userGroup && userRole === "student" && (
                           <span className="text-sm font-bold text-emerald-600">
-                            • Класс: {userGroup.name}
+                            Класс: {userGroup.name}
                           </span>
                         )}
                       </div>
@@ -187,12 +187,12 @@ export default async function AdminPage() {
                   </div>
 
                   {/* Правая часть: Действия */}
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center flex-wrap">
                     {/* КНОПКА ДНЕВНИКА ДЛЯ УЧЕНИКОВ */}
                     {userRole === "student" && (
                       <Link
                         href={`/diary?studentId=${u.id}`}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-md"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-md"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                           <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
@@ -204,14 +204,14 @@ export default async function AdminPage() {
 
                     {/* ВЫПАДАЮЩИЙ СПИСОК РОЛИ + КНОПКА ОБНОВИТЬ */}
                     {u.id !== session.user.id ? (
-                      <form action={changeRole} className="flex gap-2 items-center">
+                      <form action={changeRole} className="flex gap-2 items-center flex-wrap">
                         <input type="hidden" name="userId" value={u.id} />
                         <select
                           name="role"
                           defaultValue={u.role as string}
-                          className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-500 bg-white"
+                          className="border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-500 bg-white"
                         >
-                          <option value="admin">👑 Администратор</option>
+                          <option value="admin">👑 Админ</option>
                           <option value="principal">🎓 Директор</option>
                           <option value="teacher">👨‍🏫 Учитель</option>
                           <option value="student">🎒 Ученик</option>
@@ -219,7 +219,7 @@ export default async function AdminPage() {
                         </select>
                         <button
                           type="submit"
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium shadow-md"
+                          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium shadow-md"
                         >
                           Обновить
                         </button>

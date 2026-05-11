@@ -684,7 +684,7 @@ function HolidayCalendarSection({ sharedData, setSharedData, canEdit }: HolidayC
   };
 
   return (
-    <div className="p-8 bg-gradient-to-b from-sky-50/50 to-white">
+    <div className="p-3 md:p-8 bg-gradient-to-b from-sky-50/50 to-white">
       <div className="text-center mb-8">
         <div className="text-4xl mb-2">🏖️</div>
         <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-blue-600">Каникулы</h2>
@@ -1922,30 +1922,30 @@ export default function StudentDiaryPage({
 
       <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-0 print:my-0 print:shadow-none rounded-xl overflow-hidden">
         {/* Навигация */}
-        <div className="bg-white border-b border-emerald-200 px-4 py-1">
+        <div className="bg-white border-b border-emerald-200 px-2 md:px-4 py-1">
           <div className="relative">
-            <div className="flex gap-2 overflow-x-auto pb-1 scroll-smooth" style={{ scrollbarWidth: 'thin', scrollbarColor: '#10b981 #e5e7eb', WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex gap-1.5 md:gap-2 overflow-x-auto pb-1 scroll-smooth" style={{ scrollbarWidth: 'thin', scrollbarColor: '#10b981 #e5e7eb', WebkitOverflowScrolling: 'touch' }}>
               {sections.map(section => (
                 <button
                   key={section.id}
                   onClick={() => setActiveSection(section.id)}
-                  className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all font-medium text-sm flex-shrink-0 ${activeSection === section.id ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md" : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"}`}
+                  className={`px-2.5 md:px-4 py-1.5 md:py-2 rounded-lg whitespace-nowrap transition-all font-medium text-xs md:text-sm flex-shrink-0 ${activeSection === section.id ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md" : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"}`}
                 >
                   {section.label}
                 </button>
               ))}
             </div>
-            <div className="absolute right-0 top-0 bottom-3 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-3 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none hidden md:block"></div>
           </div>
         </div>
 
         {/* Шапка с профилем — после навигации */}
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 px-4 py-3 mb-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 px-3 md:px-4 py-2 md:py-3 mb-4">
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <div className="flex items-center gap-2 md:gap-3">
               <a
                 href={effectiveUserRole === "admin" ? "/admin" : effectiveUserRole === "teacher" ? "/teacher" : effectiveUserRole === "parent" ? "/" : "/diary"}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-all text-sm font-semibold"
+                className="inline-flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 bg-white border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-all text-xs md:text-sm font-semibold"
               >
                 Назад
               </a>
@@ -1978,9 +1978,9 @@ export default function StudentDiaryPage({
                 <>
                   <a
                     href="/diary"
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all text-sm font-semibold"
+                    className="inline-flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all text-xs md:text-sm font-semibold"
                   >
-                    🔄 Сменить класс и/или ученика
+                    🔄 <span className="hidden md:inline">Сменить класс и/или ученика</span><span className="md:hidden">Сменить</span>
                   </a>
                   <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg px-3 py-2 border border-indigo-200">
                     <span className="text-sm text-indigo-500">🎭</span>
@@ -2005,7 +2005,7 @@ export default function StudentDiaryPage({
 
         {/* Титульный лист */}
         {activeSection === "title" && (
-          <div className="p-8 bg-gradient-to-b from-amber-50/50 to-white">
+          <div className="p-3 md:p-8 bg-gradient-to-b from-amber-50/50 to-white">
             <div className="text-center mb-8">
               <div className="text-4xl mb-2">🎓</div>
               <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600 mb-2">Дневник учащегося</h2>
@@ -2261,8 +2261,8 @@ export default function StudentDiaryPage({
 
         {/* Контакты */}
         {activeSection === "contacts" && (
-          <div className="min-h-[297mm] p-12 bg-gradient-to-b from-violet-50/50 to-white">
-            <div className="text-center mb-10"><div className="text-4xl mb-2">📞</div><h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-purple-600">Контактная информация</h2>
+          <div className="min-h-[297mm] p-4 md:p-12 bg-gradient-to-b from-violet-50/50 to-white">
+            <div className="text-center mb-4 md:mb-10"><div className="text-3xl md:text-4xl mb-2">📞</div><h2 className="text-xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-purple-600">Контактная информация</h2>
             {canEditContacts() && <p className="text-xs text-violet-500 mt-2">💡 Редактируется администратором — заполняется один раз и применяется для всех учеников класса</p>}
             </div>
             <div className="grid md:grid-cols-2 gap-4 mb-10 items-start">
@@ -3023,10 +3023,10 @@ const holidayName = getHolidayNameByDate(dayDate);
 
         {/* Аттестация */}
         {activeSection === "grades" && (
-          <div className="p-8 bg-gradient-to-b from-rose-50/50 to-white">
-            <div className="text-center mb-8">
-              <div className="text-4xl mb-2">📊</div>
-              <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">Сведения о результатах аттестации</h2>
+          <div className="p-3 md:p-8 bg-gradient-to-b from-rose-50/50 to-white">
+            <div className="text-center mb-4 md:mb-8">
+              <div className="text-3xl md:text-4xl mb-2">📊</div>
+              <h2 className="text-xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">Сведения о результатах аттестации</h2>
             </div>
 
             {/* Подтверждение четвертей */}

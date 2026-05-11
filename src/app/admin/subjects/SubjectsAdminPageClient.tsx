@@ -181,28 +181,28 @@ export default function SubjectsAdminPage({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-3 md:p-6 space-y-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4 flex-wrap">
           <Link
             href="/admin"
-            className="inline-flex items-center gap-2 px-5 py-3 bg-white border-2 border-indigo-200 text-indigo-700 rounded-xl hover:bg-indigo-50 hover:border-indigo-300 transition-all shadow-md hover:shadow-lg font-medium"
+            className="inline-flex items-center gap-2 px-3 md:px-5 py-2 md:py-3 bg-white border-2 border-indigo-200 text-indigo-700 rounded-xl hover:bg-indigo-50 hover:border-indigo-300 transition-all shadow-md hover:shadow-lg font-medium text-sm md:text-base"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
-            Назад в админ-панель
+            Назад
           </Link>
-          <h1 className="text-3xl font-bold text-gray-800">📚 Управление предметами</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-gray-800">📚 Управление предметами</h1>
         </div>
 
       {/* Форма добавления предмета */}
-      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+      <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 border border-gray-100">
         <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
           <span className="text-xl">📚</span>
           Добавить предмет
         </h2>
-        <form onSubmit={handleAddRegular} className="flex gap-3">
+        <form onSubmit={handleAddRegular} className="flex flex-col sm:flex-row gap-3">
           <input
             value={regularForm.name}
             onChange={(e) => setRegularForm({ name: e.target.value })}
@@ -213,7 +213,7 @@ export default function SubjectsAdminPage({
           <button
             type="submit"
             disabled={isAdding}
-            className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-md font-medium disabled:opacity-50"
+            className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-md font-medium disabled:opacity-50 whitespace-nowrap"
           >
             {isAdding ? "Добавление..." : "Добавить"}
           </button>
@@ -221,12 +221,12 @@ export default function SubjectsAdminPage({
       </div>
 
       {/* Форма добавления мероприятия */}
-      <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl shadow-lg p-6 border-2 border-emerald-200">
+      <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl shadow-lg p-4 md:p-6 border-2 border-emerald-200">
         <h2 className="text-lg font-semibold text-emerald-800 mb-4 flex items-center gap-2">
           <span className="text-xl">🎯</span>
           Добавить мероприятие или классный час
         </h2>
-        <form onSubmit={handleAddEvent} className="flex gap-3">
+        <form onSubmit={handleAddEvent} className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             value={eventForm.name}
@@ -245,7 +245,7 @@ export default function SubjectsAdminPage({
           </select>
           <button
             type="submit"
-            className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-md font-medium"
+            className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-md font-medium whitespace-nowrap"
           >
             Добавить
           </button>
@@ -253,12 +253,12 @@ export default function SubjectsAdminPage({
       </div>
 
       {/* Форма добавления специализированных предметов */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-6 border-2 border-blue-200">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-4 md:p-6 border-2 border-blue-200">
         <h2 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
           <span className="text-xl">🏆</span>
-          Добавить специализированные предметы (факультативы, олимпиады, и тому подобные)
+          Специализированные предметы
         </h2>
-        <form onSubmit={handleAddSpecial} className="flex gap-3">
+        <form onSubmit={handleAddSpecial} className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             value={specialForm.name}
@@ -272,12 +272,12 @@ export default function SubjectsAdminPage({
             onChange={(e) => setSpecialForm({ ...specialForm, type: e.target.value })}
             className="border-2 border-blue-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:border-blue-500 bg-white"
           >
-            <option value="elective">Специализированные предметы</option>
+            <option value="elective">Спецпредмет</option>
             <option value="olympiad">Олимпиада</option>
           </select>
           <button
             type="submit"
-            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md font-medium"
+            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md font-medium whitespace-nowrap"
           >
             Добавить
           </button>
@@ -285,7 +285,7 @@ export default function SubjectsAdminPage({
       </div>
 
       {/* Фильтр по классам */}
-      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+      <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 border border-gray-100">
         <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
           <span>🏫</span>
           Предметы по классам

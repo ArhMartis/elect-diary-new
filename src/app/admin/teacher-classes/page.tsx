@@ -40,20 +40,20 @@ export default async function TeacherClassesPage() {
   const teacherClassesList = await db.select().from(teacherClasses);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-blue-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-blue-50 p-3 md:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Заголовок и кнопка назад */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-2 md:gap-4 mb-6 flex-wrap">
           <Link
             href="/admin"
-            className="inline-flex items-center gap-2 px-5 py-3 bg-white border-2 border-cyan-200 text-cyan-700 rounded-xl hover:bg-cyan-50 hover:border-cyan-300 transition-all shadow-md hover:shadow-lg font-medium"
+            className="inline-flex items-center gap-2 px-3 md:px-5 py-2 md:py-3 bg-white border-2 border-cyan-200 text-cyan-700 rounded-xl hover:bg-cyan-50 hover:border-cyan-300 transition-all shadow-md hover:shadow-lg font-medium text-sm md:text-base"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
-            Назад в админ-панель
+            Назад
           </Link>
-          <h1 className="text-3xl font-bold text-gray-800">👨‍🏫 Классы и предметы учителей</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-gray-800">👨‍🏫 Классы и предметы учителей</h1>
         </div>
 
         {/* Список учителей */}
@@ -93,10 +93,10 @@ export default async function TeacherClassesPage() {
                 >
                   {/* Шапка карточки */}
                   <div className="bg-gradient-to-r from-cyan-500 to-blue-500 px-6 py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">{roleIcons.teacher}</span>
-                        <h2 className="text-xl font-bold text-white">{teacher.fullName}</h2>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl">{roleIcons.teacher}</span>
+                          <h2 className="text-lg md:text-xl font-bold text-white">{teacher.fullName}</h2>
                       </div>
                       <span className="px-3 py-1 bg-white/20 text-white rounded-full text-sm font-medium">
                         {teacher.email}
@@ -104,7 +104,7 @@ export default async function TeacherClassesPage() {
                     </div>
                   </div>
 
-                  <div className="p-6 space-y-6">
+                  <div className="p-3 md:p-6 space-y-6">
                     {/* Классное руководство - ТОЛЬКО ПРОСМОТР, без удаления */}
                     <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
                       <h3 className="text-lg font-bold text-emerald-800 mb-3 flex items-center gap-2">
@@ -179,11 +179,11 @@ export default async function TeacherClassesPage() {
                         <p className="text-amber-700 italic mb-3 font-medium">Классы не добавлены</p>
                       )}
 
-                      <form action={assignTeachingClassToTeacher} className="flex gap-2 items-center">
+                      <form action={assignTeachingClassToTeacher} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                         <input type="hidden" name="teacherId" value={teacher.id} />
                         <select
                           name="groupId"
-                          id="teachingClassSelect"
+                          required
                           className="border-2 border-amber-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-amber-500 bg-white flex-1 font-medium"
                           defaultValue=""
                         >
@@ -198,9 +198,7 @@ export default async function TeacherClassesPage() {
                         </select>
                         <button
                           type="submit"
-                          id="addClassBtn"
-                          disabled
-                          className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all text-sm font-bold"
                         >
                           Добавить
                         </button>
@@ -243,11 +241,11 @@ export default async function TeacherClassesPage() {
                       )}
 
                       {/* Назначить предмет */}
-                      <form action={assignSubjectToTeacher} className="flex gap-2 items-center">
+                      <form action={assignSubjectToTeacher} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                         <input type="hidden" name="teacherId" value={teacher.id} />
                         <select
                           name="subjectId"
-                          id="subjectSelect"
+                          required
                           className="border-2 border-indigo-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-indigo-500 bg-white flex-1 font-medium"
                           defaultValue=""
                         >
@@ -262,9 +260,7 @@ export default async function TeacherClassesPage() {
                         </select>
                         <button
                           type="submit"
-                          id="addSubjectBtn"
-                          disabled
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all text-sm font-bold"
                         >
                           Добавить
                         </button>
@@ -277,20 +273,7 @@ export default async function TeacherClassesPage() {
           )}
         </div>
       </div>
-      <script dangerouslySetInnerHTML={{ __html: `
-        document.querySelectorAll('#teachingClassSelect').forEach(s => {
-          s.addEventListener('change', function() {
-            var btn = this.parentElement.querySelector('#addClassBtn');
-            if (btn) btn.disabled = !this.value;
-          });
-        });
-        document.querySelectorAll('#subjectSelect').forEach(s => {
-          s.addEventListener('change', function() {
-            var btn = this.parentElement.querySelector('#addSubjectBtn');
-            if (btn) btn.disabled = !this.value;
-          });
-        });
-      ` }} />
+      
     </div>
   );
 }

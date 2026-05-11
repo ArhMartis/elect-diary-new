@@ -19,25 +19,25 @@ export default async function PostsPage() {
   const allPosts = await db.select().from(posts).orderBy(desc(posts.createdAt));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-green-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-green-50 p-3 md:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Кнопка Назад с фоном */}
         <div className="mb-6">
           <Link
             href="/admin"
-            className="inline-flex items-center gap-2 px-5 py-3 bg-white border-2 border-teal-200 text-teal-700 rounded-xl hover:bg-teal-50 hover:border-teal-300 transition-all shadow-md hover:shadow-lg font-medium"
+            className="inline-flex items-center gap-2 px-3 md:px-5 py-2 md:py-3 bg-white border-2 border-teal-200 text-teal-700 rounded-xl hover:bg-teal-50 hover:border-teal-300 transition-all shadow-md hover:shadow-lg font-medium text-sm md:text-base"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
-            Назад в админ-панель
+            Назад
           </Link>
         </div>
 
         {/* Заголовок */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">📰 Управление постами</h1>
-          <p className="text-gray-600">Создавайте и управляйте новостями и объявлениями</p>
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-4xl font-bold text-gray-800 mb-2">📰 Управление постами</h1>
+          <p className="text-gray-600 text-sm md:text-base">Создавайте и управляйте новостями и объявлениями</p>
         </div>
 
         {/* Кнопка создания поста */}
@@ -75,18 +75,18 @@ export default async function PostsPage() {
             allPosts.map((post) => (
               <div key={post.id} className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all">
                 <div className="card-body">
-                  <div className="flex justify-between items-start">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
                     <div className="flex-1">
                       <h2 className="card-title text-xl">{post.title}</h2>
                       <p className="text-gray-600 mt-2 line-clamp-2">{post.content}</p>
-                      <div className="flex gap-2 mt-3">
+                      <div className="flex gap-2 mt-3 flex-wrap">
                         <div className="badge badge-outline">
                           {new Date(post.createdAt).toLocaleDateString("ru-RU")}
                         </div>
                         <div className="badge badge-success">✅ Опубликован</div>
                       </div>
                     </div>
-                    <div className="card-actions ml-4">
+                    <div className="card-actions flex gap-2">
                       <Link
                         href={`/posts/${post.id}`}
                         className="btn btn-sm btn-info"

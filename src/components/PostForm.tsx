@@ -112,7 +112,7 @@ export default function PostForm() {
         </label>
 
         <div
-          className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 ${
+          className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 hidden sm:block ${
             isDragging
               ? "border-indigo-500 bg-indigo-50 scale-[1.02] ring-4 ring-indigo-200"
               : "border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/50"
@@ -138,6 +138,23 @@ export default function PostForm() {
             <p className="text-gray-700 font-semibold">Перетащите изображение сюда</p>
             <p className="text-gray-500 text-sm mt-1">или нажмите для выбора файла</p>
           </div>
+        </div>
+
+        {/* Mobile: simple file picker button */}
+        <div className="sm:hidden">
+          <label className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl cursor-pointer shadow-md hover:shadow-lg transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Добавить изображение
+            <input
+              type="file"
+              name="image"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+          </label>
         </div>
 
         {/* Превью изображения */}

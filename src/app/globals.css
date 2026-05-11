@@ -555,3 +555,124 @@ html[data-theme="dark"] .border-violet-200 { border-color: #3a2060 !important; }
 html[data-theme="dark"] .bg-violet-50 { background-color: #1a0f2a !important; }
 html[data-theme="dark"] .bg-violet-100 { background-color: #1a0f2a !important; }
 
+/* ===================================
+   DARK MODE — Attestation (grades) section
+   =================================== */
+
+/* Main attestation card backgrounds */
+html[data-theme="dark"] .bg-gradient-to-b.from-rose-50\/50.to-white { background-image: linear-gradient(to bottom, #2a1020, #1e1e2e) !important; }
+
+/* Attestation table rows: even=bg-white, odd=bg-rose-50 */
+html[data-theme="dark"] table tr.bg-white { background-color: #181825 !important; }
+html[data-theme="dark"] table tr.bg-rose-50 { background-color: #241520 !important; }
+
+/* Attestation table border */
+html[data-theme="dark"] table .border-rose-200 { border-color: #5a2040 !important; }
+html[data-theme="dark"] table .border-rose-100 { border-color: #452838 !important; }
+html[data-theme="dark"] table .border-rose-400 { border-color: #9f3a5a !important; }
+
+/* Attestation cell highlights for Годовая/Экзамен/Итоговая */
+html[data-theme="dark"] td.bg-rose-50\/50 { background-color: #301828 !important; }
+html[data-theme="dark"] td.bg-rose-100\/50 { background-color: #3a1520 !important; }
+
+/* Attestation card panels */
+html[data-theme="dark"] .border-rose-200 { border-color: #4a2030 !important; }
+html[data-theme="dark"] .shadow-lg.bg-white.border-rose-100,
+html[data-theme="dark"] .bg-white.rounded-2xl.shadow-lg.border-rose-100 { background-color: #181825 !important; }
+
+/* Quarter confirmation cards */
+html[data-theme="dark"] .bg-gray-50 { background-color: #181825 !important; }
+html[data-theme="dark"] .border-gray-200 { border-color: #45475a !important; }
+html[data-theme="dark"] .bg-green-50 { background-color: #0f2a1a !important; }
+html[data-theme="dark"] .border-green-300 { border-color: #2a5a3a !important; }
+html[data-theme="dark"] .bg-blue-50 { background-color: #0f1a2a !important; }
+html[data-theme="dark"] .border-blue-300 { border-color: #2a3a6a !important; }
+html[data-theme="dark"] .bg-amber-200 { background-color: #3a2a10 !important; }
+
+/* Text colors in attestation */
+html[data-theme="dark"] .text-gray-800 { color: #cdd6f4 !important; }
+html[data-theme="dark"] .text-gray-700 { color: #bac2de !important; }
+html[data-theme="dark"] .text-gray-500 { color: #a6adc8 !important; }
+html[data-theme="dark"] .text-rose-700 { color: #fda4af !important; }
+html[data-theme="dark"] .text-rose-800 { color: #fda4af !important; }
+html[data-theme="dark"] .text-emerald-700 { color: #6ee7b7 !important; }
+html[data-theme="dark"] .text-emerald-800 { color: #6ee7b7 !important; }
+
+/* Behavior section card */
+html[data-theme="dark"] .bg-gradient-to-br.from-emerald-50.to-teal-50 { background-image: linear-gradient(to bottom right, #0f2a1a, #0f1a2a) !important; }
+html[data-theme="dark"] .border-emerald-300 { border-color: #2a5a3a !important; }
+html[data-theme="dark"] .border-emerald-200 { border-color: #1a3a2a !important; }
+
+/* Hover states in attestation */
+html[data-theme="dark"] .hover\:bg-rose-100:hover { background-color: #3a1520 !important; }
+
+/* ===================================
+   MOBILE DOCK
+   =================================== */
+.dock {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  z-index: 40;
+}
+
+html[data-theme="dark"] .dock {
+  background-color: rgba(30, 30, 46, 0.95);
+  border-top: 1px solid #45475a;
+}
+
+html[data-theme="dark"] .dock .dock-label {
+  color: #a6adc8;
+}
+
+html[data-theme="dark"] .dock .dock-active .dock-label {
+  color: #cdd6f4;
+}
+
+html[data-theme="dark"] .dock a,
+html[data-theme="dark"] .dock button {
+  color: #a6adc8;
+}
+
+html[data-theme="dark"] .dock .dock-active,
+html[data-theme="dark"] .dock a.dock-active {
+  color: #cba6f7;
+}
+
+/* ===================================
+   DARK MODE — DaisyUI cards, stats, badges
+   =================================== */
+html[data-theme="dark"] .card.bg-base-100 { background-color: #181825 !important; }
+html[data-theme="dark"] .card { background-color: #181825 !important; }
+html[data-theme="dark"] .stats { background-color: #181825 !important; }
+html[data-theme="dark"] .stat { background-color: #181825 !important; }
+
+/* ===================================
+   DARK MODE — Mobile dock active indicator
+   =================================== */
+html[data-theme="dark"] .dock .dock-active svg {
+  color: #cba6f7;
+}
+
+/* ===================================
+   DARK MODE — Broad bg-white override for diary sections & admin cards
+   =================================== */
+html[data-theme="dark"] .bg-white.rounded-2xl,
+html[data-theme="dark"] .bg-white.rounded-xl,
+html[data-theme="dark"] .bg-white.rounded-lg,
+html[data-theme="dark"] .bg-white.shadow-lg,
+html[data-theme="dark"] .bg-white.shadow-md,
+html[data-theme="dark"] .bg-white.shadow-sm {
+  background-color: #181825 !important;
+}
+
+html[data-theme="dark"] .border-gray-100 { border-color: #313244 !important; }
+html[data-theme="dark"] .border-gray-200 { border-color: #45475a !important; }
+html[data-theme="dark"] .border-gray-300 { border-color: #585b70 !important; }
+html[data-theme="dark"] .text-gray-300 { color: #a6adc8 !important; }
+html[data-theme="dark"] .text-gray-400 { color: #7f849c !important; }
+
+/* DaisyUI card-body in dark */
+html[data-theme="dark"] .card-body { background-color: #181825 !important; }
+
