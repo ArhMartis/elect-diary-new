@@ -437,19 +437,19 @@ export default function SubjectsAdminPage({
             }
           }}
         >
-          <div 
-            className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto scrollbar-hide"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            onClick={(e) => e.stopPropagation()}
-          >
+<div 
+          className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] md:max-h-[85vh] overflow-y-auto scrollbar-hide"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          onClick={(e) => e.stopPropagation()}
+        >
             <style>{`
               .scrollbar-hide::-webkit-scrollbar {
                 display: none;
               }
             `}</style>
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-4 md:p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-800">
+                <h2 className="text-lg md:text-2xl font-bold text-gray-800">
                   Выбор предметов для {selectedClassNumber} класса
                 </h2>
                 <button

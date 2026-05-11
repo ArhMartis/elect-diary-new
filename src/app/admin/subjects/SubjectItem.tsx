@@ -91,7 +91,7 @@ export function SubjectItem({
 
   return (
     <div className="p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-all">
-      <div className="flex justify-between items-center mb-3">
+      <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <span className="text-gray-800 font-medium text-lg">{subject.name}</span>
           {!isLockedSubject && (
@@ -103,19 +103,19 @@ export function SubjectItem({
         
         {/* Кнопки редактирования и удаления предмета */}
         {!isLockedSubject && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {/* Форма редактирования */}
-            <form action={updateSubject} className="flex gap-2">
+            <form action={updateSubject} className="flex gap-2 items-center">
               <input type="hidden" name="id" value={subject.id} />
               <input
                 name="name"
                 defaultValue={subject.name}
-                className="border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-indigo-500"
+                className="border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-indigo-500 w-32 md:w-40"
                 required
               />
               <button
                 type="submit"
-                className="px-3 py-1.5 bg-amber-500 text-white rounded hover:bg-amber-600 transition-all text-sm font-medium"
+                className="px-3 py-1.5 bg-amber-500 text-white rounded hover:bg-amber-600 transition-all text-sm font-medium whitespace-nowrap"
               >
                 Обновить
               </button>
@@ -125,7 +125,7 @@ export function SubjectItem({
               <input type="hidden" name="id" value={subject.id} />
               <button
                 type="submit"
-                className="px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600 transition-all text-sm font-medium"
+                className="px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600 transition-all text-sm font-medium whitespace-nowrap"
                 onClick={(e) => {
                   if (!confirm("Вы уверены, что хотите удалить этот предмет?")) {
                     e.preventDefault();

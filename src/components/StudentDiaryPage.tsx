@@ -3370,44 +3370,44 @@ const holidayName = getHolidayNameByDate(dayDate);
                 </tbody>
               </table>
             </div>
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl shadow-lg p-6 border-2 border-emerald-300">
-              <h3 className="text-xl font-bold text-emerald-800 mb-4 flex items-center gap-2">
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl shadow-lg p-4 md:p-6 border-2 border-emerald-300">
+              <h3 className="text-lg md:text-xl font-bold text-emerald-800 mb-4 flex items-center gap-2">
                 <span className="text-2xl">📋</span>Поведение по четвертям
               </h3>
-              <div className="grid md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 {(['q1', 'q2', 'q3', 'q4'] as const).map((q, i) => (
                   <div key={q} className="bg-white rounded-xl p-4 border-2 border-emerald-200">
                     <h4 className="font-bold text-emerald-800 mb-3 text-center text-sm">{i + 1} четв.</h4>
-                    <div className="space-y-1 text-xs">
-                      <label className="flex items-center gap-1 cursor-pointer">
+                    <div className="space-y-2 text-sm">
+                      <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-emerald-50 transition-colors">
                         <input 
                           type="radio" 
                           name={`behavior-${q}`} 
                           checked={data.behavior[q] === 'example'} 
                           onChange={() => updateBehavior(q, 'example')} 
-                          className="w-3 h-3 text-emerald-600" 
+                          className="w-4 h-4 text-emerald-600 accent-emerald-600" 
                         />
-                        <span className="text-gray-700 font-bold">Примерное</span>
+                        <span className="text-gray-800 font-semibold">Примерное</span>
                       </label>
-                      <label className="flex items-center gap-1 cursor-pointer">
+                      <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-amber-50 transition-colors">
                         <input 
                           type="radio" 
                           name={`behavior-${q}`} 
                           checked={data.behavior[q] === 'satisfactory'} 
                           onChange={() => updateBehavior(q, 'satisfactory')} 
-                          className="w-3 h-3 text-emerald-600" 
+                          className="w-4 h-4 text-amber-500 accent-amber-500" 
                         />
-                        <span className="text-gray-700 font-bold">Удовлет.</span>
+                        <span className="text-gray-800 font-semibold">Удовлет.</span>
                       </label>
-                      <label className="flex items-center gap-1 cursor-pointer">
+                      <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-red-50 transition-colors">
                         <input 
                           type="radio" 
                           name={`behavior-${q}`} 
                           checked={data.behavior[q] === 'unsatisfactory'} 
                           onChange={() => updateBehavior(q, 'unsatisfactory')} 
-                          className="w-3 h-3 text-emerald-600" 
+                          className="w-4 h-4 text-red-500 accent-red-500" 
                         />
-                        <span className="text-gray-700 font-bold">Неудовл.</span>
+                        <span className="text-gray-800 font-semibold">Неудовл.</span>
                       </label>
                     </div>
                   </div>

@@ -113,7 +113,7 @@ export default async function AdminPage() {
         </div>
 
         {/* КНОПКИ МЕНЮ */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:justify-center gap-2 md:gap-3 mb-10">
+        <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-10">
           {menuButtons.map((btn) => (
             <Link
               key={btn.label}
@@ -187,7 +187,7 @@ export default async function AdminPage() {
                   </div>
 
                   {/* Правая часть: Действия */}
-                  <div className="flex gap-2 items-center flex-wrap">
+                  <div className="flex gap-2 items-center flex-wrap md:ml-auto">
                     {/* КНОПКА ДНЕВНИКА ДЛЯ УЧЕНИКОВ */}
                     {userRole === "student" && (
                       <Link
