@@ -2334,7 +2334,7 @@ export default function StudentDiaryPage({
                   </thead>
                   <tbody>
                     {bellSchedule.map((bell, index) => (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-amber-50/50'}>
+                      <tr key={index} className="bg-white">
                         <td className="py-3 px-4 font-bold text-amber-800">{bell.number}</td>
                         <td className="py-3 px-4">
                           {canEditContacts() ? (
@@ -3193,9 +3193,9 @@ const holidayName = getHolidayNameByDate(dayDate);
                     <th className="border border-rose-400 px-1 py-2 font-bold" style={{ width: '9%' }}>II</th>
                     <th className="border border-rose-400 px-1 py-2 font-bold" style={{ width: '9%' }}>III</th>
                     <th className="border border-rose-400 px-1 py-2 font-bold" style={{ width: '9%' }}>IV</th>
-                    <th className="border border-rose-400 px-1 py-2 font-bold bg-rose-600/50" style={{ width: '11%' }}>Годовая</th>
-                    <th className="border border-rose-400 px-1 py-2 font-bold bg-rose-600/50" style={{ width: '11%' }}>Экзамен</th>
-                    <th className="border border-rose-400 px-1 py-2 font-bold bg-rose-600/30" style={{ width: '12%' }}>Итоговая</th>
+                    <th className="border border-rose-400 px-1 py-2 font-bold" style={{ width: '11%' }}>Годовая</th>
+                    <th className="border border-rose-400 px-1 py-2 font-bold" style={{ width: '11%' }}>Экзамен</th>
+                    <th className="border border-rose-400 px-1 py-2 font-bold" style={{ width: '12%' }}>Итоговая</th>
                   </tr>
                 </thead>
                 <tbody>

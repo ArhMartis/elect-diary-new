@@ -445,3 +445,63 @@ calendar-date.cally {
   color-scheme: light;
 }
 
+/* ===================================
+   DARK MODE — additional targeted fixes
+   =================================== */
+
+/* Gradients with /50 opacity (section backgrounds) */
+html[data-theme="dark"] .bg-gradient-to-b.from-rose-50\/50.to-white { background-image: linear-gradient(to bottom, rgba(48,24,40,0.5), #1e1e2e) !important; }
+html[data-theme="dark"] .bg-gradient-to-b.from-emerald-50\/50.to-white { background-image: linear-gradient(to bottom, rgba(15,31,26,0.5), #1e1e2e) !important; }
+html[data-theme="dark"] .bg-gradient-to-b.from-indigo-50\/50.to-white { background-image: linear-gradient(to bottom, rgba(30,30,58,0.5), #1e1e2e) !important; }
+
+/* Holidays: memorial dates section (gray-50 to slate-50) */
+html[data-theme="dark"] .bg-gradient-to-br.from-gray-50.to-slate-50 { background-image: linear-gradient(to bottom right, #181825, #1e1e2e) !important; }
+html[data-theme="dark"] .border-gray-200 { border-color: #45475a !important; }
+html[data-theme="dark"] .border-slate-300 { border-color: #585b70 !important; }
+html[data-theme="dark"] .text-slate-600 { color: #a6adc8 !important; }
+html[data-theme="dark"] .text-slate-800 { color: #cdd6f4 !important; }
+
+/* Sky gradient for holidays info */
+html[data-theme="dark"] .bg-gradient-to-r.from-sky-100.to-blue-100 { background-image: linear-gradient(to right, #0f1a2a, #0f1428) !important; }
+html[data-theme="dark"] .border-sky-200 { border-color: #1a3a5a !important; }
+html[data-theme="dark"] .border-sky-300 { border-color: #2a4a6a !important; }
+
+/* Atttestation: rose-600/50 and rose-600/30 header highlights */
+html[data-theme="dark"] .bg-rose-600\/50 { background-color: rgba(225,29,72,0.5) !important; }
+html[data-theme="dark"] .bg-rose-600\/30 { background-color: rgba(225,29,72,0.3) !important; }
+
+/* Text colors for dark */
+html[data-theme="dark"] .text-sky-600 { color: #7dd3fc !important; }
+html[data-theme="dark"] .text-sky-900 { color: #bae6fd !important; }
+html[data-theme="dark"] .text-rose-400 { color: #fb7185 !important; }
+html[data-theme="dark"] .text-rose-500 { color: #f43f5e !important; }
+html[data-theme="dark"] .text-emerald-500 { color: #10b981 !important; }
+html[data-theme="dark"] .bg-emerald-500 { background-color: #10b981 !important; }
+html[data-theme="dark"] .bg-emerald-600 { background-color: #059669 !important; }
+html[data-theme="dark"] .bg-emerald-200 { background-color: #2a4a3a !important; }
+html[data-theme="dark"] .bg-emerald-100 { background-color: #1a3a2a !important; }
+
+/* Red colors */
+html[data-theme="dark"] .bg-red-100 { background-color: #3a1520 !important; }
+html[data-theme="dark"] .bg-red-500 { background-color: #ef4444 !important; }
+html[data-theme="dark"] .bg-red-600 { background-color: #dc2626 !important; }
+html[data-theme="dark"] .text-red-500 { color: #f87171 !important; }
+
+/* Slate colors */
+html[data-theme="dark"] .bg-slate-100 { background-color: #181825 !important; }
+html[data-theme="dark"] .bg-slate-200 { background-color: #1e1e2e !important; }
+html[data-theme="dark"] .border-slate-400 { border-color: #585b70 !important; }
+
+/* Rose gradient headers */
+html[data-theme="dark"] .bg-gradient-to-r.from-rose-500.to-pink-500 { background-image: linear-gradient(to right, #e11d48, #ec4899) !important; }
+html[data-theme="dark"] .bg-gradient-to-r.from-rose-600 { background-image: linear-gradient(to right, #e11d48, #dc2626) !important; }
+
+/* Green / blue badge overrides */
+html[data-theme="dark"] .bg-green-600 { background-color: #16a34a !important; }
+html[data-theme="dark"] .bg-blue-600 { background-color: #2563eb !important; }
+
+/* Violet border */
+html[data-theme="dark"] .border-violet-200 { border-color: #3a2060 !important; }
+html[data-theme="dark"] .bg-violet-50 { background-color: #1a0f2a !important; }
+html[data-theme="dark"] .bg-violet-100 { background-color: #1a0f2a !important; }
+
