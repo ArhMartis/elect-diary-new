@@ -37,7 +37,7 @@ export function CallyCalendar({ value, onChange, min, max }: CallyCalendarProps)
 
       const calendarDate = document.createElement('calendar-date');
       calendarDate.className = 'cally';
-      calendarDate.style.cssText = '--color-accent:#10b981;--color-text-on-accent:#ffffff;background:#ffffff;color:#1f2937;border-radius:0.5rem;padding:0.5rem;';
+      calendarDate.style.cssText = '--color-accent:#10b981;--color-text-on-accent:#ffffff;border-radius:0.5rem;padding:0.5rem;';
       
       if (value) {
         (calendarDate as any).value = value;
@@ -142,7 +142,6 @@ export function CallyCalendar({ value, onChange, min, max }: CallyCalendarProps)
   return (
     <div 
       ref={containerRef} 
-      style={{ colorScheme: 'light only' }}
     />
   );
 }

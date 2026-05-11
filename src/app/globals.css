@@ -357,6 +357,14 @@ html[data-theme="dark"] cally-calendar {
   --cally-color-border: #45475a;
 }
 
+html[data-theme="dark"] calendar-date.cally {
+  --cally-color-primary: #818cf8;
+  --cally-color-text: #cdd6f4;
+  --cally-color-background: #1e1e2e;
+  --cally-color-border: #45475a;
+  color-scheme: dark;
+}
+
 /* Cally calendar popover dark */
 html[data-theme="dark"] .cally-popover,
 html[data-theme="dark"] [data-cally] {
