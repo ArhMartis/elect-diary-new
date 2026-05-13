@@ -662,12 +662,12 @@ function HolidayCalendarSection({ sharedData, setSharedData, canEdit }: HolidayC
         {isOpen && (
           <div
             ref={popoverRef}
-            className="fixed z-[9999] bg-white rounded-xl shadow-2xl border border-gray-200 p-3"
+            className="fixed z-[9999] rounded-xl shadow-2xl border border-gray-200 p-3 bg-white dark:bg-[#1e1e2e] dark:border-gray-600"
             style={{ 
               top: popoverPos.top,
               left: popoverPos.left,
               width: Math.max(popoverPos.width, 280),
-              colorScheme: 'light only',
+              maxWidth: 'calc(100vw - 16px)',
             }}
           >
             <CallyCalendar 
@@ -792,6 +792,8 @@ export default function StudentDiaryPage({
   const [showConfirmComment, setShowConfirmComment] = useState(false);
   const [showConfirmClearComments, setShowConfirmClearComments] = useState(false);
   const [clearingComments, setClearingComments] = useState(false);
+  const [commentsPage, setCommentsPage] = useState(1);
+  const commentsPerPage = 5;
   const [editingCell, setEditingCell] = useState<{ subjectIdx: number; field: string } | null>(null);
   const [editingValue, setEditingValue] = useState("");
 
@@ -1732,7 +1734,7 @@ export default function StudentDiaryPage({
     { id: "official", label: "🎉 Праздники" },
   ];
 
-  const sections = userRole === "admin" || userRole === "principal"
+  const sections = userRole === "admin" || userRole === "principal" || userRole === "parent"
     ? baseSections
     : baseSections.filter(s => s.id !== "official");
 
@@ -1940,8 +1942,8 @@ export default function StudentDiaryPage({
         </div>
 
         {/* Шапка с профилем — после навигации */}
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 px-3 md:px-4 py-2 md:py-3 mb-4">
-          <div className="flex justify-between items-center flex-wrap gap-2">
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 px-3 md:px-4 py-2 md:py-3 mb-4 relative">
+          <div className="flex justify-between items-center flex-wrap gap-2 relative z-10">
             <div className="flex items-center gap-2 md:gap-3">
               <a
                 href={effectiveUserRole === "admin" ? "/admin" : effectiveUserRole === "teacher" ? "/teacher" : effectiveUserRole === "parent" ? "/" : "/diary"}
@@ -1949,28 +1951,6 @@ export default function StudentDiaryPage({
               >
                 Назад
               </a>
-              <div
-                className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-300 cursor-pointer hover:opacity-80 transition-opacity shrink-0 flex items-center justify-center"
-                onClick={() => userAvatar && setShowAvatarModal(true)}
-              >
-                {userAvatar ? (
-                  <Image
-                    src={userAvatar}
-                    alt="Avatar"
-                    fill
-                    className="object-cover rounded-full"
-                    style={{ aspectRatio: '1/1' }}
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold shrink-0">
-                    {studentFullName.charAt(0)}
-                  </div>
-                )}
-              </div>
-              <div>
-                <p className="font-bold text-gray-800">{studentFullName}</p>
-                <p className="text-sm text-gray-600">{studentGrade}</p>
-              </div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -1999,6 +1979,32 @@ export default function StudentDiaryPage({
                   </div>
                 </>
               )}
+            </div>
+          </div>
+
+          {/* ФИО и класс — по центру */}
+          <div className="flex items-center justify-center gap-2 md:gap-3 mt-2">
+            <div
+              className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-300 cursor-pointer hover:opacity-80 transition-opacity shrink-0 flex items-center justify-center"
+              onClick={() => userAvatar && setShowAvatarModal(true)}
+            >
+              {userAvatar ? (
+                <Image
+                  src={userAvatar}
+                  alt="Avatar"
+                  fill
+                  className="object-cover rounded-full"
+                  style={{ aspectRatio: '1/1' }}
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold shrink-0">
+                  {studentFullName.charAt(0)}
+                </div>
+              )}
+            </div>
+            <div className="text-center">
+              <p className="font-bold text-gray-800">{studentFullName}</p>
+              <p className="text-sm text-gray-600">{studentGrade}</p>
             </div>
           </div>
         </div>
@@ -2110,30 +2116,53 @@ export default function StudentDiaryPage({
 
               <div className="space-y-4">
                 {comments.length === 0 ? (
-                  <div className="bg-white rounded-2xl shadow-sm border border-rose-100 p-10 text-center">
+                  <div className="bg-white dark:bg-[#181825] rounded-2xl shadow-sm border border-rose-100 dark:border-rose-900 p-10 text-center">
                     <div className="text-5xl mb-4">✨</div>
-                    <p className="text-gray-500 text-lg font-semibold">Нет замечаний</p>
-                    <p className="text-gray-400 text-sm mt-1">У ученика пока нет замечаний от учителей</p>
+                    <p className="text-gray-500 dark:text-[#a6adc8] text-lg font-semibold">Нет замечаний</p>
+                    <p className="text-gray-400 dark:text-[#7f849c] text-sm mt-1">У ученика пока нет замечаний от учителей</p>
                   </div>
                 ) : (
-                  comments.map(c => (
-                    <div key={c.id} className="bg-white rounded-2xl shadow-sm border border-rose-100 p-5 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-400 to-red-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                            {(c.teacherName || "У")[0]}
-                          </div>
-                          <div>
-                            <p className="font-bold text-gray-800 text-sm">{c.teacherName || "Учитель"}</p>
-                            <p className="text-[11px] text-gray-600 font-medium">{new Date(c.date).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</p>
+                  <>
+                    {comments.slice((commentsPage - 1) * commentsPerPage, commentsPage * commentsPerPage).map(c => (
+                      <div key={c.id} className="bg-white dark:bg-[#181825] rounded-2xl shadow-sm border border-rose-100 dark:border-rose-900 p-5 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-400 to-red-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                              {(c.teacherName || "У")[0]}
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-800 dark:text-[#cdd6f4] text-sm">{c.teacherName || "Учитель"}</p>
+                              <p className="text-[11px] text-gray-600 dark:text-[#a6adc8] font-medium">{new Date(c.date).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</p>
+                            </div>
                           </div>
                         </div>
+                        <div className="bg-rose-50/70 dark:bg-rose-900/20 rounded-xl p-4 border border-rose-100 dark:border-rose-800">
+                          <p className="text-gray-700 dark:text-[#bac2de] text-sm leading-relaxed">{c.comment}</p>
+                        </div>
                       </div>
-                      <div className="bg-rose-50/70 rounded-xl p-4 border border-rose-100">
-                        <p className="text-gray-700 text-sm leading-relaxed">{c.comment}</p>
+                    ))}
+                    {comments.length > commentsPerPage && (
+                      <div className="flex justify-center items-center gap-2 mt-4">
+                        <button
+                          onClick={() => setCommentsPage(p => Math.max(1, p - 1))}
+                          disabled={commentsPage === 1}
+                          className="px-3 py-2 rounded-lg bg-white dark:bg-[#1e1e2e] border border-gray-200 dark:border-[#45475a] text-gray-700 dark:text-[#cdd6f4] hover:bg-gray-50 dark:hover:bg-[#313244] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-sm font-medium"
+                        >
+                          ← Назад
+                        </button>
+                        <span className="text-sm text-gray-600 dark:text-[#a6adc8] font-medium">
+                          {commentsPage} / {Math.ceil(comments.length / commentsPerPage)}
+                        </span>
+                        <button
+                          onClick={() => setCommentsPage(p => Math.min(Math.ceil(comments.length / commentsPerPage), p + 1))}
+                          disabled={commentsPage >= Math.ceil(comments.length / commentsPerPage)}
+                          className="px-3 py-2 rounded-lg bg-white dark:bg-[#1e1e2e] border border-gray-200 dark:border-[#45475a] text-gray-700 dark:text-[#cdd6f4] hover:bg-gray-50 dark:hover:bg-[#313244] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-sm font-medium"
+                        >
+                          Вперёд →
+                        </button>
                       </div>
-                    </div>
-                  ))
+                    )}
+                  </>
                 )}
 
                 {(effectiveUserRole === "admin" || effectiveUserRole === "teacher" || effectiveUserRole === "principal") && !showConfirmComment && (
@@ -3113,7 +3142,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                       onClick={async () => {
                         const newSubjects = [...data.subjects];
                         const current = newSubjects[i].gradeType || 'numeric';
-                        const newGradeType = current === 'numeric' ? 'passfail' : 'numeric';
+                        const newGradeType = (current === 'numeric' ? 'passfail' : 'numeric') as 'numeric' | 'passfail';
                         newSubjects[i] = { 
                           ...newSubjects[i], 
                           gradeType: newGradeType 

@@ -347,8 +347,8 @@ export default function SubjectsAdminPage({
       </div>
 
       {/* Список предметов */}
-      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">Обычные предметы</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-600">
+        <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Обычные предметы</h2>
         {regularSubjects.length === 0 ? (
           <p className="text-gray-500 text-center py-4">Предметы ещё не добавлены</p>
         ) : (
@@ -368,7 +368,7 @@ export default function SubjectsAdminPage({
 
       {/* Мероприятия и классные часы */}
       {(classHourSubjects.length > 0 || eventSubjects.length > 0) && (
-        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl shadow-lg p-6 border-2 border-emerald-200">
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl shadow-lg p-6 border-2 border-emerald-200 dark:border-emerald-700">
           <h2 className="text-lg font-semibold text-emerald-800 mb-4 flex items-center gap-2">
             <span className="text-xl">🎯</span>
             Мероприятия и классные часы
@@ -398,7 +398,7 @@ export default function SubjectsAdminPage({
 
       {/* Специализированные предметы */}
       {(olympiadSubjects.length > 0 || electiveSubjects.length > 0) && (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-6 border-2 border-blue-200">
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl shadow-lg p-6 border-2 border-blue-200 dark:border-blue-700">
           <h2 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
             <span className="text-xl">🏆</span>
             Специализированные предметы

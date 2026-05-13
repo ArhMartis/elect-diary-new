@@ -8,7 +8,7 @@ import { headers } from "next/headers";
 interface UserGroup {
   id: string;
   fullName: string | null;
-  role: string;
+  role: string | null;
   groupId?: number | null;
   groupName?: string | null;
   isHomeroomTeacher?: boolean;

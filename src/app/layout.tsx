@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 import FlashToast from "@/components/FlashToast";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import MobileDock from "@/components/MobileDock";
+import RequestLogger from "@/components/RequestLogger";
 
 
 export const dynamic = "force-dynamic";
@@ -54,6 +55,7 @@ return (
         {children}
 
         <MobileDock />
+        <RequestLogger />
       </ThemeProvider>
     </body>
   </html>

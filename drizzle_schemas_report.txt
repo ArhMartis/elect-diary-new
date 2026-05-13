@@ -1,0 +1,191 @@
+ОТЧЕТ: Drizzle ORM схемы проекта "Электронный дневник"
+=========================================================
+Всего файлов схем: 7
+Всего таблиц: ~32
+СУБД: SQLite (better-sqlite3)
+Общая точка сборки: src/db/index.ts
+
+---
+
+1. src/db/schema/auth_schema.ts (617 строк)
+   Основная схема авторизации и учебной части.
+
+   Таблица: user
+   - Пользователи (better-auth + admin plugin)
+   - Поля: id, name, fullName, email, emailVerified, image, createdAt, updatedAt,
+            avatar, role (admin|principal|teacher|student|parent), banned,
+            banReason, banExpires, groupId
+
+   Таблица: session
+   - Сессии авторизации
+   - Поля: id, expiresAt, token, createdAt, updatedAt, ipAddress, userAgent,
+            userId, impersonatedBy
+
+   Таблица: account
+   - Провайдеры входа (email/password, OAuth)
+   - Поля: id, accountId, providerId, userId, accessToken, refreshToken,
+            idToken, accessTokenExpiresAt, refreshTokenExpiresAt, scope,
+            password, createdAt, updatedAt
+
+   Таблица: verification
+   - Email verification / reset password
+   - Поля: id, identifier, value, expiresAt, createdAt, updatedAt
+
+   Таблица: groups
+   - Классы
+   - Поля: id, name (9-А), teacherId (классный руководитель)
+
+   Таблица: subjects
+   - Учебные предметы
+   - Поля: id, name, type, teacherId
+
+   Таблица: teacherSubjects
+   - Связь учителя <-> предметы (M:N)
+   - Поля: id, teacherId, subjectId, assignedAt
+
+   Таблица: teacherClasses
+   - Связь учителя <-> классы (M:N)
+   - Поля: id, teacherId, groupId, assignedAt
+
+   Таблица: groupSubjects
+   - Связь предмета <-> классы (M:N)
+   - Поля: id, groupId, subjectId
+
+   Таблица: schedule
+   - Расписание уроков
+   - Поля: id, groupId, subjectId, teacherId, name, lessonDate, dayOfWeek (1-6),
+            lessonNumber, quarter (1-4)
+
+   Таблица: grades
+   - Оценки учеников
+   - Поля: id, studentId, subjectId, teacherId, value, comment, date,
+            academicPeriodId
+
+   Таблица: parentsToStudents
+   - Связь родитель <-> ребёнок (M:N)
+   - Поля: id, parentId, studentId
+
+   Таблица: academicPeriods
+   - Четверти
+   - Поля: id, name, startDate, endDate, groupId
+
+   Таблица: homework
+   - Домашние задания
+   - Поля: id, teacherId, groupId, subjectId, lessonDate, description,
+            dueDate, createdAt
+
+   Таблица: quarterConfirmations
+   - Подтверждения четвертей
+   - Поля: id, groupId, quarter, academicYear, confirmedByTeacher,
+            confirmedByTeacherAt, confirmedByParent, confirmedByParentAt,
+            createdAt, updatedAt
+
+   Relations:
+     userRelations, sessionRelations, accountRelations, gradesRelations,
+     parentsToStudentsRelations, groupsRelations, academicPeriodsRelations,
+     homeworkRelations, teacherSubjectsRelations, teacherClassesRelations,
+     subjectsRelations, groupSubjectsRelations
+
+---
+
+2. src/db/schema/diary.ts (97 строк)
+   Заметки и подтверждения в дневнике ученика.
+
+   Таблица: diaryNotes
+   - Заметки ученика по неделям
+   - Поля: id, studentId, weekStart, note, createdAt, updatedAt
+
+   Таблица: diaryVerification
+   - Подтверждения классного руководителя
+   - Поля: id, studentId, weekStart, teacherId, verifiedAt
+
+   Таблица: parentVerification
+   - Подтверждения родителей (просмотр дневника)
+   - Поля: id, studentId, weekStart, parentId, verifiedAt
+
+---
+
+3. src/db/schema/diary-extra.ts (274 строк)
+   Дополнительные таблицы для расширенного функционала дневника.
+
+   Таблица: schoolContacts
+   - Контакты школы
+   - Поля: id, schoolName, schoolAddress, schoolPhone, director, vicePrincipal,
+            vicePrincipalEdu, homeroomTeacher, psychologist, socialPedagogue,
+            updatedAt
+
+   Таблица: bellSchedule
+   - Расписание звонков
+   - Поля: id, number, start, end, break, sortOrder
+
+   Таблица: electives
+   - Факультативы
+   - Поля: id, name, teacherId, teacherName, schedule, groupId, createdAt
+
+   Таблица: holidays
+   - Каникулы по учебным годам
+   - Поля: id, academicYear, autumnStart, autumnEnd, winterStart, winterEnd,
+            springStart, springEnd, summerStart, summerEnd
+
+   Таблица: finalGrades
+   - Итоговые оценки (четвертные, годовые, экзамен)
+   - Поля: id, studentId, subjectId, academicYear, q1, q2, q3, q4,
+            gradeType (numeric|passfail), year, exam, final, updatedAt
+   - Уникальный индекс: (studentId, subjectId, academicYear)
+
+   Таблица: absences
+   - Учёт пропусков по месяцам
+   - Поля: id, studentId, month, academicYear, total, unexcused, date
+   - Уникальный индекс: (studentId, month, academicYear)
+
+   Таблица: teacherComments
+   - Замечания учителей
+   - Поля: id, studentId, teacherId, teacherName, comment, date
+
+   Таблица: teacherRecommendations
+   - Рекомендации и благодарности
+   - Поля: id, studentId, academicYear, content, teacherId, createdAt, updatedAt
+
+   Таблица: schoolInfo
+   - Общая информация о школе
+   - Поля: id, name, address, phone, updatedAt
+
+   Таблица: academicYears
+   - Справочник учебных годов
+   - Поля: id, name (2025/2026), startDate, endDate, isActive
+
+---
+
+4. src/db/schema/posts.ts (21 строк)
+   Новостные посты/объявления.
+
+   Таблица: posts
+   - Поля: id, title, content, authorId, createdAt
+   Relations: postsRelations (связь с user)
+
+---
+
+5. src/db/schema/messages.ts (34 строк)
+   Система сообщений.
+
+   Таблица: messages
+   - Поля: id, content, senderId, senderName, receiverId, groupId,
+            isBroadcast, createdAt, readAt, fileUrl, fileName, fileSize, fileType
+   Relations: messagesRelations (связь с user для sender и receiver)
+
+---
+
+6. src/db/schema/school.ts (9 строк)
+   Устаревшая/дублирующая таблица (заменена groups в auth_schema.ts).
+
+   Таблица: classes
+   - Поля: id, name, homeroomTeacherId
+
+---
+
+7. src/db/schema/request_log.ts (23 строк)
+   Логирование запросов для аудита.
+
+   Таблица: requestLog
+   - Поля: id, userId, method, path, statusCode, userAgent, ipAddress, createdAt
+   - Индексы: (userId), (createdAt)

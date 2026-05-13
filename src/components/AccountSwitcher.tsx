@@ -85,7 +85,7 @@ export default function AccountSwitcher() {
             onClick={() => setIsOpen(false)}
           />
 
-          <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl z-50 overflow-hidden border border-gray-100">
+          <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl z-50 overflow-hidden border border-gray-100 dark:border-gray-600">
             {/* Заголовок */}
             <div className="px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600">
               <h3 className="text-white font-bold text-sm">
@@ -97,13 +97,13 @@ export default function AccountSwitcher() {
             </div>
 
             {/* Фильтр ролей DaisyUI */}
-            <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-              <p className="text-xs font-bold text-gray-600 mb-2">Фильтр по роли:</p>
+            <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-100 dark:border-gray-600">
+              <p className="text-xs font-bold text-gray-600 dark:text-gray-300 mb-2">Фильтр по роли:</p>
               <div className="flex flex-wrap gap-1">
                 <button
                   onClick={() => setSelectedRole("")}
                   className={`px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer transition-all ${
-                    selectedRole === "" ? "bg-indigo-500 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    selectedRole === "" ? "bg-indigo-500 text-white" : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500"
                   }`}
                 >
                   Все
@@ -113,7 +113,7 @@ export default function AccountSwitcher() {
                     key={role}
                     onClick={() => setSelectedRole(role)}
                     className={`px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer transition-all ${
-                      selectedRole === role ? (roleColors[role] || "bg-indigo-500 text-white") : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      selectedRole === role ? (roleColors[role] || "bg-indigo-500 text-white") : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500"
                     }`}
                   >
                     {roleIcons[role] || "👤"} {roleNames[role] || role}
@@ -125,14 +125,14 @@ export default function AccountSwitcher() {
             {/* Список аккаунтов */}
             <div className="max-h-80 overflow-y-auto">
               {filteredAccounts.length === 0 ? (
-                <div className="px-4 py-8 text-center text-gray-500">
+                <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                   Нет аккаунтов с выбранной ролью
                 </div>
               ) : (
                 filteredAccounts.map((account) => (
                   <div
                     key={account.id}
-                    className="group flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                    className="group flex items-center justify-between px-4 py-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                   >
                     <button
                       onClick={async () => {
@@ -163,10 +163,10 @@ export default function AccountSwitcher() {
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold text-gray-800 text-sm truncate">
+                        <div className="font-bold text-gray-800 dark:text-gray-100 text-sm truncate">
                           {account.fullName}
                         </div>
-                        <div className="text-gray-400 text-xs truncate">
+                        <div className="text-gray-400 dark:text-gray-500 text-xs truncate">
                           {account.email}
                         </div>
                         <div className="flex items-center gap-1 mt-0.5">

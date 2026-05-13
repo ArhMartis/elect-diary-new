@@ -131,7 +131,7 @@ export default function TeacherForms({
   taughtGroups = [],
   isHomeroomTeacher = false,
 }: TeacherFormsProps) {
-  const [activeTab, setActiveTab] = useState<"homework" | "grades" | "attendance" | "quarterly">("homework");
+  const [activeTab, setActiveTab] = useState<"homework" | "grades" | "attendance" | "quarterly" | "yearly">("homework");
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
@@ -161,6 +161,7 @@ export default function TeacherForms({
     subjectId: "",
     description: "",
     date: new Date().toISOString().split("T")[0],
+    dueDate: "",
   });
   const [savingHomework, setSavingHomework] = useState(false);
   const [homeworkMessage, setHomeworkMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -452,10 +453,61 @@ export default function TeacherForms({
   const getNextLessonForSubject = (currentScheduleId: string) => {
     const currentItem = schedule.find((s) => s.id === parseInt(currentScheduleId));
     if (!currentItem) return null;
-    const sameSubjectLessons = schedule
-      .filter((s) => s.subjectId === currentItem.subjectId && s.id !== currentItem.id && s.lessonDate && currentItem.lessonDate && s.lessonDate > currentItem.lessonDate)
-      .sort((a, b) => { if (!a.lessonDate || !b.lessonDate) return 0; return new Date(a.lessonDate).getTime() - new Date(b.lessonDate).getTime(); });
-    return sameSubjectLessons[0] || null;
+
+    const candidates: { item: ScheduleItem; nextDate: Date }[] = [];
+
+    for (const s of schedule) {
+      if (s.subjectId !== currentItem.subjectId || s.id === currentItem.id) continue;
+
+      if (s.lessonDate) {
+        let dateStr = s.lessonDate;
+        if (!dateStr.includes("T")) dateStr = dateStr + "T00:00:00";
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) continue;
+        if (d >= new Date()) {
+          candidates.push({ item: s, nextDate: d });
+        }
+      } else if (s.dayOfWeek != null) {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const qStart = getQuarterStartDate(String(selectedQuarter));
+        const qEnd = getQuarterEndDate(String(selectedQuarter));
+        let d = new Date(qStart);
+        const targetDay = s.dayOfWeek;
+        while (d.getDay() !== targetDay && d <= qEnd) {
+          d.setDate(d.getDate() + 1);
+        }
+        if (d > qEnd) continue;
+        if (d < now) {
+          d = new Date(now);
+          while (d.getDay() !== targetDay) {
+            d.setDate(d.getDate() + 1);
+          }
+          if (d > qEnd) continue;
+        }
+        candidates.push({ item: s, nextDate: d });
+      }
+    }
+
+    if (candidates.length === 0) return null;
+    candidates.sort((a, b) => a.nextDate.getTime() - b.nextDate.getTime());
+    return candidates[0].item;
+  };
+
+  const getQuarterEndDate = (quarter: string): Date => {
+    const year = new Date().getFullYear();
+    const month = new Date().getMonth();
+    const academicYearStart = month < 8 ? year - 1 : year;
+    const ends: Record<string, { month: number; day: number }> = {
+      "1": { month: 9, day: 27 },
+      "2": { month: 11, day: 24 },
+      "3": { month: 2, day: 23 },
+      "4": { month: 4, day: 31 },
+    };
+    const e = ends[quarter];
+    if (!e) return new Date(academicYearStart + 1, 4, 31);
+    const y = (quarter === "3" || quarter === "4") ? academicYearStart + 1 : academicYearStart;
+    return new Date(y, e.month, e.day);
   };
 
   const openScheduleModal = (forTab: "homework" | "grades") => {
@@ -506,7 +558,7 @@ export default function TeacherForms({
     setShowScheduleModal(false);
   };
 
-  const handleLessonClick = (item: ScheduleItem, tab: "homework" | "grades" | "quarterly" | "attendance") => {
+  const handleLessonClick = (item: ScheduleItem, tab: "homework" | "grades" | "quarterly" | "attendance" | "yearly") => {
     const dateStr = selectedWeek.toISOString().split("T")[0];
     const dayOfWeek = item.dayOfWeek ?? 1;
     const d = new Date(selectedWeek);
@@ -520,6 +572,7 @@ export default function TeacherForms({
         scheduleId: String(item.id),
         subjectId: String(item.subjectId),
         date: lessonDate,
+        dueDate: "",
       }));
     } else if (tab === "quarterly") {
       setActiveTab("quarterly");
@@ -527,6 +580,8 @@ export default function TeacherForms({
         ...prev,
         subjectId: String(item.subjectId),
       }));
+    } else if (tab === "yearly") {
+      setActiveTab("yearly");
     } else {
       setActiveTab("grades");
       setGradeForm((prev) => ({
@@ -551,11 +606,11 @@ export default function TeacherForms({
       const response = await fetch("/api/homework", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherId, groupId, subjectId, lessonDate: selectedSchedule?.lessonDate || homeworkForm.date || null, description: homeworkForm.description, dueDate: nextLesson?.lessonDate || null }),
+        body: JSON.stringify({ teacherId, groupId, subjectId, lessonDate: selectedSchedule?.lessonDate || homeworkForm.date || null, description: homeworkForm.description, dueDate: homeworkForm.dueDate || nextLesson?.lessonDate || null }),
       });
       if (response.ok) {
-        setHomeworkMessage({ type: "success", text: `Домашнее задание добавлено! ${nextLesson ? `Срок сдачи: ${formatDate(nextLesson.lessonDate)} (${nextLesson.subjectName})` : "Срок сдачи не указан"}` });
-        setHomeworkForm({ scheduleId: "", subjectId: "", description: "", date: new Date().toISOString().split("T")[0] });
+        setHomeworkMessage({ type: "success", text: `Домашнее задание добавлено! ${homeworkForm.dueDate ? `Срок сдачи: ${new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}` : (nextLesson ? `Срок сдачи: ${formatDate(nextLesson.lessonDate)} (${nextLesson.subjectName})` : "Срок сдачи не указан")}` });
+        setHomeworkForm({ scheduleId: "", subjectId: "", description: "", date: new Date().toISOString().split("T")[0], dueDate: "" });
         fetch(`/api/homework?groupId=${groupId}`).then(res => res.json()).then(data => { if (Array.isArray(data)) setHomeworkList(data); });
       } else {
         const error = await response.json();
@@ -613,7 +668,7 @@ export default function TeacherForms({
   if (!groupId) return null;
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+    <div className="bg-white dark:bg-[#181825] rounded-2xl shadow-xl border border-gray-100 dark:border-[#45475a] overflow-hidden">
       {showScheduleModal && currentModalSubjectId && (
         <SchedulePickerModal
           subjectId={currentModalSubjectId}
@@ -628,10 +683,9 @@ export default function TeacherForms({
         />
       )}
 
-      {/* ===== WEEKLY SCHEDULE VIEW ===== */}
-      <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-5">
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-800 dark:to-purple-900 px-6 py-5">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-200/40">
+          <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shadow-lg">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
               <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
               <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
@@ -639,38 +693,37 @@ export default function TeacherForms({
           </div>
           <div>
             <h2 className="text-2xl font-bold text-white tracking-tight">Управление классом</h2>
-            <p className="text-slate-400 text-sm mt-0.5 font-medium">для {groupName}</p>
+            <p className="text-indigo-200 dark:text-indigo-300 text-sm mt-0.5 font-medium">для {groupName}</p>
           </div>
         </div>
       </div>
 
       {taughtGroups.length > 0 && (
-        <div className="mx-6 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-          <h3 className="text-xs font-bold text-amber-800 mb-1.5 flex items-center gap-1.5">
+        <div className="mx-6 mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
+          <h3 className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-1.5 flex items-center gap-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z" /></svg>
             Вы также преподаете в классах:
           </h3>
-          <div className="flex flex-wrap gap-1.5">{taughtGroups.map((g) => (<span key={g.id} className="px-2.5 py-1 bg-white border border-amber-300 text-amber-800 rounded-lg text-xs font-bold">{g.name}</span>))}</div>
+          <div className="flex flex-wrap gap-1.5">{taughtGroups.map((g) => (<span key={g.id} className="px-2.5 py-1 bg-white dark:bg-[#1e1e2e] border border-amber-300 dark:border-amber-600 text-amber-800 dark:text-amber-300 rounded-lg text-xs font-bold">{g.name}</span>))}</div>
         </div>
       )}
 
-      {/* Легенда */}
-      <div className="mx-6 mt-3 p-3 bg-gray-50 rounded-xl flex flex-wrap gap-4 text-xs">
+      <div className="mx-6 mt-3 p-3 bg-gray-50 dark:bg-[#181825] rounded-xl flex flex-wrap gap-4 text-xs">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded"></div>
-          <span className="text-gray-700 font-medium">Ваши уроки (кликабельны)</span>
+          <div className="w-4 h-4 bg-gray-50 dark:bg-[#1e1e2e] border border-gray-200 dark:border-[#45475a] rounded"></div>
+          <span className="text-gray-700 dark:text-[#cdd6f4] font-medium">Ваши уроки (кликабельны)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-100/50 border border-gray-100 rounded opacity-50"></div>
-          <span className="text-gray-500">Уроки других учителей</span>
+          <div className="w-4 h-4 bg-gray-100/50 dark:bg-[#11111b] border border-gray-100 dark:border-[#313244] rounded opacity-50"></div>
+          <span className="text-gray-500 dark:text-[#a6adc8]">Уроки других учителей</span>
         </div>
       </div>
 
       {/* ===== WEEKLY SCHEDULE ===== */}
       <div className="px-6 pt-4">
-        <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 rounded-2xl border border-indigo-100 overflow-hidden">
+        <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 dark:from-[#181825] dark:via-[#1e1e2e] dark:to-[#181825] rounded-2xl border border-indigo-100 dark:border-[#45475a] overflow-hidden">
           {/* Week nav header */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-3.5">
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-700 dark:to-purple-800 px-5 py-3.5">
             <div className="flex items-center justify-between">
               <button onClick={() => navigateWeek("prev")} className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-lg font-bold transition-colors">&lsaquo;</button>
               <div className="text-center">
@@ -711,12 +764,12 @@ export default function TeacherForms({
           {/* Schedule grid by days */}
           <div className="p-4">
             {loadingSchedule ? (
-              <div className="text-center py-8 text-gray-400 font-medium">Загрузка расписания...</div>
+              <div className="text-center py-8 text-gray-400 dark:text-[#a6adc8] font-medium">Загрузка расписания...</div>
             ) : schedule.length === 0 ? (
               <div className="text-center py-8">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-300 mb-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" /></svg>
-                <p className="text-gray-500 font-medium">Нет уроков в расписании</p>
-                <p className="text-gray-400 text-sm mt-1">Добавьте расписание через Админ → Расписание</p>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-300 dark:text-[#585b70] mb-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" /></svg>
+                <p className="text-gray-500 dark:text-[#a6adc8] font-medium">Нет уроков в расписании</p>
+                <p className="text-gray-400 dark:text-[#585b70] text-sm mt-1">Добавьте расписание через Админ → Расписание</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -724,26 +777,29 @@ export default function TeacherForms({
                   const dayLessons = scheduleByDayOfWeek[dayOfWeek] || [];
                   const isToday = new Date().toISOString().split("T")[0] === dateStr;
                   return (
-                    <div key={dayOfWeek} className={`rounded-xl border-2 p-3 transition-all ${isToday ? "bg-white border-indigo-400 shadow-md shadow-indigo-100/50" : "bg-white border-gray-100 hover:border-indigo-200"}`}>
-                      <div className={`flex items-center justify-between mb-2 ${isToday ? "bg-indigo-50 -mx-3 -mt-3 px-3 py-1.5 rounded-t-xl border-b border-indigo-200" : ""}`}>
+                    <div key={dayOfWeek} className={`rounded-xl border-2 p-3 transition-all ${
+                      isToday
+                        ? "bg-white dark:bg-[#1e1e2e] border-indigo-400 dark:border-indigo-500 shadow-md shadow-indigo-100/50 dark:shadow-indigo-900/30"
+                        : "bg-white dark:bg-[#1e1e2e] border-gray-100 dark:border-[#45475a] hover:border-indigo-200 dark:hover:border-indigo-500"
+                    }`}>
+                      <div className={`flex items-center justify-between mb-2 ${isToday ? "bg-indigo-50 dark:bg-indigo-900/30 -mx-3 -mt-3 px-3 py-1.5 rounded-t-xl border-b border-indigo-200 dark:border-indigo-700" : ""}`}>
                         <div>
-                          <h4 className={`text-sm font-bold ${isToday ? "text-indigo-800" : "text-gray-800"}`}>
+                          <h4 className={`text-sm font-bold ${isToday ? "text-indigo-800 dark:text-indigo-300" : "text-gray-800 dark:text-[#cdd6f4]"}`}>
                             {DAYS_OF_WEEK_TRANSLATIONS[dayOfWeek]}
                           </h4>
-                          <p className={`text-[11px] font-medium ${isToday ? "text-indigo-600" : "text-gray-400"}`}>
+                          <p className={`text-[11px] font-medium ${isToday ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 dark:text-[#a6adc8]"}`}>
                             {date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })}
                           </p>
                         </div>
-                        {isToday && <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded-full">Сегодня</span>}
+                        {isToday && <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-800 px-1.5 py-0.5 rounded-full">Сегодня</span>}
                       </div>
                       {dayLessons.length === 0 ? (
-                        <p className="text-xs text-gray-300 text-center py-3 italic">Нет уроков</p>
+                        <p className="text-xs text-gray-300 dark:text-[#585b70] text-center py-3 italic">Нет уроков</p>
                       ) : (
                         <div className="space-y-1.5">
                           {dayLessons.map((lesson) => {
                             const hw = getHomeworkForDate(dateStr, lesson.subjectId);
                             const isTeacherLesson = subjects.length > 0 && teacherSubjectIds.has(lesson.subjectId);
-                            // Уникальный ключ без lesson.id (чтобы избежать дубликатов)
                             const uniqueKey = `${lesson.dayOfWeek}-${lesson.subjectId}-${lesson.lessonNumber}`;
                             return (
                               <div key={uniqueKey} className={`group relative ${!isTeacherLesson ? "opacity-50" : ""}`}>
@@ -753,36 +809,36 @@ export default function TeacherForms({
                                   disabled={!isTeacherLesson}
                                   className={`w-full flex items-center gap-2 p-2 rounded-lg text-left transition-all border ${
                                     !isTeacherLesson
-                                      ? "bg-gray-100/50 border-gray-100 cursor-default"
+                                      ? "bg-gray-100/50 dark:bg-[#11111b] border-gray-100 dark:border-[#313244] cursor-default"
                                       : isToday
-                                        ? "bg-indigo-50/50 border-indigo-100 hover:bg-indigo-100 hover:border-indigo-300 cursor-pointer"
-                                        : "bg-gray-50/50 border-gray-100 hover:bg-indigo-50 hover:border-indigo-200 cursor-pointer"
+                                        ? "bg-indigo-50/50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:border-indigo-300 dark:hover:border-indigo-600 cursor-pointer"
+                                        : "bg-gray-50/50 dark:bg-[#181825] border-gray-100 dark:border-[#313244] hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-200 dark:hover:border-indigo-500 cursor-pointer"
                                   }`}
                                   title={isTeacherLesson ? "Нажмите, чтобы выбрать урок" : "Этот предмет не закреплён за вами"}
                                 >
                                   <span className={`w-6 h-6 flex items-center justify-center rounded-full text-[11px] font-bold shrink-0 ${
                                     !isTeacherLesson
-                                      ? "bg-gray-200 text-gray-400"
+                                      ? "bg-gray-200 dark:bg-[#313244] text-gray-400 dark:text-[#585b70]"
                                       : isToday
-                                        ? "bg-indigo-200 text-indigo-800"
-                                        : "bg-gray-200 text-gray-700"
+                                        ? "bg-indigo-200 dark:bg-indigo-700 text-indigo-800 dark:text-indigo-200"
+                                        : "bg-gray-200 dark:bg-[#313244] text-gray-700 dark:text-[#cdd6f4]"
                                   }`}>
                                     {lesson.lessonNumber}
                                   </span>
                                   <div className="flex-1 min-w-0">
                                     <span className={`text-xs font-bold block truncate ${
-                                      !isTeacherLesson ? "text-gray-500" : isToday ? "text-indigo-900" : "text-gray-800"
+                                      !isTeacherLesson ? "text-gray-500 dark:text-[#585b70]" : isToday ? "text-indigo-900 dark:text-indigo-200" : "text-gray-800 dark:text-[#cdd6f4]"
                                     }`}>
                                       {lesson.subjectName}
                                     </span>
                                     {hw && isTeacherLesson && (
-                                      <span className="text-[10px] text-amber-600 font-medium block truncate" title={hw.description}>
+                                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium block truncate" title={hw.description}>
                                         📝 {hw.description}
                                       </span>
                                     )}
                                   </div>
                                   {isTeacherLesson && (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-gray-300 group-hover:text-indigo-400 shrink-0 transition-colors" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-gray-300 dark:text-[#585b70] group-hover:text-indigo-400 dark:group-hover:text-indigo-400 shrink-0 transition-colors" viewBox="0 0 20 20" fill="currentColor">
                                       <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                                     </svg>
                                   )}
@@ -802,11 +858,11 @@ export default function TeacherForms({
       </div>
 
       {/* ===== TABS ===== */}
-      <div className="px-6 pt-5 flex gap-1 border-b border-gray-200">
+      <div className="px-6 pt-5 flex gap-1 border-b border-gray-200 dark:border-[#45475a]">
         <button
           onClick={() => setActiveTab("homework")}
           className={`px-5 py-3 font-semibold text-sm tracking-wide border-b-2 transition-all ${
-            activeTab === "homework" ? "border-blue-600 text-blue-700 bg-blue-50/50" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            activeTab === "homework" ? "border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20" : "border-transparent text-gray-500 dark:text-[#a6adc8] hover:text-gray-700 dark:hover:text-[#cdd6f4] hover:border-gray-300 dark:hover:border-[#585b70]"
           }`}
         >
           <span className="flex items-center gap-2">
@@ -817,7 +873,7 @@ export default function TeacherForms({
         <button
           onClick={() => setActiveTab("grades")}
           className={`px-5 py-3 font-semibold text-sm tracking-wide border-b-2 transition-all ${
-            activeTab === "grades" ? "border-purple-600 text-purple-700 bg-purple-50/50" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            activeTab === "grades" ? "border-purple-600 text-purple-700 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-900/20" : "border-transparent text-gray-500 dark:text-[#a6adc8] hover:text-gray-700 dark:hover:text-[#cdd6f4] hover:border-gray-300 dark:hover:border-[#585b70]"
           }`}
         >
           <span className="flex items-center gap-2">
@@ -828,7 +884,7 @@ export default function TeacherForms({
         <button
           onClick={() => setActiveTab("attendance")}
           className={`px-5 py-3 font-semibold text-sm tracking-wide border-b-2 transition-all ${
-            activeTab === "attendance" ? "border-amber-600 text-amber-700 bg-amber-50/50" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            activeTab === "attendance" ? "border-amber-600 text-amber-700 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-900/20" : "border-transparent text-gray-500 dark:text-[#a6adc8] hover:text-gray-700 dark:hover:text-[#cdd6f4] hover:border-gray-300 dark:hover:border-[#585b70]"
           }`}
         >
           <span className="flex items-center gap-2">
@@ -839,7 +895,7 @@ export default function TeacherForms({
         <button
           onClick={() => setActiveTab("quarterly")}
           className={`px-5 py-3 font-semibold text-sm tracking-wide border-b-2 transition-all ${
-            activeTab === "quarterly" ? "border-emerald-600 text-emerald-700 bg-emerald-50/50" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            activeTab === "quarterly" ? "border-emerald-600 text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-900/20" : "border-transparent text-gray-500 dark:text-[#a6adc8] hover:text-gray-700 dark:hover:text-[#cdd6f4] hover:border-gray-300 dark:hover:border-[#585b70]"
           }`}
         >
           <span className="flex items-center gap-2">
@@ -847,19 +903,30 @@ export default function TeacherForms({
             Выставить четвертную
           </span>
         </button>
+        <button
+          onClick={() => setActiveTab("yearly")}
+          className={`px-5 py-3 font-semibold text-sm tracking-wide border-b-2 transition-all ${
+            activeTab === "yearly" ? "border-violet-600 text-violet-700 dark:text-violet-400 bg-violet-50/50 dark:bg-violet-900/20" : "border-transparent text-gray-500 dark:text-[#a6adc8] hover:text-gray-700 dark:hover:text-[#cdd6f4] hover:border-gray-300 dark:hover:border-[#585b70]"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" /></svg>
+            Годовая оценка
+          </span>
+        </button>
       </div>
 
       <div className="p-6">
         {/* ===== HOMEWORK TAB ===== */}
         {activeTab === "homework" && (
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-1 tracking-tight flex items-center gap-3">
-              <span className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 text-lg">📝</span>
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-6 border border-blue-100 dark:border-blue-800">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-[#cdd6f4] mb-1 tracking-tight flex items-center gap-3">
+              <span className="w-10 h-10 bg-blue-100 dark:bg-blue-800 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-300 text-lg">📝</span>
               Добавить домашнее задание
             </h3>
 
             {homeworkMessage && (
-              <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${homeworkMessage.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
+              <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${homeworkMessage.type === "success" ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700" : "bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-700"}`}>
                 {homeworkMessage.text}
               </div>
             )}
@@ -885,7 +952,7 @@ export default function TeacherForms({
                         className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${
                           homeworkForm.subjectId === String(subject.id)
                             ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200/50"
-                            : "bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                            : "bg-white dark:bg-[#1e1e2e] text-gray-700 dark:text-[#cdd6f4] border-gray-200 dark:border-[#45475a] hover:border-blue-300 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                         }`}
                       >
                         {subject.name}
@@ -903,9 +970,9 @@ export default function TeacherForms({
                   <button
                     type="button"
                     onClick={() => openScheduleModal("homework")}
-                    className="w-full flex items-center justify-between px-5 py-3.5 bg-white border-2 border-blue-200 rounded-xl hover:border-blue-400 hover:bg-blue-50/50 transition-all group"
+                    className="w-full flex items-center justify-between px-5 py-3.5 bg-white dark:bg-[#1e1e2e] border-2 border-blue-200 dark:border-blue-700 rounded-xl hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all group"
                   >
-                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">
+                    <span className="text-sm font-medium text-gray-700 dark:text-[#cdd6f4] group-hover:text-blue-700 dark:group-hover:text-blue-300">
                       {homeworkForm.scheduleId
                         ? (() => { const sel = schedule.find((s) => s.id === parseInt(homeworkForm.scheduleId)); return sel ? `${getDayOfWeek(sel.dayOfWeek)}, ${sel.lessonNumber} урок — ${sel.subjectName}${sel.lessonDate ? ` (${formatDate(sel.lessonDate)})` : ""}` : "Выбрать урок из расписания"; })()
                         : "Выбрать урок из расписания"}
@@ -918,15 +985,74 @@ export default function TeacherForms({
                 </div>
               )}
 
-              {homeworkForm.scheduleId && (() => {
+{homeworkForm.scheduleId && (() => {
                 const nextLesson = getNextLessonForSubject(homeworkForm.scheduleId);
+                const selectedLesson = schedule.find((s) => s.id === parseInt(homeworkForm.scheduleId));
+                let autoDateStr = "";
+                if (nextLesson) {
+                  if (nextLesson.lessonDate) {
+                    autoDateStr = formatDate(nextLesson.lessonDate) + " — " + nextLesson.subjectName + " (" + getDayOfWeek(nextLesson.dayOfWeek) + ", " + nextLesson.lessonNumber + " урок)";
+                  } else if (nextLesson.dayOfWeek != null) {
+                    const now = new Date();
+                    now.setHours(0, 0, 0, 0);
+                    const diff = ((nextLesson.dayOfWeek - now.getDay() + 7) % 7) || 7;
+                    const nextDate = new Date(now);
+                    nextDate.setDate(now.getDate() + diff);
+                    autoDateStr = nextDate.toLocaleDateString("ru-RU", { day: "numeric", month: "long" }) + " — " + nextLesson.subjectName + " (" + getDayOfWeek(nextLesson.dayOfWeek) + ", " + nextLesson.lessonNumber + " урок)";
+                  }
+                }
                 return (
-                  <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl">
-                    <p className="text-sm font-bold text-amber-800 flex items-center gap-2">
+                  <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
+                    <p className="text-sm font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
                       Срок сдачи:
                     </p>
-                    {nextLesson ? (<p className="text-sm text-amber-700 mt-1 font-medium">{formatDate(nextLesson.lessonDate)} — {nextLesson.subjectName} ({getDayOfWeek(nextLesson.dayOfWeek)}, {nextLesson.lessonNumber} урок)</p>) : (<p className="text-sm text-amber-600 mt-1">Следующий урок не найден в расписании</p>)}
+                    {nextLesson ? (
+                      <p className="text-sm text-amber-700 dark:text-amber-300 mt-1 font-medium">{autoDateStr}</p>
+                    ) : (
+                      <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">Следующий урок в этой четверти не найден</p>
+                    )}
+                    <div className="mt-3">
+                      <label className="text-xs font-medium text-amber-700 dark:text-amber-400 block mb-2">Или выберите дату из расписания:</label>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-1.5">
+                        {weekDates.map(({ dayOfWeek, date, dateStr }) => {
+                          const dayLessons = scheduleByDayOfWeek[dayOfWeek] || [];
+                          const isToday = new Date().toISOString().split("T")[0] === dateStr;
+                          const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+                          const isSelected = homeworkForm.dueDate === dateStr;
+                          const hasTeacherLesson = dayLessons.some(l => teacherSubjectIds.has(l.subjectId));
+                          return (
+                            <button
+                              key={dayOfWeek}
+                              type="button"
+                              disabled={isPast && !isToday}
+                              onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: dateStr }))}
+                              className={`flex flex-col items-center p-2 rounded-lg text-xs font-semibold transition-all border ${
+                                isSelected
+                                  ? "bg-amber-500 text-white border-amber-500 shadow-md"
+                                  : isPast && !isToday
+                                    ? "bg-gray-100 dark:bg-[#11111b] border-gray-200 dark:border-[#313244] text-gray-400 dark:text-[#585b70] cursor-not-allowed opacity-50"
+                                    : hasTeacherLesson
+                                      ? "bg-white dark:bg-[#1e1e2e] border-amber-300 dark:border-amber-600 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:border-amber-400"
+                                      : "bg-white dark:bg-[#1e1e2e] border-gray-200 dark:border-[#45475a] text-gray-500 dark:text-[#a6adc8] hover:border-gray-300 dark:hover:border-[#585b70]"
+                              }`}
+                            >
+                              <span className="block font-bold">{SHORT_DAYS[dayOfWeek]}</span>
+                              <span className={`block text-[10px] ${isSelected ? "text-amber-100" : "text-gray-400 dark:text-[#585b70]"}`}>{date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })}</span>
+                              {isToday && !isSelected && <span className="block text-[9px] text-amber-600 dark:text-amber-400">сег.</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {homeworkForm.dueDate && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                            Выбрано: {new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}
+                          </span>
+                          <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: "" }))} className="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium underline">Сбросить</button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })()}
@@ -965,14 +1091,14 @@ export default function TeacherForms({
 
         {/* ===== GRADES TAB ===== */}
         {activeTab === "grades" && (
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-1 tracking-tight flex items-center gap-3">
-              <span className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 text-lg">⭐</span>
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-6 border border-purple-100 dark:border-purple-800">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-[#cdd6f4] mb-1 tracking-tight flex items-center gap-3">
+              <span className="w-10 h-10 bg-purple-100 dark:bg-purple-800 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-300 text-lg">⭐</span>
               Выставить оценку
             </h3>
 
             {gradeMessage && (
-              <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${gradeMessage.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
+              <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${gradeMessage.type === "success" ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700" : "bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-700"}`}>
                 {gradeMessage.text}
               </div>
             )}
@@ -1061,7 +1187,7 @@ export default function TeacherForms({
         {/* ===== ATTENDANCE TAB ===== */}
         {activeTab === "attendance" && (
           <div 
-            className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-100"
+            className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl p-6 border border-amber-100 dark:border-amber-800"
             style={{ 
               overflowAnchor: 'none',
               contain: 'layout style paint'
@@ -1100,7 +1226,7 @@ export default function TeacherForms({
             </div>
 
             {attendanceMessage && (
-              <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${attendanceMessage.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
+              <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${attendanceMessage.type === "success" ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700" : "bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-700"}`}>
                 {attendanceMessage.text}
               </div>
             )}
@@ -1202,15 +1328,15 @@ export default function TeacherForms({
 
         {/* ===== QUARTERLY GRADE TAB ===== */}
         {activeTab === "quarterly" && (
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-1 tracking-tight flex items-center gap-3">
-              <span className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-lg">📋</span>
+          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-6 border border-emerald-100 dark:border-emerald-800">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-[#cdd6f4] mb-1 tracking-tight flex items-center gap-3">
+              <span className="w-10 h-10 bg-emerald-100 dark:bg-emerald-800 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-300 text-lg">📋</span>
               Выставить четвертную оценку
             </h3>
             <p className="text-sm text-emerald-700 mt-1 ml-[52px]">Четвертные оценки по вашим предметам</p>
 
             {quarterlyMessage && (
-              <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${quarterlyMessage.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
+              <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${quarterlyMessage.type === "success" ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700" : "bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-700"}`}>
                 {quarterlyMessage.text}
               </div>
             )}
@@ -1319,7 +1445,190 @@ export default function TeacherForms({
             </form>
           </div>
         )}
+
+        {activeTab === "yearly" && (
+          <YearlyGradeSection
+            students={students}
+            subjects={subjects}
+            groupId={groupId}
+            teacherId={teacherId}
+            isHomeroomTeacher={isHomeroomTeacher}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+function YearlyGradeSection({ students, subjects, groupId, teacherId, isHomeroomTeacher }: {
+  students: Student[];
+  subjects: Subject[];
+  groupId: number;
+  teacherId: string;
+  isHomeroomTeacher: boolean;
+}) {
+  const [selectedStudent, setSelectedStudent] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [yearlyMessage, setYearlyMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [quarterlyGrades, setQuarterlyGrades] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!selectedStudent || !selectedSubject) { setQuarterlyGrades({}); return; }
+    const fetchGrades = async () => {
+      try {
+        const ay = getCurrentAcademicYear();
+        const res = await fetch(`/api/final-grades?studentId=${selectedStudent}&academicYear=${ay}`);
+        if (res.ok) {
+          const data = await res.json();
+          const qg: Record<string, string> = {};
+          for (const row of data) {
+            if (String(row.subjectId) === selectedSubject) {
+              if (row.q1) qg["1"] = row.q1;
+              if (row.q2) qg["2"] = row.q2;
+              if (row.q3) qg["3"] = row.q3;
+              if (row.q4) qg["4"] = row.q4;
+            }
+          }
+          setQuarterlyGrades(qg);
+        }
+      } catch {}
+    };
+    fetchGrades();
+  }, [selectedStudent, selectedSubject]);
+
+  function getCurrentAcademicYear(): string {
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    return month < 8 ? `${year - 1}-${year}` : `${year}-${year + 1}`;
+  }
+
+  const allQuartersPresent = quarterlyGrades["1"] && quarterlyGrades["2"] && quarterlyGrades["3"] && quarterlyGrades["4"];
+  const grades = [quarterlyGrades["1"], quarterlyGrades["2"], quarterlyGrades["3"], quarterlyGrades["4"]].filter(Boolean).map(Number);
+  const avg = grades.length > 0 ? grades.reduce((a, b) => a + b, 0) / grades.length : 0;
+  const recommended = avg > 0 ? Math.ceil(avg) : null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudent || !selectedSubject || !allQuartersPresent) return;
+    setSaving(true);
+    setYearlyMessage(null);
+    try {
+      const ay = getCurrentAcademicYear();
+      const res = await fetch("/api/final-grades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId: selectedStudent, subjectId: parseInt(selectedSubject), academicYear: ay, year: String(recommended) }),
+      });
+      if (res.ok) {
+        setYearlyMessage({ type: "success", text: `Годовая оценка ${recommended} сохранена! (Среднее: ${avg.toFixed(2)})` });
+      } else {
+        const error = await res.json();
+        setYearlyMessage({ type: "error", text: error.error || "Ошибка сохранения" });
+      }
+    } catch { setYearlyMessage({ type: "error", text: "Ошибка сети" }); }
+    setSaving(false);
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 rounded-2xl p-6 border border-violet-100 dark:border-violet-800">
+      <h3 className="text-xl font-bold text-gray-900 dark:text-[#cdd6f4] mb-1 tracking-tight flex items-center gap-3">
+        <span className="w-10 h-10 bg-violet-100 dark:bg-violet-800 rounded-xl flex items-center justify-center text-violet-600 text-lg">🎓</span>
+        Выставить годовую оценку
+      </h3>
+      <p className="text-sm text-violet-700 dark:text-violet-300 mt-1 ml-[52px]">Средняя за 4 четверти с округлением в пользу ученика</p>
+
+      {yearlyMessage && (
+        <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${yearlyMessage.type === "success" ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700" : "bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-700"}`}>
+          {yearlyMessage.text}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="mt-5 space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div>
+            <label className="block text-sm font-bold text-gray-800 dark:text-[#bac2de] mb-2.5 tracking-wide">Ученик <span className="text-red-400">*</span></label>
+            <select value={selectedStudent} onChange={(e) => setSelectedStudent(e.target.value)} required className="w-full px-4 py-3 border-2 border-violet-200 dark:border-violet-700 rounded-xl focus:border-violet-500 focus:outline-none bg-white dark:bg-[#1e1e2e] text-gray-900 dark:text-[#cdd6f4] font-medium">
+              <option value="">Выберите ученика</option>
+              {students.map((s) => (<option key={s.id} value={s.id}>{s.fullName}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-800 dark:text-[#bac2de] mb-2.5 tracking-wide">Предмет <span className="text-red-400">*</span></label>
+            <div className="flex flex-wrap gap-2">
+              {subjects.map((subject) => (
+                <button key={subject.id} type="button" onClick={() => setSelectedSubject(String(subject.id))}
+                  className={`relative px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${selectedSubject === String(subject.id) ? "bg-violet-600 text-white border-violet-600 shadow-lg" : "bg-white dark:bg-[#1e1e2e] text-gray-700 dark:text-[#cdd6f4] border-gray-200 dark:border-[#45475a] hover:border-violet-300 dark:hover:border-violet-500"}`}>
+                  {subject.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {selectedStudent && selectedSubject && (
+          <div className="bg-white dark:bg-[#181825] rounded-xl p-5 border-2 border-violet-200 dark:border-violet-700 shadow-sm">
+            <h4 className="text-sm font-bold text-violet-800 dark:text-violet-300 mb-3">Оценки по четвертям:</h4>
+            <div className="grid grid-cols-4 gap-3 mb-4">
+              {["1", "2", "3", "4"].map((q) => (
+                <div key={q} className="text-center">
+                  <div className="text-xs font-bold text-violet-600 dark:text-violet-400 mb-1">{q === "1" ? "I" : q === "2" ? "II" : q === "3" ? "III" : "IV"} четверть</div>
+                  {quarterlyGrades[q] ? (
+                    <div className={`w-14 h-14 mx-auto rounded-xl flex items-center justify-center text-2xl font-extrabold text-white shadow-lg ${Number(quarterlyGrades[q]) >= 7 ? "bg-gradient-to-br from-blue-500 to-indigo-500" : Number(quarterlyGrades[q]) >= 5 ? "bg-gradient-to-br from-emerald-500 to-teal-500" : "bg-gradient-to-br from-orange-400 to-red-500"}`}>
+                      {quarterlyGrades[q]}
+                    </div>
+                  ) : (
+                    <div className="w-14 h-14 mx-auto rounded-xl border-2 border-dashed border-gray-300 dark:border-[#45475a] flex items-center justify-center text-gray-400 dark:text-[#585b70] text-2xl">—</div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {allQuartersPresent && recommended !== null ? (
+              <div className="bg-violet-100 dark:bg-violet-900/30 rounded-xl p-4 border border-violet-200 dark:border-violet-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-violet-700 dark:text-violet-300">Рекомендуемая годовая оценка:</p>
+                    <p className="text-sm text-violet-600 dark:text-violet-400 mt-0.5">Среднее: ({quarterlyGrades["1"]}+{quarterlyGrades["2"]}+{quarterlyGrades["3"]}+{quarterlyGrades["4"]})/4 = {avg.toFixed(2)} → округление в пользу ученика</p>
+                  </div>
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-3xl font-extrabold shadow-lg">
+                    {recommended}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-200 dark:border-amber-700">
+                <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">⚠️ Для выставления годовой оценки необходимы оценки за все 4 четверти</p>
+                <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">Заполнены: {[1,2,3,4].filter(q => quarterlyGrades[String(q)]).length} из 4</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {selectedStudent && selectedSubject && allQuartersPresent && recommended !== null && (
+          <div>
+            <label className="block text-sm font-bold text-gray-800 dark:text-[#bac2de] mb-3 tracking-wide">Годовая оценка <span className="text-red-400">*</span></label>
+            <div className="flex flex-wrap gap-2.5">
+              {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => {
+                const isAuto = grade === recommended;
+                const isSelected = false;
+                const getColor = (g: number) => { if (g >= 9) return "from-emerald-400 to-emerald-500"; if (g >= 7) return "from-blue-400 to-blue-500"; if (g >= 5) return "from-yellow-400 to-yellow-500"; if (g >= 4) return "from-orange-400 to-orange-500"; return "from-red-400 to-red-500"; };
+                return (
+                  <button key={grade} type="submit" disabled={saving} onClick={() => setYearlyMessage(null)}
+                    className={`relative w-16 h-20 rounded-2xl font-extrabold text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg bg-gradient-to-br ${getColor(grade)} ${isAuto ? "ring-4 ring-offset-2 ring-violet-400 scale-110" : "opacity-75 hover:opacity-100 opacity-75"}`}
+                    style={isAuto ? { '--tw-ring-color': '#8b5cf6' } as React.CSSProperties : {}}
+                  >
+                    {grade}
+                    {isAuto && <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-900 shadow">★</div>}
+                  </button>
+                );
+              })}
+            </div>
+            <input type="hidden" id="yearlyGradeValue" name="yearlyGradeValue" />
+          </div>
+        )}
+      </form>
     </div>
   );
 }
@@ -1346,19 +1655,19 @@ function SchedulePickerModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4 flex items-center justify-between">
+      <div className="bg-white dark:bg-[#1e1e2e] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-700 dark:to-purple-800 px-6 py-4 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-white tracking-wide">Расписание: {subjectName}</h3>
-            <p className="text-indigo-100 text-sm mt-0.5">Выберите урок из расписания</p>
+            <p className="text-indigo-100 dark:text-indigo-200 text-sm mt-0.5">Выберите урок из расписания</p>
           </div>
           <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
           </button>
         </div>
         <div className="px-6 pt-4 pb-2">
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5 tracking-wide">Четверть</label>
-          <select value={selectedQuarter} onChange={(e) => setSelectedQuarter(e.target.value)} className="w-full px-4 py-2.5 border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:outline-none bg-white text-gray-900 font-medium text-sm">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-[#bac2de] mb-1.5 tracking-wide">Четверть</label>
+          <select value={selectedQuarter} onChange={(e) => setSelectedQuarter(e.target.value)} className="w-full px-4 py-2.5 border-2 border-indigo-200 dark:border-indigo-700 rounded-xl focus:border-indigo-500 focus:outline-none bg-white dark:bg-[#1e1e2e] text-gray-900 dark:text-[#cdd6f4] font-medium text-sm">
             <option value="1">I четверть</option>
             <option value="2">II четверть</option>
             <option value="3">III четверть</option>
@@ -1368,8 +1677,8 @@ function SchedulePickerModal({
         {dayKeys.length === 0 ? (
           <div className="flex-1 flex items-center justify-center p-12">
             <div className="text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-300 mb-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" /></svg>
-              <p className="text-gray-500 font-medium">Нет уроков этого предмета в расписании</p>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-300 dark:text-[#585b70] mb-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" /></svg>
+              <p className="text-gray-500 dark:text-[#a6adc8] font-medium">Нет уроков этого предмета в расписании</p>
             </div>
           </div>
         ) : (
@@ -1377,7 +1686,7 @@ function SchedulePickerModal({
             <div className="px-6 pt-2 pb-1">
               <div className="flex gap-1.5 flex-wrap">
                 {dayKeys.map((dayNum) => (
-                  <button key={dayNum} type="button" onClick={() => setSelectedDay(dayNum)} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${selectedDay === dayNum ? "bg-indigo-600 text-white shadow-md shadow-indigo-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  <button key={dayNum} type="button" onClick={() => setSelectedDay(dayNum)} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${selectedDay === dayNum ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-indigo-900/40" : "bg-gray-100 dark:bg-[#181825] text-gray-600 dark:text-[#a6adc8] hover:bg-gray-200 dark:hover:bg-[#1e1e2e]"}`}>
                     <span className="block text-xs opacity-70">{SHORT_DAYS[Number(dayNum)]}</span>
                     <span className="block">{DAYS_OF_WEEK_TRANSLATIONS[Number(dayNum)]}</span>
                   </button>
@@ -1388,18 +1697,18 @@ function SchedulePickerModal({
               {selectedDay && byDay[selectedDay] ? (
                 <div className="space-y-2">
                   {byDay[selectedDay].map((item) => (
-                    <button key={item.id} type="button" onClick={() => onSelectLesson(item)} className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-gray-100 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all group text-left">
-                      <div className="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg shrink-0 group-hover:bg-indigo-200 transition-colors">{item.lessonNumber}</div>
+                    <button key={item.id} type="button" onClick={() => onSelectLesson(item)} className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-gray-100 dark:border-[#313244] hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all group text-left">
+                      <div className="w-11 h-11 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-lg shrink-0 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-800/60 transition-colors">{item.lessonNumber}</div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 tracking-wide">{item.subjectName}</p>
-                        {item.teacherName && (<p className="text-sm text-gray-500 mt-0.5">{item.teacherName}</p>)}
+                        <p className="font-semibold text-gray-900 dark:text-[#cdd6f4] tracking-wide">{item.subjectName}</p>
+                        {item.teacherName && (<p className="text-sm text-gray-500 dark:text-[#a6adc8] mt-0.5">{item.teacherName}</p>)}
                       </div>
-                      {item.lessonDate && (<span className="text-sm text-gray-400 font-medium shrink-0">{new Date(item.lessonDate).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}</span>)}
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-300 group-hover:text-indigo-500 transition-colors shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                      {item.lessonDate && (<span className="text-sm text-gray-400 dark:text-[#585b70] font-medium shrink-0">{new Date(item.lessonDate).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}</span>)}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-300 dark:text-[#585b70] group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
                     </button>
                   ))}
                 </div>
-              ) : (<div className="text-center py-8 text-gray-400">Выберите день недели</div>)}
+              ) : (<div className="text-center py-8 text-gray-400 dark:text-[#585b70]">Выберите день недели</div>)}
             </div>
           </>
         )}

@@ -695,3 +695,38 @@ html[data-theme="dark"] .text-gray-400 { color: #7f849c !important; }
 /* DaisyUI card-body in dark */
 html[data-theme="dark"] .card-body { background-color: #181825 !important; }
 
+/* ===== Principal page dark mode ===== */
+html[data-theme="dark"] .bg-gradient-to-br.from-slate-50,
+html[data-theme="dark"] .bg-gradient-to-br.from-teal-50 {
+  background: #1e1e2e !important;
+}
+html[data-theme="dark"] .bg-gradient-to-r.from-blue-50,
+html[data-theme="dark"] .bg-gradient-to-r.from-emerald-50 {
+  background: #181825 !important;
+}
+html[data-theme="dark"] .from-blue-50 { --tw-gradient-from: #1e1e2e !important; }
+html[data-theme="dark"] .to-indigo-50 { --tw-gradient-to: #1e1e2e !important; }
+html[data-theme="dark"] .from-emerald-50 { --tw-gradient-from: #1e1e2e !important; }
+html[data-theme="dark"] .from-teal-50 { --tw-gradient-from: #1e1e2e !important; }
+html[data-theme="dark"] .to-green-50 { --tw-gradient-to: #1e1e2e !important; }
+html[data-theme="dark"] .from-rose-50 { --tw-gradient-from: #1e1e2e !important; }
+html[data-theme="dark"] .to-pink-50 { --tw-gradient-to: #1e1e2e !important; }
+html[data-theme="dark"] .from-purple-50 { --tw-gradient-from: #1e1e2e !important; }
+html[data-theme="dark"] .hover\:bg-indigo-50:hover { background-color: #313244 !important; }
+html[data-theme="dark"] .hover\:bg-gray-50:hover { background-color: #11111b !important; }
+html[data-theme="dark"] .hover\:border-blue-400:hover { border-color: #89b4fa !important; }
+html[data-theme="dark"] .hover\:border-indigo-300:hover { border-color: #89b4fa !important; }
+html[data-theme="dark"] .bg-gradient-to-r.from-blue-50.to-indigo-50 { background: #1e1e2e !important; }
+html[data-theme="dark"] .border-blue-200 { border-color: #313244 !important; }
+html[data-theme="dark"] .border-emerald-200 { border-color: #313244 !important; }
+html[data-theme="dark"] .text-gray-900 { color: #cdd6f4 !important; }
+
+/* ===== Account switcher hover fix ===== */
+html[data-theme="dark"] .hover\:bg-gray-50:hover { background-color: #313244 !important; }
+
+/* ===== SubjectItem & subject admin dark mode ===== */
+html[data-theme="dark"] .hover\:bg-emerald-50:hover { background-color: #1e3a2e !important; }
+html[data-theme="dark"] .hover\:border-emerald-200:hover { border-color: #585b70 !important; }
+
+/* ===== Messages date fix ===== */
+

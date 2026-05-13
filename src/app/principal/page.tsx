@@ -196,10 +196,10 @@ export default async function PrincipalPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-[#1e1e2e] dark:via-[#181825] dark:to-[#1e1e2e] p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Навигация */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+        <div className="bg-white dark:bg-[#1e1e2e] rounded-xl shadow-lg p-6 border border-gray-100 dark:border-[#45475a]">
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center">
@@ -213,15 +213,15 @@ export default async function PrincipalPage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Панель директора</h1>
-                <p className="text-gray-700 font-medium">{session.user.fullName}</p>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-[#cdd6f4]">Панель директора</h1>
+                <p className="text-gray-700 dark:text-[#a6adc8] font-medium">{session.user.fullName}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 px-5 py-3 bg-gray-100 text-gray-800 rounded-xl hover:bg-gray-200 transition-all font-bold shadow-md"
+                className="inline-flex items-center gap-2 px-5 py-3 bg-gray-100 dark:bg-[#313244] text-gray-800 dark:text-[#cdd6f4] rounded-xl hover:bg-gray-200 dark:hover:bg-[#45475a] transition-all font-bold shadow-md"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

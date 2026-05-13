@@ -90,12 +90,12 @@ export function SubjectItem({
   };
 
   return (
-    <div className="p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-all">
+    <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-all">
       <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-3">
-          <span className="text-gray-800 font-medium text-lg">{subject.name}</span>
+          <span className="text-gray-800 dark:text-gray-100 font-medium text-lg">{subject.name}</span>
           {!isLockedSubject && (
-            <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full font-medium">
+            <span className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full font-medium">
               {assignedTeacherIds.size} учител{assignedTeacherIds.size === 1 ? 'ь' : assignedTeacherIds.size < 5 ? 'я' : 'ей'}
             </span>
           )}
@@ -110,7 +110,7 @@ export function SubjectItem({
               <input
                 name="name"
                 defaultValue={subject.name}
-                className="border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-indigo-500 w-32 md:w-40"
+                className="border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-100 rounded px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-indigo-500 w-32 md:w-40"
                 required
               />
               <button
@@ -141,13 +141,13 @@ export function SubjectItem({
 
       {/* Справочник учителей для этого предмета - каруселька с анимацией */}
       {subject.type !== 'event' && subject.type !== 'class_hour' && subject.type !== 'olympiad' && (
-        <div className="bg-gray-50 rounded-lg overflow-hidden">
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
           {/* Заголовок-переключатель */}
           <button
             onClick={() => setIsTeachersOpen(!isTeachersOpen)}
-            className="w-full p-4 flex items-center justify-between hover:bg-gray-100 transition-colors"
+            className="w-full p-4 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
           >
-            <h4 className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+            <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-4 w-4"
@@ -200,18 +200,18 @@ export function SubjectItem({
                     key={teacher.id}
                     className={`flex justify-between items-center p-3 rounded-lg transition-all ${
                       isAssigned 
-                        ? 'bg-emerald-50 border border-emerald-200' 
-                        : 'bg-white border border-gray-200'
+                        ? 'bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700' 
+                        : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                        <span className="text-indigo-700 font-semibold text-sm">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                        <span className="text-indigo-700 dark:text-indigo-300 font-semibold text-sm">
                           {teacher.fullName.charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <div>
-                        <span className={`font-medium ${isAssigned ? 'text-emerald-800' : 'text-gray-700'}`}>
+                        <span className={`font-medium ${isAssigned ? 'text-emerald-800 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-200'}`}>
                           {teacher.fullName}
                         </span>
                         {isAssigned && (

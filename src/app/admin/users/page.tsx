@@ -68,7 +68,7 @@ export default async function UsersPage() {
                   <th className="px-4 py-3 text-left text-sm font-semibold">ФИО</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Роль</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Информация</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Действия</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Лог</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -185,14 +185,18 @@ export default async function UsersPage() {
                         </p>
                       </td>
 
-                      {/* Действия */}
+                      {/* Лог активности */}
                       <td className="px-4 py-3">
-                        <Link
-                          href={`/admin/users/${u.id}`}
-                          className="px-3 py-1.5 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition-all text-sm font-medium"
+                        <a
+                          href={`/api/users/activity-log?userId=${u.id}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-slate-600 to-slate-700 text-white text-sm font-medium rounded-lg hover:from-slate-700 hover:to-slate-800 transition-all shadow-sm"
+                          title="Скачать лог активности"
                         >
-                          Подробнее
-                        </Link>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                          Лог
+                        </a>
                       </td>
                     </tr>
                   );

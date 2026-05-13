@@ -232,8 +232,8 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
 
           return (
             <div className="fixed inset-0 backdrop-blur-md bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSelectedTeacher(null)}>
-              <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-t-2xl">
+              <div className="bg-white dark:bg-[#181825] rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <div className="p-6 border-b border-gray-200 dark:border-[#45475a] bg-gradient-to-r from-blue-500 to-indigo-600 rounded-t-2xl">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-3xl backdrop-blur-sm">
@@ -262,8 +262,8 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
 
                 <div className="p-6 space-y-6">
                   {/* Выбор четверти */}
-                  <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl p-5 border border-gray-200">
-                    <p className="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  <div className="bg-gradient-to-r from-gray-50 to-slate-50 dark:from-[#11111b] dark:to-[#1e1e2e] rounded-2xl p-5 border border-gray-200 dark:border-[#45475a]">
+                    <p className="text-base font-bold text-gray-700 dark:text-[#bac2de] mb-3 flex items-center gap-2">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                       </svg>
@@ -277,11 +277,11 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
                           className={`relative overflow-hidden rounded-xl p-4 font-bold text-center transition-all duration-300 transform hover:scale-[1.03] active:scale-95 ${
                             selectedQuarter === q
                               ? `bg-gradient-to-br ${quarterColors[q]} text-white shadow-lg ring-2 ring-offset-2 ring-blue-400`
-                              : "bg-white text-gray-700 border-2 border-gray-200 hover:border-gray-300 hover:shadow-md"
+                              : "bg-white dark:bg-[#1e1e2e] text-gray-700 dark:text-[#cdd6f4] border-2 border-gray-200 dark:border-[#45475a] hover:border-gray-300 dark:hover:border-[#585b70] hover:shadow-md"
                           }`}
                         >
                           <div className="text-2xl mb-1">{quarterIcons[q]}</div>
-                          <div className={`text-lg font-extrabold tracking-wide ${selectedQuarter === q ? "text-white" : "text-gray-800"}`}>
+                          <div className={`text-lg font-extrabold tracking-wide ${selectedQuarter === q ? "text-white" : "text-gray-800 dark:text-[#cdd6f4]"}`}>
                             {quarterLabels[q]}
                           </div>
                           {selectedQuarter === q && (
@@ -325,7 +325,7 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
                       {sortedClasses.map(([classId, classData]) => {
                         const classTotalHours = Array.from(classData.hoursBySubject.values()).reduce((sum, s) => sum + s.hours, 0);
                         return (
-                          <div key={classId} className="bg-white rounded-xl border-2 border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                          <div key={classId} className="bg-white dark:bg-[#181825] rounded-xl border-2 border-gray-100 dark:border-[#45475a] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                             <div className={`px-5 py-3 flex items-center justify-between ${classData.isHomeroom ? "bg-gradient-to-r from-emerald-500 to-teal-500" : "bg-gradient-to-r from-blue-500 to-indigo-500"}`}>
                               <div className="flex items-center gap-2">
                                 <span className="text-xl">{classData.isHomeroom ? "🍎" : "🏫"}</span>
@@ -343,10 +343,10 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
                                 {Array.from(classData.hoursBySubject.values())
                                   .sort((a, b) => b.hours - a.hours)
                                   .map((subj) => (
-                                  <div key={subj.name} className="flex items-center justify-between px-4 py-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                    <div className="flex items-center gap-3">
+<div key={subj.name} className="flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-[#1e1e2e] rounded-lg hover:bg-gray-100 dark:hover:bg-[#313244] transition-colors">
+                                      <div className="flex items-center gap-3">
                                       <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                      <span className="font-bold text-gray-800">{subj.name}</span>
+                                      <span className="font-bold text-gray-800 dark:text-[#cdd6f4]">{subj.name}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -366,19 +366,19 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
                       })}
                     </div>
                   ) : (
-                    <div className="text-center py-12 bg-gray-50 rounded-2xl">
+                    <div className="text-center py-12 bg-gray-50 dark:bg-[#1e1e2e] rounded-2xl">
                       <div className="text-5xl mb-4">📭</div>
-                      <p className="text-gray-600 text-lg font-bold">Нет расписания на {quarterLabels[selectedQuarter].toLowerCase()}</p>
+                      <p className="text-gray-600 dark:text-[#a6adc8] text-lg font-bold">Нет расписания на {quarterLabels[selectedQuarter].toLowerCase()}</p>
                     </div>
                   )}
 
                   {/* Предметы */}
                   {t.subjects.length > 0 && (
-                    <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-4 border border-indigo-200">
-                      <p className="text-sm font-bold text-indigo-700 mb-2">📚 Преподаваемые предметы</p>
+                    <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-[#1e1e2e] dark:to-[#181825] rounded-xl p-4 border border-indigo-200 dark:border-indigo-800">
+                      <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300 mb-2">📚 Преподаваемые предметы</p>
                       <div className="flex flex-wrap gap-2">
                         {t.subjects.map((subject) => (
-                          <span key={subject.id} className="px-3 py-1.5 bg-white border-2 border-indigo-300 text-indigo-800 rounded-lg text-sm font-bold shadow-sm">
+                          <span key={subject.id} className="px-3 py-1.5 bg-white dark:bg-[#313244] border-2 border-indigo-300 dark:border-indigo-600 text-indigo-800 dark:text-indigo-300 rounded-lg text-sm font-bold shadow-sm">
                             {subject.name}
                           </span>
                         ))}

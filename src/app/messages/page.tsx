@@ -237,7 +237,16 @@ export default function MessagesPage() {
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    if (!dateStr) return "";
+    let normalized = dateStr.trim();
+    if (normalized.includes(" ") && !normalized.includes("T")) {
+      normalized = normalized.replace(" ", "T");
+    }
+    if (!normalized.includes("Z") && !normalized.includes("+")) {
+      normalized += "Z";
+    }
+    const date = new Date(normalized);
+    if (isNaN(date.getTime())) return dateStr;
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
     

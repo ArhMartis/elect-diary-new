@@ -18,12 +18,12 @@ export default async function PrincipalPostsPage() {
   const allPosts = await db.select().from(posts).orderBy(desc(posts.createdAt));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-green-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-green-50 dark:from-[#1e1e2e] dark:via-[#181825] dark:to-[#1e1e2e] p-6">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
           <Link
             href="/principal"
-            className="inline-flex items-center gap-2 px-5 py-3 bg-white border-2 border-teal-200 text-teal-700 rounded-xl hover:bg-teal-50 hover:border-teal-300 transition-all shadow-md hover:shadow-lg font-medium"
+            className="inline-flex items-center gap-2 px-5 py-3 bg-white dark:bg-[#313244] border-2 border-teal-200 dark:border-[#45475a] text-teal-700 dark:text-[#cdd6f4] rounded-xl hover:bg-teal-50 dark:hover:bg-[#45475a] transition-all shadow-md hover:shadow-lg font-medium"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
@@ -33,8 +33,8 @@ export default async function PrincipalPostsPage() {
         </div>
 
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">📰 Управление постами</h1>
-          <p className="text-gray-600">Создавайте и управляйте новостями и объявлениями</p>
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-[#cdd6f4] mb-2">📰 Управление постами</h1>
+          <p className="text-gray-600 dark:text-[#a6adc8]">Создавайте и управляйте новостями и объявлениями</p>
         </div>
 
         <div className="flex justify-center mb-8">

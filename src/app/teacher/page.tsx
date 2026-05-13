@@ -92,10 +92,10 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
   const displayGroup = activeGroup || teacherGroup;
 
   return (
-    <div className={`${inter.variable} font-sans min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6`}>
+    <div className={`${inter.variable} font-sans min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-[#1e1e2e] dark:via-[#181825] dark:to-[#1e1e2e] p-6`}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Навигация */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+        <div className="bg-white dark:bg-[#181825] rounded-xl shadow-lg p-6 border border-gray-100 dark:border-[#45475a]">
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
@@ -109,24 +109,24 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                 </svg>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-800">Дневник класса</h1>
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-[#cdd6f4]">Дневник класса</h1>
                 <div className="flex items-center gap-2 mt-1">
                   {displayGroup && (
-                    <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                    <span className="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full text-sm font-medium">
                       {displayGroup.name}
                     </span>
                   )}
                   {displayGroup?.id === teacherGroup?.id && teacherGroup?.teacherId === session.user.id && (
-                    <span className="text-gray-600 text-sm">
+                    <span className="text-gray-600 dark:text-[#a6adc8] text-sm">
                       Вы классный руководитель
                     </span>
                   )}
                 </div>
                 <div className="mt-2">
-                  <span className="text-purple-700 font-bold">
+                  <span className="text-purple-700 dark:text-purple-400 font-bold">
                     {session.user.fullName}
                   </span>
-                  <span className="text-gray-500 text-sm ml-2">
+                  <span className="text-gray-500 dark:text-[#a6adc8] text-sm ml-2">
                     {(() => {
                       const roleNames: Record<string, string> = {
                         admin: "Админ",
@@ -218,8 +218,8 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
         )}
 
         {/* Список учеников */}
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-lg p-6 border border-purple-100">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-[#1e1e2e] dark:to-[#181825] rounded-xl shadow-lg p-6 border border-purple-100 dark:border-[#45475a]">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-[#cdd6f4] mb-4 flex items-center gap-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6 text-purple-600"
@@ -230,16 +230,16 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
             </svg>
             Ученики класса
           </h2>
-          {!displayGroup ? (
-            <div className="text-center text-gray-500 py-8 bg-white rounded-xl border border-dashed border-purple-200">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-3 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
+{!displayGroup ? (
+            <div className="text-center text-gray-500 dark:text-[#a6adc8] py-8 bg-white dark:bg-[#1e1e2e] rounded-xl border border-dashed border-purple-200 dark:border-[#45475a]">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-3 text-purple-300 dark:text-[#585b70]" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
-              <p className="font-medium">У вас нет закрепленного класса!</p>
-              <p className="text-sm mt-1">Обратитесь к администратору для назначения класса</p>
+              <p className="font-medium dark:text-[#cdd6f4]">У вас нет закрепленного класса!</p>
+              <p className="text-sm mt-1 dark:text-[#585b70]">Обратитесь к администратору для назначения класса</p>
             </div>
           ) : students.length === 0 ? (
-            <div className="text-center text-gray-500 py-8 bg-white rounded-xl border border-dashed border-purple-200">
+            <div className="text-center text-gray-500 dark:text-[#a6adc8] py-8 bg-white dark:bg-[#1e1e2e] rounded-xl border border-dashed border-purple-200 dark:border-[#45475a]">
               У вас пока нет учеников в классе
             </div>
           ) : (
@@ -248,22 +248,22 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                 <Link
                   key={student.id}
                   href={`/diary?studentId=${student.id}`}
-                  className="flex items-center justify-between p-4 bg-white rounded-xl border border-purple-200 hover:border-purple-400 hover:shadow-md transition-all group"
+                  className="flex items-center justify-between p-4 bg-white dark:bg-[#1e1e2e] rounded-xl border border-purple-200 dark:border-[#45475a] hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md transition-all group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
                       {student.fullName?.charAt(0) || "?"}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800 group-hover:text-purple-700 transition-colors">
+                      <p className="font-semibold text-gray-800 dark:text-[#cdd6f4] group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors">
                         {student.fullName}
                       </p>
-                      <p className="text-xs text-gray-500">{displayGroup?.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-[#a6adc8]">{displayGroup?.name}</p>
                     </div>
                   </div>
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
-                    className="h-5 w-5 text-gray-400 group-hover:text-purple-600 transition-colors" 
+                    className="h-5 w-5 text-gray-400 dark:text-[#585b70] group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors" 
                     viewBox="0 0 20 20" 
                     fill="currentColor"
                   >
