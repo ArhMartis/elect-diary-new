@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { CallyCalendar } from "@/components/CallyCalendar";
 
 function getGradeColor(value: string): string {
   const numeric = Number(value);
@@ -1097,23 +1098,32 @@ export default function TeacherForms({
                     </div>
                   </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 mt-2">
-                    <input
-                      type="date"
-                      value={homeworkForm.dueDate}
-                      onChange={(e) => setHomeworkForm((prev) => ({ ...prev, dueDate: e.target.value }))}
-                      className="px-3 py-1.5 border border-amber-300 rounded-lg bg-white text-gray-900 text-sm focus:outline-none focus:border-amber-500"
-                    />
-                    <span className="text-xs text-gray-500">или введите вручную</span>
-                    {homeworkForm.dueDate && (
-                      <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: "" }))} className="px-3 py-1.5 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
-                    )}
+                  <div className="mt-2">
+                    <details className="group">
+                      <summary className="cursor-pointer text-xs font-medium text-amber-700 hover:text-amber-800 select-none list-none flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" /></svg>
+                        Выбрать дату в календаре
+                      </summary>
+                      <div className="mt-2 flex flex-col items-center">
+                        <CallyCalendar
+                          value={homeworkForm.dueDate}
+                          onChange={(val) => setHomeworkForm((prev) => ({ ...prev, dueDate: val }))}
+                          min="2025-09-01"
+                          max="2026-08-31"
+                        />
+                        <div className="flex items-center gap-2 mt-2">
+                          {homeworkForm.dueDate && (
+                            <>
+                              <span className="text-xs text-amber-700 font-medium">
+                                ✓ {new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
+                              </span>
+                              <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: "" }))} className="px-2 py-1 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </details>
                   </div>
-                  {homeworkForm.dueDate && (
-                    <p className="mt-1.5 text-xs text-amber-700 font-medium">
-                      ✓ Срок сдачи: {new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}
-                    </p>
-                  )}
                 </div>
               )}
 

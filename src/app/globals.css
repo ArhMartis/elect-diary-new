@@ -349,22 +349,6 @@ html[data-theme="dark"] .bg-gradient-to-b.from-rose-50\/50.to-white { background
 html[data-theme="dark"] .bg-gradient-to-b.from-violet-50\/50.to-white { background-image: linear-gradient(to bottom, rgba(26,15,42,0.5), #1e1e2e) !important; }
 html[data-theme="dark"] .bg-gradient-to-b.from-indigo-50\/50.to-white { background-image: linear-gradient(to bottom, rgba(30,30,58,0.5), #1e1e2e) !important; }
 
-/* Calendar dark mode - override cally */
-html[data-theme="dark"] cally-calendar {
-  --cally-color-primary: #818cf8;
-  --cally-color-text: #cdd6f4;
-  --cally-color-background: #1e1e2e;
-  --cally-color-border: #45475a;
-}
-
-html[data-theme="dark"] calendar-date.cally {
-  --cally-color-primary: #818cf8;
-  --cally-color-text: #cdd6f4;
-  --cally-color-background: #1e1e2e;
-  --cally-color-border: #45475a;
-  color-scheme: dark;
-}
-
 /* Cally calendar popover dark */
 html[data-theme="dark"] .cally-popover,
 html[data-theme="dark"] [data-cally] {
@@ -450,7 +434,19 @@ html {
    =================================== */
 
 calendar-date.cally {
+  --cally-color-primary: #6366f1;
+  --cally-color-text: #1f2937;
+  --cally-color-background: #ffffff;
+  --cally-color-border: #e5e7eb;
   color-scheme: light;
+}
+
+html[data-theme="dark"] calendar-date.cally {
+  --cally-color-primary: #818cf8;
+  --cally-color-text: #cdd6f4;
+  --cally-color-background: #1e1e2e;
+  --cally-color-border: #45475a;
+  color-scheme: dark;
 }
 
 /* ===================================
