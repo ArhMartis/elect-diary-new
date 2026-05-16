@@ -17,6 +17,8 @@ function ProfileClient({ user }: { user: any }) {
   const [totpCode, setTotpCode] = useState("");
   const [totpVerifying, setTotpVerifying] = useState(false);
   const [totpError, setTotpError] = useState("");
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+  const [generatingBackup, setGeneratingBackup] = useState(false);
 
   const roleNames: Record<string, string> = {
     admin: "Администратор",
@@ -72,8 +74,21 @@ function ProfileClient({ user }: { user: any }) {
     try {
       await authClient.twoFactor.disable({ password: totpPassword });
       setTotpPassword("");
+      setBackupCodes(null);
       window.location.reload();
     } catch { setTotpError("Ошибка отключения 2FA"); }
+  };
+
+  const handleGenerateBackupCodes = async () => {
+    if (!totpPassword) { setTotpError("Введите пароль для генерации кодов"); return; }
+    setGeneratingBackup(true);
+    try {
+      const res = await authClient.twoFactor.generateBackupCodes({ password: totpPassword });
+      if (res.data?.backupCodes) {
+        setBackupCodes(res.data.backupCodes);
+      }
+    } catch { setTotpError("Ошибка генерации кодов"); }
+    setGeneratingBackup(false);
   };
 
   return (
@@ -110,6 +125,7 @@ function ProfileClient({ user }: { user: any }) {
             <h3 className="text-lg font-bold text-gray-900 mb-2">Настройка двухфакторной защиты</h3>
             <p className="text-sm text-gray-600 mb-4">Отсканируйте QR-код в приложении-аутентификаторе (Google Authenticator, Authy и т.п.)</p>
             <div className="flex justify-center mb-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(totpUri)}`} alt="TOTP QR" className="rounded-xl" />
             </div>
             <p className="text-xs text-gray-400 mb-3 text-center break-all">Или введите ключ вручную: <code className="text-indigo-600 text-[10px]">{totpUri.split("secret=")[1]?.split("&")[0] || ""}</code></p>
@@ -128,6 +144,27 @@ function ProfileClient({ user }: { user: any }) {
                 {totpVerifying ? "Проверка..." : "Подтвердить"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Backup Codes Modal */}
+      {backupCodes && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md" onClick={() => setBackupCodes(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Резервные коды</h3>
+            <p className="text-sm text-gray-600 mb-4">Сохраните эти коды в надёжном месте. Они понадобятся для входа, если вы потеряете доступ к приложению-аутентификатору.</p>
+            <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 mb-4">
+              <div className="grid grid-cols-2 gap-2">
+                {backupCodes.map((code, i) => (
+                  <div key={i} className="font-mono text-sm font-bold text-amber-900 bg-white rounded-lg px-3 py-2 border border-amber-200 text-center tracking-wider">
+                    {code}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-red-600 font-medium mb-4">⚠️ Коды отображаются только один раз. Скопируйте их сейчас.</p>
+            <button onClick={() => setBackupCodes(null)} className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-700 transition-all">Закрыть</button>
           </div>
         </div>
       )}
@@ -332,6 +369,9 @@ function ProfileClient({ user }: { user: any }) {
                       className="w-28 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-red-500"
                     />
                     <button onClick={handleDisable2FA} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-100 text-red-700 hover:bg-red-200 transition-all">Отключить</button>
+                    <button onClick={handleGenerateBackupCodes} disabled={generatingBackup} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-all disabled:opacity-50">
+                      {generatingBackup ? "..." : "Резервные коды"}
+                    </button>
                   </>
                 )}
                 {totpError && <span className="text-xs text-red-600">{totpError}</span>}
