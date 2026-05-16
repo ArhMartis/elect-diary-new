@@ -189,6 +189,14 @@ export default function TeacherForms({
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectingDueDate, setSelectingDueDate] = useState(false);
   const scheduleRef = useRef<HTMLDivElement>(null);
+  const [dueDateWeek, setDueDateWeek] = useState(() => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  });
 
   const [homeworkForm, setHomeworkForm] = useState({
     scheduleId: "",
@@ -986,97 +994,89 @@ export default function TeacherForms({
               {homeworkForm.subjectId && (
                 <div>
                   <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">
-                    Урок из расписания
+                    Дата урока <span className="text-red-400">*</span>
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => openScheduleModal("homework")}
-                    className="w-full flex items-center justify-between px-5 py-3.5 bg-white border-2 border-blue-200 rounded-xl hover:border-blue-400 hover:bg-blue-50/50 transition-all group"
-                  >
-                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">
-                      {homeworkForm.scheduleId
-                        ? (() => { const sel = schedule.find((s) => s.id === parseInt(homeworkForm.scheduleId)); return sel ? `${getDayOfWeek(sel.dayOfWeek)}, ${sel.lessonNumber} урок — ${sel.subjectName}${sel.lessonDate ? ` (${formatDate(sel.lessonDate)})` : ""}` : "Выбрать урок из расписания"; })()
-                        : "Выбрать урок из расписания"}
-                    </span>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
-                  </button>
-                  {homeworkForm.scheduleId && (
-                    <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, scheduleId: "" }))} className="mt-1.5 text-xs text-gray-400 hover:text-red-500 font-medium transition-colors">Сбросить выбор</button>
+                  <div className="bg-white rounded-xl border-2 border-amber-200 overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2 bg-amber-50 border-b border-amber-200">
+                      <button type="button" onClick={() => {
+                        const d = new Date(dueDateWeek);
+                        d.setDate(d.getDate() - 7);
+                        if (isDateInAcademicYear(d)) setDueDateWeek(d);
+                      }} className="w-7 h-7 rounded-full bg-white border border-amber-200 hover:bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm transition-colors">‹</button>
+                      <span className="text-xs font-bold text-amber-800">
+                        {dueDateWeek.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} — {" "}
+                        {new Date(dueDateWeek.getTime() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}
+                      </span>
+                      <button type="button" onClick={() => {
+                        const d = new Date(dueDateWeek);
+                        d.setDate(d.getDate() + 7);
+                        if (isDateInAcademicYear(d)) setDueDateWeek(d);
+                      }} className="w-7 h-7 rounded-full bg-white border border-amber-200 hover:bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm transition-colors">›</button>
+                    </div>
+                    <div className="p-2 grid grid-cols-7 gap-1">
+                      {(() => {
+                        const dates: { dayOfWeek: number; date: Date; dateStr: string }[] = [];
+                        for (let i = 1; i <= 6; i++) {
+                          const d = new Date(dueDateWeek);
+                          d.setDate(d.getDate() + (i - 1));
+                          dates.push({ dayOfWeek: i, date: d, dateStr: d.toISOString().split("T")[0] });
+                        }
+                        return dates.map(({ dayOfWeek, date, dateStr }) => {
+                          const lessonForSubject = schedule.find(s => {
+                            if (s.subjectId !== parseInt(homeworkForm.subjectId)) return false;
+                            if (s.lessonDate) return s.lessonDate === dateStr;
+                            if (s.dayOfWeek != null) return s.dayOfWeek === dayOfWeek;
+                            return false;
+                          });
+                          const isSelected = homeworkForm.dueDate === dateStr;
+                          const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+                          return (
+                            <button
+                              key={dayOfWeek}
+                              type="button"
+                              disabled={isPast && !lessonForSubject}
+                              onClick={() => {
+                                if (lessonForSubject) {
+                                  setHomeworkForm((prev) => ({ ...prev, dueDate: dateStr }));
+                                }
+                              }}
+                              title={lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : SHORT_DAYS[dayOfWeek]}
+                              className={`flex flex-col items-center p-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                                isSelected
+                                  ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                                  : lessonForSubject
+                                    ? "bg-white border-amber-300 text-amber-800 hover:bg-amber-100 hover:border-amber-400 cursor-pointer"
+                                    : "bg-gray-50 border-gray-100 text-gray-400 cursor-default"
+                              }`}
+                            >
+                              <span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span>
+                              <span className={`text-[10px] ${isSelected ? "text-amber-100" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>
+                              {lessonForSubject && !isSelected && <span className="text-[8px] text-amber-600 mt-0.5 leading-tight truncate max-w-full">{lessonForSubject.subjectName}</span>}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <input
+                      type="date"
+                      value={homeworkForm.dueDate}
+                      onChange={(e) => setHomeworkForm((prev) => ({ ...prev, dueDate: e.target.value }))}
+                      className="px-3 py-1.5 border border-amber-300 rounded-lg bg-white text-gray-900 text-sm focus:outline-none focus:border-amber-500"
+                    />
+                    <span className="text-xs text-gray-500">или введите вручную</span>
+                    {homeworkForm.dueDate && (
+                      <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: "" }))} className="px-3 py-1.5 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
+                    )}
+                  </div>
+                  {homeworkForm.dueDate && (
+                    <p className="mt-1.5 text-xs text-amber-700 font-medium">
+                      ✓ Срок сдачи: {new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}
+                    </p>
                   )}
                 </div>
               )}
-
-              {homeworkForm.scheduleId && (() => {
-                const nextLesson = getNextLessonForSubject(homeworkForm.scheduleId);
-                const selectedLesson = schedule.find((s) => s.id === parseInt(homeworkForm.scheduleId));
-                let autoDateStr = "";
-                if (nextLesson) {
-                  if (nextLesson.lessonDate) {
-                    autoDateStr = formatDate(nextLesson.lessonDate) + " — " + nextLesson.subjectName + " (" + getDayOfWeek(nextLesson.dayOfWeek) + ", " + nextLesson.lessonNumber + " урок)";
-                  } else if (nextLesson.dayOfWeek != null) {
-                    const now = new Date();
-                    now.setHours(0, 0, 0, 0);
-                    const diff = ((nextLesson.dayOfWeek - now.getDay() + 7) % 7) || 7;
-                    const nextDate = new Date(now);
-                    nextDate.setDate(now.getDate() + diff);
-                    autoDateStr = nextDate.toLocaleDateString("ru-RU", { day: "numeric", month: "long" }) + " — " + nextLesson.subjectName + " (" + getDayOfWeek(nextLesson.dayOfWeek) + ", " + nextLesson.lessonNumber + " урок)";
-                  }
-                }
-                return (
-                  <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl">
-                    <p className="text-sm font-bold text-amber-800 flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
-                      Срок сдачи:
-                    </p>
-                    {nextLesson ? (
-                      <p className="text-sm text-amber-700 mt-1 font-medium">{autoDateStr}</p>
-                    ) : (
-                      <p className="text-sm text-amber-600 mt-1">Следующий урок в этой четверти не найден</p>
-                    )}
-                    <div className="mt-3">
-                      <label className="text-xs font-medium text-amber-700 block mb-2">Или выберите дату из расписания:</label>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (scheduleRef.current) {
-                              scheduleRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-                              setSelectingDueDate(true);
-                            }
-                          }}
-                          disabled={!homeworkForm.subjectId}
-                          className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-amber-300 rounded-xl hover:border-amber-400 hover:bg-amber-50 transition-all text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" /></svg>
-                          Выбрать из расписания
-                        </button>
-                        {homeworkForm.dueDate && (
-                          <>
-                            <input
-                              type="date"
-                              value={homeworkForm.dueDate}
-                              onChange={(e) => setHomeworkForm((prev) => ({ ...prev, dueDate: e.target.value }))}
-                              className="px-3 py-2 border border-amber-300 rounded-lg bg-white text-gray-900 text-sm focus:outline-none focus:border-amber-500"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: "" }))}
-                              className="px-3 py-2 text-xs text-red-500 hover:text-red-700 font-medium underline"
-                            >
-                              Сбросить
-                            </button>
-                          </>
-                        )}
-                      </div>
-                      {homeworkForm.dueDate && (
-                        <p className="mt-1.5 text-xs text-amber-700 font-medium">
-                          ✓ Срок сдачи: {new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
 
               {!homeworkForm.scheduleId && homeworkForm.subjectId && schedule.length === 0 && (
                 <div>

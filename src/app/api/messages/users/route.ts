@@ -131,11 +131,10 @@ export async function GET() {
       // Teacher видит:
       // - Других учителей (всех)
       // - Классных руководителей (отдельно помечаем)
-      // - Директора и админа
+      // - Директора
       // - Своих учеников (если классный)
       // - Родителей своих учеников (если классный)
       
-      result.admins = enrichedUsers.filter(u => u.role === "admin");
       result.principals = enrichedUsers.filter(u => u.role === "principal");
       result.homeroomTeachers = enrichedUsers.filter(u => u.role === "teacher" && u.isHomeroomTeacher && u.id !== userId);
       result.teachers = enrichedUsers.filter(u => u.role === "teacher" && !u.isHomeroomTeacher);

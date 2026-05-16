@@ -364,8 +364,8 @@ async function checkSendPermission(
   }
 
   if (userRole === "teacher") {
-    // Учитель может писать: другим учителям, директору, админу, ученикам своего класса, родителям своего класса
-    if (receiver.role === "teacher" || receiver.role === "principal" || receiver.role === "admin") {
+    // Учитель может писать: другим учителям, директору, ученикам своего класса, родителям своего класса
+    if (receiver.role === "teacher" || receiver.role === "principal") {
       return { allowed: true };
     }
     
@@ -395,7 +395,7 @@ async function checkSendPermission(
       }
     }
     
-    return { allowed: false, reason: "You can only message teachers, staff, your students, or parents of your class" };
+    return { allowed: false, reason: "You can only message teachers, the principal, your students, or parents of your class" };
   }
 
   if (userRole === "student") {
