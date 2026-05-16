@@ -1001,19 +1001,52 @@ export default function TeacherForms({
                       <button type="button" onClick={() => {
                         const d = new Date(dueDateWeek);
                         d.setDate(d.getDate() - 7);
-                        if (isDateInAcademicYear(d)) setDueDateWeek(d);
+                        if (isDateInAcademicYear(d)) {
+                          setDueDateWeek(d);
+                          setSelectedQuarter(getQuarterNumberByDate(d));
+                        }
                       }} className="w-7 h-7 rounded-full bg-white border border-amber-200 hover:bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm transition-colors">‹</button>
-                      <span className="text-xs font-bold text-amber-800">
-                        {dueDateWeek.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} — {" "}
-                        {new Date(dueDateWeek.getTime() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}
-                      </span>
+                      <div className="text-center">
+                        <span className="text-xs font-bold text-amber-800 block">
+                          {dueDateWeek.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} — {" "}
+                          {new Date(dueDateWeek.getTime() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}
+                        </span>
+                        <span className="text-[10px] text-amber-600 font-medium">
+                          {selectedQuarter === "1" ? "I" : selectedQuarter === "2" ? "II" : selectedQuarter === "3" ? "III" : "IV"} четверть
+                        </span>
+                      </div>
                       <button type="button" onClick={() => {
                         const d = new Date(dueDateWeek);
                         d.setDate(d.getDate() + 7);
-                        if (isDateInAcademicYear(d)) setDueDateWeek(d);
+                        if (isDateInAcademicYear(d)) {
+                          setDueDateWeek(d);
+                          setSelectedQuarter(getQuarterNumberByDate(d));
+                        }
                       }} className="w-7 h-7 rounded-full bg-white border border-amber-200 hover:bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm transition-colors">›</button>
                     </div>
-                    <div className="p-2 grid grid-cols-7 gap-1">
+                    <div className="p-2">
+                      <div className="flex justify-center mb-2">
+                        <select
+                          value={selectedQuarter}
+                          onChange={(e) => {
+                            const q = e.target.value;
+                            setSelectedQuarter(q);
+                            const quarterStart = getQuarterStartDate(q);
+                            const day = quarterStart.getDay();
+                            const monday = new Date(quarterStart);
+                            monday.setDate(quarterStart.getDate() - ((day + 6) % 7));
+                            monday.setHours(0, 0, 0, 0);
+                            setDueDateWeek(monday);
+                          }}
+                          className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-xs font-semibold border border-amber-300 focus:outline-none"
+                        >
+                          <option value="1" className="text-gray-900">I четверть</option>
+                          <option value="2" className="text-gray-900">II четверть</option>
+                          <option value="3" className="text-gray-900">III четверть</option>
+                          <option value="4" className="text-gray-900">IV четверть</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-7 gap-1">
                       {(() => {
                         const dates: { dayOfWeek: number; date: Date; dateStr: string }[] = [];
                         for (let i = 1; i <= 6; i++) {
@@ -1057,6 +1090,7 @@ export default function TeacherForms({
                         });
                       })()}
                     </div>
+                  </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     <input
