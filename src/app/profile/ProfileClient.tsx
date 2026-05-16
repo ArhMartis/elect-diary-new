@@ -77,7 +77,7 @@ function ProfileClient({ user }: { user: any }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-[#1e1e2e] dark:via-[#181825] dark:to-[#1e1e2e] p-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6">
       {showAvatarModal && user.avatar && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
@@ -106,11 +106,10 @@ function ProfileClient({ user }: { user: any }) {
       {/* 2FA Setup Modal */}
       {show2FA && totpUri && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md" onClick={() => setShow2FA(false)}>
-          <div className="bg-white dark:bg-[#1e1e2e] rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-[#cdd6f4] mb-2">Настройка двухфакторной защиты</h3>
-            <p className="text-sm text-gray-600 dark:text-[#a6adc8] mb-4">Отсканируйте QR-код в приложении-аутентификаторе (Google Authenticator, Authy и т.п.)</p>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Настройка двухфакторной защиты</h3>
+            <p className="text-sm text-gray-600 mb-4">Отсканируйте QR-код в приложении-аутентификаторе (Google Authenticator, Authy и т.п.)</p>
             <div className="flex justify-center mb-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(totpUri)}`} alt="TOTP QR" className="rounded-xl" />
             </div>
             <p className="text-xs text-gray-400 mb-3 text-center break-all">Или введите ключ вручную: <code className="text-indigo-600 text-[10px]">{totpUri.split("secret=")[1]?.split("&")[0] || ""}</code></p>
@@ -119,12 +118,12 @@ function ProfileClient({ user }: { user: any }) {
               value={totpCode}
               onChange={(e) => setTotpCode(e.target.value)}
               placeholder="Введите код из приложения"
-              className="w-full px-4 py-3 border-2 border-indigo-200 dark:border-indigo-700 rounded-xl focus:border-indigo-500 focus:outline-none bg-white dark:bg-[#1e1e2e] text-gray-900 dark:text-[#cdd6f4] font-medium text-center text-xl tracking-widest"
+              className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:outline-none text-gray-900 font-medium text-center text-xl tracking-widest"
               maxLength={6}
             />
-            {totpError && <p className="text-red-600 dark:text-red-400 text-sm mt-2">{totpError}</p>}
+            {totpError && <p className="text-red-600 text-sm mt-2">{totpError}</p>}
             <div className="flex gap-3 mt-4">
-              <button onClick={() => { setShow2FA(false); setTotpUri(""); setTotpPassword(""); }} className="flex-1 py-3 bg-gray-100 dark:bg-[#181825] text-gray-700 dark:text-[#cdd6f4] rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-[#313244] transition-all">Отмена</button>
+              <button onClick={() => { setShow2FA(false); setTotpUri(""); setTotpPassword(""); }} className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all">Отмена</button>
               <button onClick={handleVerify2FA} disabled={totpVerifying || totpCode.length < 6} className="flex-1 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-40">
                 {totpVerifying ? "Проверка..." : "Подтвердить"}
               </button>
@@ -138,7 +137,7 @@ function ProfileClient({ user }: { user: any }) {
         <div className="flex items-center gap-4">
           <Link
             href={`/${user.role}`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#1e1e2e] border-2 border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-300 dark:hover:border-indigo-500 transition-all shadow-sm hover:shadow"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition-all shadow-sm hover:shadow"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -154,12 +153,12 @@ function ProfileClient({ user }: { user: any }) {
             </svg>
             Назад
           </Link>
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-[#cdd6f4]">Мой профиль</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Мой профиль</h1>
         </div>
 
         {/* Основная информация */}
-        <div className="bg-white dark:bg-[#181825] rounded-xl shadow-lg p-8 border border-gray-100 dark:border-[#45475a]">
-          <h2 className="text-xl font-semibold text-gray-700 dark:text-[#cdd6f4] mb-6 flex items-center gap-2">
+        <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+          <h2 className="text-xl font-semibold text-gray-700 mb-6 flex items-center gap-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6 text-indigo-600"
@@ -176,7 +175,7 @@ function ProfileClient({ user }: { user: any }) {
           </h2>
 
           <div className="space-y-6">
-            <div className="pb-6 border-b border-gray-200 dark:border-[#45475a]">
+            <div className="pb-6 border-b border-gray-200">
               <AvatarUploader current={user.avatar ?? undefined} />
             </div>
 
@@ -250,9 +249,9 @@ function ProfileClient({ user }: { user: any }) {
           </div>
         </div>
 
-        {/* Информация об аккаунте */}
-        <div className="bg-white dark:bg-[#181825] rounded-xl shadow-lg p-8 border border-gray-100 dark:border-[#45475a]">
-          <h2 className="text-xl font-semibold text-gray-700 dark:text-[#cdd6f4] mb-6 flex items-center gap-2">
+        {/* Дополнительная информация */}
+        <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+          <h2 className="text-xl font-semibold text-gray-700 mb-6 flex items-center gap-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6 text-indigo-600"
@@ -269,9 +268,9 @@ function ProfileClient({ user }: { user: any }) {
           </h2>
 
           <div className="space-y-4">
-            <div className="flex justify-between py-3 border-b border-gray-100 dark:border-[#45475a]">
-              <span className="text-gray-600 dark:text-[#a6adc8]">Дата регистрации</span>
-              <span className="text-gray-800 dark:text-[#cdd6f4] font-medium">
+            <div className="flex justify-between py-3 border-b border-gray-100">
+              <span className="text-gray-600">Дата регистрации</span>
+              <span className="text-gray-800 font-medium">
                 {user.createdAt
                   ? new Date(user.createdAt).toLocaleDateString("ru-RU", {
                       year: "numeric",
@@ -282,8 +281,8 @@ function ProfileClient({ user }: { user: any }) {
               </span>
             </div>
 
-            <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-[#45475a]">
-              <span className="text-gray-600 dark:text-[#a6adc8]">Email подтверждён</span>
+            <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              <span className="text-gray-600">Email подтверждён</span>
               <div className="flex items-center gap-3">
                 <span className={`font-medium ${
                   user.emailVerified ? "text-emerald-600" : "text-amber-600"
@@ -306,32 +305,25 @@ function ProfileClient({ user }: { user: any }) {
               </div>
             </div>
 
-            <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-[#45475a]">
-              <span className="text-gray-600 dark:text-[#a6adc8]">Двухфакторная защита (2FA)</span>
-              <div className="flex items-center gap-3">
+            <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              <span className="text-gray-600">Двухфакторная защита (2FA)</span>
+              <div className="flex items-center gap-2">
                 <span className={`font-medium ${user.twoFactorEnabled ? "text-emerald-600" : "text-gray-400"}`}>
                   {user.twoFactorEnabled ? "Включена" : "Выключена"}
                 </span>
                 {!user.twoFactorEnabled ? (
-                  <div className="flex items-center gap-2">
-                    {!show2FA && (
-                      <input
-                        type="password"
-                        value={totpPassword}
-                        onChange={(e) => setTotpPassword(e.target.value)}
-                        placeholder="Пароль"
-                        className="w-28 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-indigo-500"
-                      />
-                    )}
-                    <button
-                      onClick={handleSetup2FA}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-all"
-                    >
-                      Настроить
-                    </button>
-                  </div>
+                  <>
+                    <input
+                      type="password"
+                      value={totpPassword}
+                      onChange={(e) => setTotpPassword(e.target.value)}
+                      placeholder="Пароль"
+                      className="w-28 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-indigo-500"
+                    />
+                    <button onClick={handleSetup2FA} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-all">Настроить</button>
+                  </>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <>
                     <input
                       type="password"
                       value={totpPassword}
@@ -339,14 +331,10 @@ function ProfileClient({ user }: { user: any }) {
                       placeholder="Пароль"
                       className="w-28 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-red-500"
                     />
-                    <button
-                      onClick={handleDisable2FA}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-100 text-red-700 hover:bg-red-200 transition-all"
-                    >
-                      Отключить
-                    </button>
-                  </div>
+                    <button onClick={handleDisable2FA} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-100 text-red-700 hover:bg-red-200 transition-all">Отключить</button>
+                  </>
                 )}
+                {totpError && <span className="text-xs text-red-600">{totpError}</span>}
               </div>
             </div>
 
