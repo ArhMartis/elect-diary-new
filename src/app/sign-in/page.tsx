@@ -26,22 +26,20 @@ export default function SignInPage() {
     const password = formData.get("password") as string;
 
     startTransition(async () => {
+      const emailCheck = await fetch("/api/auth/check-email?email=" + encodeURIComponent(email));
+      const emailData = await emailCheck.json();
+      if (!emailData.exists) {
+        setError("Аккаунта с таким email не существует");
+        return;
+      }
+
       const result = await authClient.signIn.email({
         email,
         password,
       });
 
       if (result.error) {
-        const message = result.error.message ?? "";
-
-        if (message.includes("User not found")) {
-          setError("Аккаунта с таким email не существует");
-        } else if (message.includes("Invalid password")) {
-          setError("Неверный пароль");
-        } else {
-          setError("Ошибка входа. Проверьте данные.");
-        }
-
+        setError("Неверный пароль");
         return;
       }
 
