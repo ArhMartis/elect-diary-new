@@ -369,14 +369,34 @@ function ProfileClient({ user }: { user: any }) {
                       className="w-28 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-red-500"
                     />
                     <button onClick={handleDisable2FA} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-100 text-red-700 hover:bg-red-200 transition-all">Отключить</button>
-                    <button onClick={handleGenerateBackupCodes} disabled={generatingBackup} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-all disabled:opacity-50">
-                      {generatingBackup ? "..." : "Резервные коды"}
-                    </button>
                   </>
                 )}
                 {totpError && <span className="text-xs text-red-600">{totpError}</span>}
               </div>
             </div>
+
+            {user.twoFactorEnabled && (
+              <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                <div>
+                  <span className="text-gray-600">Резервные коды (backup)</span>
+                  {!user.emailVerified && (
+                    <p className="text-xs text-amber-600 mt-0.5">Для генерации рекомендуется подтвердить email</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="password"
+                    value={totpPassword}
+                    onChange={(e) => setTotpPassword(e.target.value)}
+                    placeholder="Пароль"
+                    className="w-28 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-amber-500"
+                  />
+                  <button onClick={handleGenerateBackupCodes} disabled={generatingBackup} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-all disabled:opacity-50">
+                    {generatingBackup ? "..." : "Сгенерировать"}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {user.banned && (
               <div className="flex justify-between py-3 border-b border-gray-100">

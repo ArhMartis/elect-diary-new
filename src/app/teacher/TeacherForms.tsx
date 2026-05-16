@@ -190,6 +190,7 @@ export default function TeacherForms({
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectingDueDate, setSelectingDueDate] = useState(false);
   const scheduleRef = useRef<HTMLDivElement>(null);
+  const [showCalendarPopup, setShowCalendarPopup] = useState(false);
   const [dueDateWeek, setDueDateWeek] = useState(() => {
     const now = new Date();
     const dayOfWeek = now.getDay();
@@ -1099,31 +1100,78 @@ export default function TeacherForms({
                   </div>
                   </div>
                   <div className="mt-2">
-                    <details className="group">
-                      <summary className="cursor-pointer text-xs font-medium text-amber-700 hover:text-amber-800 select-none list-none flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" /></svg>
-                        Выбрать дату в календаре
-                      </summary>
-                      <div className="mt-2 flex flex-col items-center">
-                        <CallyCalendar
-                          value={homeworkForm.dueDate}
-                          onChange={(val) => setHomeworkForm((prev) => ({ ...prev, dueDate: val }))}
-                          min="2025-09-01"
-                          max="2026-08-31"
-                        />
-                        <div className="flex items-center gap-2 mt-2">
-                          {homeworkForm.dueDate && (
-                            <>
-                              <span className="text-xs text-amber-700 font-medium">
-                                ✓ {new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
-                              </span>
-                              <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: "" }))} className="px-2 py-1 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
-                            </>
-                          )}
+                    <button
+                      type="button"
+                      onClick={() => setShowCalendarPopup(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-100 border border-amber-300 rounded-lg text-xs font-semibold text-amber-800 hover:bg-amber-200 transition-all"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" /></svg>
+                      {homeworkForm.dueDate ? "Изменить дату" : "Выбрать дату"}
+                    </button>
+                    {homeworkForm.dueDate && (
+                      <>
+                        <span className="ml-2 text-xs text-amber-700 font-medium">
+                          ✓ {new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
+                        </span>
+                        <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: "" }))} className="ml-1 px-2 py-1 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
+                      </>
+                    )}
+                  </div>
+                  {/* Calendar Modal */}
+                  {showCalendarPopup && (() => {
+                    const weekDay = (d: Date) => d.getDay();
+                    const isWeekend = (d: string) => {
+                      const day = weekDay(new Date(d + "T00:00:00"));
+                      return day === 0 || day === 6;
+                    };
+                    const hasLessonForSubject = (d: string) => {
+                      const dayOfWeek = new Date(d + "T00:00:00").getDay() || 7;
+                      const adjustedDay = dayOfWeek === 7 ? 1 : dayOfWeek + 1;
+                      return schedule.some(s =>
+                        String(s.subjectId) === homeworkForm.subjectId &&
+                        ((s.lessonDate && s.lessonDate === d) ||
+                         (s.dayOfWeek != null && s.dayOfWeek === adjustedDay))
+                      );
+                    };
+                    const isHolidayDate = (d: string) => {
+                      const date = new Date(d + "T00:00:00");
+                      return getHolidayNameByDate(date) !== null;
+                    };
+                    return (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowCalendarPopup(false)}>
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-bold text-gray-900">Выберите дату</h3>
+                            <button onClick={() => setShowCalendarPopup(false)} className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                            </button>
+                          </div>
+                          <CallyCalendar
+                            value={homeworkForm.dueDate}
+                            onChange={(val) => {
+                              if (isWeekend(val)) {
+                                alert("Выходной день. Выберите будний день.");
+                                return;
+                              }
+                              if (!hasLessonForSubject(val)) {
+                                alert("На эту дату нет уроков выбранного предмета.");
+                                return;
+                              }
+                              if (isHolidayDate(val)) {
+                                alert("Выбранная дата попадает на каникулы.");
+                                return;
+                              }
+                              setHomeworkForm((prev) => ({ ...prev, dueDate: val }));
+                              setShowScheduleModal(false);
+                            }}
+                            min="2025-09-01"
+                            max="2026-08-31"
+                          />
+                          <p className="text-xs text-gray-400 mt-2 text-center">Выберите день с уроком по вашему предмету</p>
                         </div>
                       </div>
-                    </details>
-                  </div>
+                    );
+                  })()}
                 </div>
               )}
 
