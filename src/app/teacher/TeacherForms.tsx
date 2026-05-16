@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 
 function getGradeColor(value: string): string {
   const numeric = Number(value);
@@ -71,6 +71,38 @@ interface TeacherFormsProps {
 const DAYS_OF_WEEK_TRANSLATIONS = ["", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
 const SHORT_DAYS = ["", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 const DAYS_OF_WEEK_LIST = ["", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+
+const HOLIDAYS_LIST = [
+  { date: "1 января", name: "Новый год" },
+  { date: "7 января", name: "Рождество Христово (Православное)" },
+  { date: "8 марта", name: "День женщин" },
+  { date: "1 мая", name: "Праздник труда" },
+  { date: "9 мая", name: "День Победы" },
+  { date: "3 июля", name: "День Независимости Республики Беларусь" },
+  { date: "7 ноября", name: "День Октябрьской революции" },
+  { date: "25 декабря", name: "Рождество Христово (Католическое)" },
+];
+
+function getHolidayNameByDate(date: Date): string | null {
+  const month = date.getMonth();
+  const day = date.getDate();
+  if ((month === 9 && day >= 28) || (month === 10 && day <= 3)) return "🍂 Осенние каникулы";
+  if ((month === 11 && day >= 25) || (month === 0 && day <= 8)) return "❄️ Зимние каникулы";
+  if (month === 2 && day >= 24 && day <= 30) return "🌸 Весенние каникулы";
+  if (month >= 5 && month <= 7) return "☀️ Летние каникулы";
+  return null;
+}
+
+function getHolidayByDate(date: Date): { name: string } | null {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const months = ["", "января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+  const dateStr = `${day} ${months[month]}`;
+  for (const h of HOLIDAYS_LIST) {
+    if (h.date === dateStr) return { name: `🎉 ${h.name}` };
+  }
+  return null;
+}
 
 // Начало четвертей (месяц, день) - как в дневнике
 const QUARTER_STARTS: Record<string, { month: number; day: number }> = {
@@ -153,8 +185,10 @@ export default function TeacherForms({
   });
 
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [scheduleModalFor, setScheduleModalFor] = useState<"homework" | "grades" | "dueDate">("homework");
+  const [scheduleModalFor, setScheduleModalFor] = useState<"homework" | "grades">("homework");
   const [selectedDay, setSelectedDay] = useState<string>("");
+  const [selectingDueDate, setSelectingDueDate] = useState(false);
+  const scheduleRef = useRef<HTMLDivElement>(null);
 
   const [homeworkForm, setHomeworkForm] = useState({
     scheduleId: "",
@@ -510,7 +544,7 @@ export default function TeacherForms({
     return new Date(y, e.month, e.day);
   };
 
-  const openScheduleModal = (forTab: "homework" | "grades" | "dueDate") => {
+  const openScheduleModal = (forTab: "homework" | "grades") => {
     setScheduleModalFor(forTab);
     setSelectedDay("");
     setShowScheduleModal(true);
@@ -552,19 +586,6 @@ export default function TeacherForms({
   const handleSelectLesson = (item: ScheduleItem) => {
     if (scheduleModalFor === "homework") {
       setHomeworkForm((prev) => ({ ...prev, scheduleId: String(item.id), subjectId: String(item.subjectId) }));
-    } else if (scheduleModalFor === "dueDate") {
-      let dueDate = "";
-      if (item.lessonDate) {
-        dueDate = item.lessonDate;
-      } else if (item.dayOfWeek != null) {
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        const diff = ((item.dayOfWeek - now.getDay() + 7) % 7) || 7;
-        const nextDate = new Date(now);
-        nextDate.setDate(now.getDate() + diff);
-        dueDate = nextDate.toISOString().split("T")[0];
-      }
-      setHomeworkForm((prev) => ({ ...prev, dueDate }));
     } else {
       setGradeForm((prev) => ({ ...prev, scheduleId: String(item.id), subjectId: String(item.subjectId), date: item.lessonDate || prev.date }));
     }
@@ -577,6 +598,12 @@ export default function TeacherForms({
     const d = new Date(selectedWeek);
     d.setDate(d.getDate() + (dayOfWeek - 1));
     const lessonDate = d.toISOString().split("T")[0];
+
+    if (selectingDueDate) {
+      setHomeworkForm((prev) => ({ ...prev, dueDate: lessonDate }));
+      setSelectingDueDate(false);
+      return;
+    }
 
     if (tab === "homework") {
       setActiveTab("homework");
@@ -675,7 +702,7 @@ export default function TeacherForms({
     return DAYS_OF_WEEK_TRANSLATIONS[dayOfWeek] || "";
   };
 
-  const currentModalSubjectId = scheduleModalFor === "dueDate" ? parseInt(homeworkForm.subjectId) : scheduleModalFor === "homework" ? parseInt(homeworkForm.subjectId) : parseInt(gradeForm.subjectId);
+  const currentModalSubjectId = scheduleModalFor === "homework" ? parseInt(homeworkForm.subjectId) : parseInt(gradeForm.subjectId);
   const currentModalSubjectName = subjects.find((s) => s.id === currentModalSubjectId)?.name || "";
 
   if (!groupId) return null;
@@ -733,7 +760,14 @@ export default function TeacherForms({
       </div>
 
       {/* ===== WEEKLY SCHEDULE ===== */}
-      <div className="px-6 pt-4">
+      <div ref={scheduleRef} className="scroll-mt-20 px-6 pt-4">
+        {selectingDueDate && (
+          <div className="mb-3 p-3 bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 dark:border-amber-600 rounded-xl flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
+            <span className="text-sm font-bold text-amber-800 dark:text-amber-300">Выберите день в расписании, чтобы установить срок сдачи</span>
+            <button type="button" onClick={() => setSelectingDueDate(false)} className="ml-auto px-3 py-1 bg-amber-500 text-white rounded-lg text-xs font-bold hover:bg-amber-600 transition-all">Отмена</button>
+          </div>
+        )}
         <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 dark:from-[#181825] dark:via-[#1e1e2e] dark:to-[#181825] rounded-2xl border border-indigo-100 dark:border-[#45475a] overflow-hidden">
           {/* Week nav header */}
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-700 dark:to-purple-800 px-5 py-3.5">
@@ -789,12 +823,23 @@ export default function TeacherForms({
                 {weekDates.map(({ dayOfWeek, date, dateStr }) => {
                   const dayLessons = scheduleByDayOfWeek[dayOfWeek] || [];
                   const isToday = new Date().toISOString().split("T")[0] === dateStr;
+                  const holidayName = getHolidayNameByDate(date);
+                  const celebration = getHolidayByDate(date);
                   return (
-                    <div key={dayOfWeek} className={`rounded-xl border-2 p-3 transition-all ${
+                    <div key={dayOfWeek} 
+                      onClick={() => {
+                        if (selectingDueDate) {
+                          setHomeworkForm((prev) => ({ ...prev, dueDate: dateStr }));
+                          setSelectingDueDate(false);
+                        }
+                      }}
+                      className={`rounded-xl border-2 p-3 transition-all ${
                       isToday
                         ? "bg-white dark:bg-[#1e1e2e] border-indigo-400 dark:border-indigo-500 shadow-md shadow-indigo-100/50 dark:shadow-indigo-900/30"
-                        : "bg-white dark:bg-[#1e1e2e] border-gray-100 dark:border-[#45475a] hover:border-indigo-200 dark:hover:border-indigo-500"
-                    }`}>
+                        : selectingDueDate
+                          ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-600 cursor-pointer hover:border-amber-400 dark:hover:border-amber-500"
+                          : "bg-white dark:bg-[#1e1e2e] border-gray-100 dark:border-[#45475a] hover:border-indigo-200 dark:hover:border-indigo-500"
+                      } ${selectingDueDate ? "cursor-pointer" : ""}`}>
                       <div className={`flex items-center justify-between mb-2 ${isToday ? "bg-indigo-50 dark:bg-indigo-900/30 -mx-3 -mt-3 px-3 py-1.5 rounded-t-xl border-b border-indigo-200 dark:border-indigo-700" : ""}`}>
                         <div>
                           <h4 className={`text-sm font-bold ${isToday ? "text-indigo-800 dark:text-indigo-300" : "text-gray-800 dark:text-[#cdd6f4]"}`}>
@@ -806,8 +851,16 @@ export default function TeacherForms({
                         </div>
                         {isToday && <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-800 px-1.5 py-0.5 rounded-full">Сегодня</span>}
                       </div>
+                      {(holidayName || celebration) && (
+                        <div className={`mb-2 p-2 rounded-lg text-center ${holidayName ? 'bg-gradient-to-br from-sky-100 to-blue-100 dark:from-sky-900/30 dark:to-blue-900/30 border border-sky-300 dark:border-sky-700' : 'bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30 border border-amber-300 dark:border-amber-700'}`}>
+                          <span className={`text-xs font-bold block ${holidayName ? 'text-sky-700 dark:text-sky-300' : 'text-amber-800 dark:text-amber-300'}`}>
+                            {holidayName || celebration?.name}
+                          </span>
+                          {holidayName && <span className="text-[10px] text-sky-600 dark:text-sky-400 font-medium">Каникулы!</span>}
+                        </div>
+                      )}
                       {dayLessons.length === 0 ? (
-                        <p className="text-xs text-gray-300 dark:text-[#585b70] text-center py-3 italic">Нет уроков</p>
+                        <p className="text-xs text-gray-300 dark:text-[#585b70] text-center py-6 italic flex items-center justify-center min-h-[60px]">Нет уроков</p>
                       ) : (
                         <div className="space-y-1.5">
                           {dayLessons.map((lesson) => {
@@ -1026,11 +1079,16 @@ export default function TeacherForms({
                       <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">Следующий урок в этой четверти не найден</p>
                     )}
                     <div className="mt-3">
-                      <label className="text-xs font-medium text-amber-700 dark:text-amber-400 block mb-2">Или укажите дату вручную:</label>
+                      <label className="text-xs font-medium text-amber-700 dark:text-amber-400 block mb-2">Или выберите дату из расписания:</label>
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => openScheduleModal("dueDate")}
+                          onClick={() => {
+                            if (scheduleRef.current) {
+                              scheduleRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+                              setSelectingDueDate(true);
+                            }
+                          }}
                           disabled={!homeworkForm.subjectId}
                           className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#1e1e2e] border-2 border-amber-300 dark:border-amber-600 rounded-xl hover:border-amber-400 dark:hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-sm font-semibold text-amber-800 dark:text-amber-300 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
