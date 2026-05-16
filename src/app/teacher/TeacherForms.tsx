@@ -1072,28 +1072,33 @@ export default function TeacherForms({
                           });
                           const isSelected = homeworkForm.dueDate === dateStr;
                           const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+                          const hName = getHolidayNameByDate(date);
+                          const cel = getHolidayByDate(date);
+                          const isHoliday = hName !== null || cel !== null;
                           return (
                             <button
                               key={dayOfWeek}
                               type="button"
-                              disabled={isPast && !lessonForSubject}
+                              disabled={isPast || isHoliday || !lessonForSubject}
                               onClick={() => {
-                                if (lessonForSubject) {
+                                if (lessonForSubject && !isHoliday) {
                           setHomeworkForm((prev) => ({ ...prev, dueDate: dateStr, dueTime: "" }));
                                 }
                               }}
-                              title={lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : SHORT_DAYS[dayOfWeek]}
+                              title={isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : SHORT_DAYS[dayOfWeek])}
                               className={`flex flex-col items-center p-1.5 rounded-lg text-xs font-semibold transition-all border ${
                                 isSelected
                                   ? "bg-amber-500 text-white border-amber-500 shadow-sm"
-                                  : lessonForSubject
-                                    ? "bg-white border-amber-300 text-amber-800 hover:bg-amber-100 hover:border-amber-400 cursor-pointer"
-                                    : "bg-gray-50 border-gray-100 text-gray-400 cursor-default"
+                                  : isHoliday
+                                    ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                    : lessonForSubject
+                                      ? "bg-white border-amber-300 text-amber-800 hover:bg-amber-100 hover:border-amber-400 cursor-pointer"
+                                      : "bg-gray-50 border-gray-100 text-gray-400 cursor-default"
                               }`}
                             >
                               <span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span>
-                              <span className={`text-[10px] ${isSelected ? "text-amber-100" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>
-                              {lessonForSubject && !isSelected && <span className="text-[8px] text-amber-600 mt-0.5 leading-tight truncate max-w-full">{lessonForSubject.subjectName}</span>}
+                              <span className={`text-[10px] ${isSelected ? "text-amber-100" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>
+                              {lessonForSubject && !isSelected && !isHoliday && <span className="text-[8px] text-amber-600 mt-0.5 leading-tight truncate max-w-full">{lessonForSubject.subjectName}</span>}
                             </button>
                           );
                         });
@@ -1115,22 +1120,6 @@ export default function TeacherForms({
                         <span className="ml-2 text-xs text-amber-700 font-medium">
                           ✓ {new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
                         </span>
-                        <div className="flex items-center gap-1 ml-1">
-                          {["08:00", "08:45", "09:30", "10:25", "11:20", "12:10", "13:00"].map((t) => (
-                            <button
-                              key={t}
-                              type="button"
-                              onClick={() => setHomeworkForm((prev) => ({ ...prev, dueTime: t }))}
-                              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition-all border ${
-                                homeworkForm.dueTime === t
-                                  ? "bg-amber-500 text-white border-amber-500"
-                                  : "bg-white text-amber-700 border-amber-300 hover:bg-amber-100"
-                              }`}
-                            >
-                              {t}
-                            </button>
-                          ))}
-                        </div>
                         <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: "", dueTime: "" }))} className="ml-1 px-2 py-1 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
                       </>
                     )}
@@ -1285,7 +1274,7 @@ export default function TeacherForms({
                         </select>
                       </div>
                       <div className="grid grid-cols-7 gap-1">
-                        {(() => { const dates: any[] = []; for (let i = 1; i <= 6; i++) { const d = new Date(dueDateWeek); d.setDate(d.getDate() + (i - 1)); dates.push({ dayOfWeek: i, date: d, dateStr: d.toISOString().split("T")[0] }); } return dates.map(({ dayOfWeek, date, dateStr }) => { const lessonForSubject = schedule.find(s => s.subjectId === parseInt(gradeForm.subjectId) && ((s.lessonDate && s.lessonDate === dateStr) || (s.dayOfWeek != null && s.dayOfWeek === dayOfWeek))); const isSelected = gradeForm.date === dateStr; return (<button key={dayOfWeek} type="button" disabled={!lessonForSubject} onClick={() => { if (lessonForSubject) setGradeForm((prev) => ({ ...prev, date: dateStr, scheduleId: String(lessonForSubject.id) })); }} title={lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : SHORT_DAYS[dayOfWeek]} className={`flex flex-col items-center p-1.5 rounded-lg text-xs font-semibold transition-all border ${isSelected ? "bg-purple-500 text-white border-purple-500 shadow-sm" : lessonForSubject ? "bg-white border-purple-300 text-purple-800 hover:bg-purple-100 hover:border-purple-400 cursor-pointer" : "bg-gray-50 border-gray-100 text-gray-400 cursor-default"}`}><span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span><span className={`text-[10px] ${isSelected ? "text-purple-100" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>{lessonForSubject && !isSelected && <span className="text-[8px] text-purple-600 mt-0.5 leading-tight truncate max-w-full">{lessonForSubject.subjectName}</span>}</button>); }); })()}
+                        {(() => { const dates: any[] = []; for (let i = 1; i <= 6; i++) { const d = new Date(dueDateWeek); d.setDate(d.getDate() + (i - 1)); dates.push({ dayOfWeek: i, date: d, dateStr: d.toISOString().split("T")[0] }); } return dates.map(({ dayOfWeek, date, dateStr }) => { const lessonForSubject = schedule.find(s => s.subjectId === parseInt(gradeForm.subjectId) && ((s.lessonDate && s.lessonDate === dateStr) || (s.dayOfWeek != null && s.dayOfWeek === dayOfWeek))); const isSelected = gradeForm.date === dateStr; const hName = getHolidayNameByDate(date); const cel = getHolidayByDate(date); const isHoliday = hName !== null || cel !== null; return (<button key={dayOfWeek} type="button" disabled={!lessonForSubject || isHoliday} onClick={() => { if (lessonForSubject && !isHoliday) setGradeForm((prev) => ({ ...prev, date: dateStr, scheduleId: String(lessonForSubject.id) })); }} title={isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : SHORT_DAYS[dayOfWeek])} className={`flex flex-col items-center p-1.5 rounded-lg text-xs font-semibold transition-all border ${isSelected ? "bg-purple-500 text-white border-purple-500 shadow-sm" : isHoliday ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed" : lessonForSubject ? "bg-white border-purple-300 text-purple-800 hover:bg-purple-100 hover:border-purple-400 cursor-pointer" : "bg-gray-50 border-gray-100 text-gray-400 cursor-default"}`}><span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span><span className={`text-[10px] ${isSelected ? "text-purple-100" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>{lessonForSubject && !isSelected && !isHoliday && <span className="text-[8px] text-purple-600 mt-0.5 leading-tight truncate max-w-full">{lessonForSubject.subjectName}</span>}</button>); }); })()}
                       </div>
                     </div>
                   </div>
