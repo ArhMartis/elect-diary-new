@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
-import { relations } from 'drizzle-orm';
+import { sql, relations } from 'drizzle-orm';
 import { user } from "./auth_schema"; // Импорт таблицы пользователей
 
 export const posts = sqliteTable("posts", {
@@ -10,7 +10,7 @@ export const posts = sqliteTable("posts", {
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   // В SQLite даты обычно хранятся как строки (ISO) или числа
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP").notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
 
 export const postsRelations = relations(posts, ({ one }) => ({

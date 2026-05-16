@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { admin } from "better-auth/plugins";
+import { admin, twoFactor } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../db/index";
 import * as authschema from "../db/schema/auth_schema";
@@ -25,7 +25,7 @@ export const auth = betterAuth({
     additionalFields: {
       avatar: {
         type: "string",
-        required: false, // обязательно false!
+        required: false,
       },
       fullName: {
         type: "string",
@@ -39,5 +39,6 @@ export const auth = betterAuth({
       adminRoles: ["admin"],
       defaultRole: "student",
     }),
+    twoFactor(),
   ],
 });

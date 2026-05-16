@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
-import { relations } from 'drizzle-orm';
+import { sql, relations } from 'drizzle-orm';
 import { user } from "./auth_schema";
 
 export const messages = sqliteTable("messages", {
@@ -13,7 +13,7 @@ export const messages = sqliteTable("messages", {
     .references(() => user.id, { onDelete: "cascade" }),
   groupId: integer("group_id"), // For class-wide messages
   isBroadcast: integer("is_broadcast", { mode: "boolean" }).default(false),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP").notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   readAt: text("read_at"),
   // File attachment fields
   fileUrl: text("file_url"),

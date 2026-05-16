@@ -238,6 +238,8 @@ export default function MessagesPage() {
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "";
+    // Handle literal "CURRENT_TIMESTAMP" (schema bug fallback)
+    if (dateStr === "CURRENT_TIMESTAMP") return "только что";
     let normalized = dateStr.trim();
     if (normalized.includes(" ") && !normalized.includes("T")) {
       normalized = normalized.replace(" ", "T");
