@@ -1115,12 +1115,22 @@ export default function TeacherForms({
                         <span className="ml-2 text-xs text-amber-700 font-medium">
                           ✓ {new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
                         </span>
-                        <input
-                          type="time"
-                          value={homeworkForm.dueTime}
-                          onChange={(e) => setHomeworkForm((prev) => ({ ...prev, dueTime: e.target.value }))}
-                          className="ml-1 px-2 py-1 border border-amber-300 rounded-lg bg-white text-gray-900 text-xs focus:outline-none focus:border-amber-500"
-                        />
+                        <div className="flex items-center gap-1 ml-1">
+                          {["08:00", "08:45", "09:30", "10:25", "11:20", "12:10", "13:00"].map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => setHomeworkForm((prev) => ({ ...prev, dueTime: t }))}
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition-all border ${
+                                homeworkForm.dueTime === t
+                                  ? "bg-amber-500 text-white border-amber-500"
+                                  : "bg-white text-amber-700 border-amber-300 hover:bg-amber-100"
+                              }`}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
                         <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: "", dueTime: "" }))} className="ml-1 px-2 py-1 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
                       </>
                     )}
