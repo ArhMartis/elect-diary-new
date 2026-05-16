@@ -223,6 +223,7 @@ export default function TeacherForms({
   const [attendanceForm, setAttendanceForm] = useState({
     date: new Date().toISOString().split("T")[0],
     attendance: {} as Record<string, "present" | "absent" | "unexcused">,
+    subjectId: "",
   });
   const [savingAttendance, setSavingAttendance] = useState(false);
   const [attendanceMessage, setAttendanceMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -638,12 +639,16 @@ export default function TeacherForms({
 
   const handleAttendanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!attendanceForm.subjectId) {
+      setAttendanceMessage({ type: "error", text: "Выберите урок из расписания" });
+      return;
+    }
     setSavingAttendance(true);
     setAttendanceMessage(null);
     try {
-      const absences = Object.entries(attendanceForm.attendance).filter(([_, status]) => status !== "present").map(([studentId, status]) => ({ studentId, date: attendanceForm.date, type: status }));
-      await Promise.all(absences.map((absence) => fetch("/api/absences", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ studentId: absence.studentId, date: absence.date, type: absence.type }) })));
-      setAttendanceMessage({ type: "success", text: "Посещаемость отмечена!" });
+      const absences = Object.entries(attendanceForm.attendance).filter(([_, status]) => status !== "present").map(([studentId, status]) => ({ studentId, date: attendanceForm.date, type: status, subjectId: attendanceForm.subjectId }));
+      await Promise.all(absences.map((absence) => fetch("/api/absences", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ studentId: absence.studentId, date: absence.date, type: absence.type, subjectId: absence.subjectId }) })));
+      setAttendanceMessage({ type: "success", text: `Посещаемость отмечена!` });
     } catch { setAttendanceMessage({ type: "error", text: "Ошибка при сохранении" }); }
     finally { setSavingAttendance(false); }
   };
@@ -1335,8 +1340,40 @@ export default function TeacherForms({
                     <div className="text-sm font-semibold text-amber-800 mb-2">
                       📅 {new Date(attendanceForm.date).toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}
                     </div>
-                    <div className="text-xs text-gray-600">
-                      Отметьте статус присутствия для каждого ученика ниже
+                    {/* Выбор урока */}
+                    <div className="mt-2">
+                      <label className="block text-xs font-bold text-amber-800 mb-1.5">Выберите урок <span className="text-red-400">*</span></label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(() => {
+                          const selectedDateLessons = schedule.filter(s => {
+                            if (s.lessonDate) return s.lessonDate === attendanceForm.date;
+                            const dayMap: Record<number, number> = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6 };
+                            const dayOfWeek = new Date(attendanceForm.date + "T00:00:00").getDay() || 7;
+                            return s.dayOfWeek != null && dayMap[s.dayOfWeek] === dayOfWeek;
+                          });
+                          const teacherLessons = selectedDateLessons.filter(l => teacherSubjectIds.has(l.subjectId));
+                          const lessonsToShow = teacherLessons.length > 0 ? teacherLessons : selectedDateLessons;
+                          if (lessonsToShow.length === 0) {
+                            return <span className="text-xs text-amber-600 italic">Нет уроков на эту дату</span>;
+                          }
+                          return lessonsToShow.map(lesson => (
+                            <button
+                              key={lesson.id}
+                              type="button"
+                              onClick={() => {
+                                setAttendanceForm(prev => ({ ...prev, subjectId: String(lesson.subjectId) }));
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                                attendanceForm.subjectId === String(lesson.subjectId)
+                                  ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                                  : "bg-white text-amber-800 border-amber-300 hover:bg-amber-100"
+                              }`}
+                            >
+                              {lesson.lessonNumber} урок — {lesson.subjectName}
+                            </button>
+                          ));
+                        })()}
+                      </div>
                     </div>
                   </div>
                 )}
