@@ -191,6 +191,7 @@ export default function TeacherForms({
   const [selectingDueDate, setSelectingDueDate] = useState(false);
   const scheduleRef = useRef<HTMLDivElement>(null);
   const [showCalendarPopup, setShowCalendarPopup] = useState(false);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
   const [dueDateWeek, setDueDateWeek] = useState(() => {
     const now = new Date();
     const dayOfWeek = now.getDay();
@@ -1079,8 +1080,9 @@ export default function TeacherForms({
                             <button
                               key={dayOfWeek}
                               type="button"
+                              disabled={isPast && !lessonForSubject}
                               onClick={() => {
-                                if (!isPast && !isHoliday && lessonForSubject) {
+                                if (lessonForSubject) {
                           setHomeworkForm((prev) => ({ ...prev, dueDate: dateStr, dueTime: "" }));
                                 }
                               }}
@@ -1125,11 +1127,8 @@ export default function TeacherForms({
                   </div>
                   {/* Calendar Modal */}
                   {showCalendarPopup && (() => {
-                    const weekDay = (d: Date) => d.getDay();
-                    const isWeekend = (d: string) => {
-                      const day = weekDay(new Date(d + "T00:00:00"));
-                      return day === 0 || day === 6;
-                    };
+                    const weekDay = (d: string) => new Date(d + "T00:00:00").getDay();
+                    const isWeekend = (d: string) => { const day = weekDay(d); return day === 0 || day === 6; };
                     const hasLessonForSubject = (d: string) => {
                       const dayOfWeek = new Date(d + "T00:00:00").getDay() || 7;
                       const adjustedDay = dayOfWeek === 7 ? 1 : dayOfWeek + 1;
@@ -1144,7 +1143,7 @@ export default function TeacherForms({
                       return getHolidayNameByDate(date) !== null;
                     };
                     return (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowCalendarPopup(false)}>
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowCalendarPopup(false)}>
                         <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-between mb-3">
                             <h3 className="text-sm font-bold text-gray-900">Выберите дату</h3>
@@ -1152,23 +1151,30 @@ export default function TeacherForms({
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                             </button>
                           </div>
+                          {calendarError && (
+                            <div className="mb-3 p-2.5 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
+                              <span className="text-xs text-red-700 font-medium">{calendarError}</span>
+                            </div>
+                          )}
                           <CallyCalendar
                             value={homeworkForm.dueDate}
                             onChange={(val) => {
+                              setCalendarError(null);
                               if (isWeekend(val)) {
-                                alert("Выходной день. Выберите будний день.");
-                                return;
-                              }
-                              if (!hasLessonForSubject(val)) {
-                                alert("На эту дату нет уроков выбранного предмета.");
+                                setCalendarError("Выходной день. Выберите будний день.");
                                 return;
                               }
                               if (isHolidayDate(val)) {
-                                alert("Выбранная дата попадает на каникулы.");
+                                setCalendarError("Выбранная дата попадает на каникулы.");
+                                return;
+                              }
+                              if (!hasLessonForSubject(val)) {
+                                setCalendarError("На эту дату нет уроков выбранного предмета.");
                                 return;
                               }
                               setHomeworkForm((prev) => ({ ...prev, dueDate: val, dueTime: "" }));
-                              setShowScheduleModal(false);
+                              setShowCalendarPopup(false);
                             }}
                             min="2025-09-01"
                             max="2026-08-31"
@@ -1273,7 +1279,7 @@ export default function TeacherForms({
                         </select>
                       </div>
                       <div className="grid grid-cols-7 gap-1">
-                        {(() => { const dates: any[] = []; for (let i = 1; i <= 6; i++) { const d = new Date(dueDateWeek); d.setDate(d.getDate() + (i - 1)); dates.push({ dayOfWeek: i, date: d, dateStr: d.toISOString().split("T")[0] }); } return dates.map(({ dayOfWeek, date, dateStr }) => { const lessonForSubject = schedule.find(s => s.subjectId === parseInt(gradeForm.subjectId) && ((s.lessonDate && s.lessonDate === dateStr) || (s.dayOfWeek != null && s.dayOfWeek === dayOfWeek))); const isSelected = gradeForm.date === dateStr; const hName = getHolidayNameByDate(date); const cel = getHolidayByDate(date); const isHoliday = hName !== null || cel !== null; const isPast = date < new Date(new Date().setHours(0, 0, 0, 0)); return (<button key={dayOfWeek} type="button" onClick={() => { if (lessonForSubject && !isHoliday && !isPast) setGradeForm((prev) => ({ ...prev, date: dateStr, scheduleId: String(lessonForSubject.id) })); }} title={isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : SHORT_DAYS[dayOfWeek])} className={`flex flex-col items-center p-1.5 rounded-lg text-xs font-semibold transition-all border ${isSelected ? "bg-purple-500 text-white border-purple-500 shadow-sm" : isHoliday ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed" : lessonForSubject ? "bg-white border-purple-300 text-purple-800 hover:bg-purple-100 hover:border-purple-400 cursor-pointer" : "bg-gray-50 border-gray-100 text-gray-400 cursor-default"}`}><span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span><span className={`text-[10px] ${isSelected ? "text-purple-100" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>{lessonForSubject && !isHoliday && <span className="text-[8px] text-purple-600 mt-0.5 leading-tight truncate max-w-full">{lessonForSubject.subjectName}</span>}</button>); }); })()}
+                        {(() => { const dates: any[] = []; for (let i = 1; i <= 6; i++) { const d = new Date(dueDateWeek); d.setDate(d.getDate() + (i - 1)); dates.push({ dayOfWeek: i, date: d, dateStr: d.toISOString().split("T")[0] }); } return dates.map(({ dayOfWeek, date, dateStr }) => { const lessonForSubject = schedule.find(s => s.subjectId === parseInt(gradeForm.subjectId) && ((s.lessonDate && s.lessonDate === dateStr) || (s.dayOfWeek != null && s.dayOfWeek === dayOfWeek))); const isSelected = gradeForm.date === dateStr; const hName = getHolidayNameByDate(date); const cel = getHolidayByDate(date); const isHoliday = hName !== null || cel !== null; const isPast = date < new Date(new Date().setHours(0, 0, 0, 0)); return (<button key={dayOfWeek} type="button" disabled={isPast && !lessonForSubject} onClick={() => { if (lessonForSubject) setGradeForm((prev) => ({ ...prev, date: dateStr, scheduleId: String(lessonForSubject.id) })); }} title={isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : SHORT_DAYS[dayOfWeek])} className={`flex flex-col items-center p-1.5 rounded-lg text-xs font-semibold transition-all border ${isSelected ? "bg-purple-500 text-white border-purple-500 shadow-sm" : isHoliday ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed" : lessonForSubject ? "bg-white border-purple-300 text-purple-800 hover:bg-purple-100 hover:border-purple-400 cursor-pointer" : "bg-gray-50 border-gray-100 text-gray-400 cursor-default"}`}><span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span><span className={`text-[10px] ${isSelected ? "text-purple-100" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>{lessonForSubject && !isHoliday && <span className="text-[8px] text-purple-600 mt-0.5 leading-tight truncate max-w-full">{lessonForSubject.subjectName}</span>}</button>); }); })()}
                       </div>
                     </div>
                   </div>
