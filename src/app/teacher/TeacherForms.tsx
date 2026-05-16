@@ -206,6 +206,7 @@ export default function TeacherForms({
     description: "",
     date: new Date().toISOString().split("T")[0],
     dueDate: "",
+    dueTime: "",
   });
   const [savingHomework, setSavingHomework] = useState(false);
   const [homeworkMessage, setHomeworkMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -573,6 +574,7 @@ export default function TeacherForms({
         subjectId: String(item.subjectId),
         date: lessonDate,
         dueDate: "",
+        dueTime: "",
       }));
     } else if (tab === "quarterly") {
       setActiveTab("quarterly");
@@ -610,7 +612,7 @@ export default function TeacherForms({
       });
       if (response.ok) {
         setHomeworkMessage({ type: "success", text: `Домашнее задание добавлено! ${nextLesson ? `Срок сдачи: ${formatDate(nextLesson.lessonDate)} (${nextLesson.subjectName})` : "Срок сдачи не указан"}` });
-        setHomeworkForm({ scheduleId: "", subjectId: "", description: "", date: new Date().toISOString().split("T")[0], dueDate: "" });
+        setHomeworkForm({ scheduleId: "", subjectId: "", description: "", date: new Date().toISOString().split("T")[0], dueDate: "", dueTime: "" });
         fetch(`/api/homework?groupId=${groupId}`).then(res => res.json()).then(data => { if (Array.isArray(data)) setHomeworkList(data); });
       } else {
         const error = await response.json();
@@ -1077,7 +1079,7 @@ export default function TeacherForms({
                               disabled={isPast && !lessonForSubject}
                               onClick={() => {
                                 if (lessonForSubject) {
-                                  setHomeworkForm((prev) => ({ ...prev, dueDate: dateStr }));
+                          setHomeworkForm((prev) => ({ ...prev, dueDate: dateStr, dueTime: "" }));
                                 }
                               }}
                               title={lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : SHORT_DAYS[dayOfWeek]}
@@ -1108,12 +1110,18 @@ export default function TeacherForms({
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" /></svg>
                       {homeworkForm.dueDate ? "Изменить дату" : "Выбрать дату"}
                     </button>
-                    {homeworkForm.dueDate && (
+                      {homeworkForm.dueDate && (
                       <>
                         <span className="ml-2 text-xs text-amber-700 font-medium">
                           ✓ {new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
                         </span>
-                        <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: "" }))} className="ml-1 px-2 py-1 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
+                        <input
+                          type="time"
+                          value={homeworkForm.dueTime}
+                          onChange={(e) => setHomeworkForm((prev) => ({ ...prev, dueTime: e.target.value }))}
+                          className="ml-1 px-2 py-1 border border-amber-300 rounded-lg bg-white text-gray-900 text-xs focus:outline-none focus:border-amber-500"
+                        />
+                        <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: "", dueTime: "" }))} className="ml-1 px-2 py-1 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
                       </>
                     )}
                   </div>
@@ -1161,7 +1169,7 @@ export default function TeacherForms({
                                 alert("Выбранная дата попадает на каникулы.");
                                 return;
                               }
-                              setHomeworkForm((prev) => ({ ...prev, dueDate: val }));
+                              setHomeworkForm((prev) => ({ ...prev, dueDate: val, dueTime: "" }));
                               setShowScheduleModal(false);
                             }}
                             min="2025-09-01"
@@ -1248,22 +1256,35 @@ export default function TeacherForms({
                 </div>
               </div>
 
-              {gradeForm.subjectId && (
+              {gradeForm.subjectId && schedule.length > 0 && (
                 <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">Урок из расписания</label>
-                  <button type="button" onClick={() => openScheduleModal("grades")} className="w-full flex items-center justify-between px-5 py-3.5 bg-white border-2 border-purple-200 rounded-xl hover:border-purple-400 hover:bg-purple-50/50 transition-all group">
-                    <span className="text-sm font-medium text-gray-700 group-hover:text-purple-700">
-                      {gradeForm.scheduleId ? (() => { const sel = schedule.find((s) => s.id === parseInt(gradeForm.scheduleId)); return sel ? `${getDayOfWeek(sel.dayOfWeek)}, ${sel.lessonNumber} урок — ${sel.subjectName}${sel.lessonDate ? ` (${formatDate(sel.lessonDate)})` : ""}` : "Выбрать урок из расписания"; })() : "Выбрать урок из расписания"}
-                    </span>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 group-hover:text-purple-500 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
-                  </button>
-                  {gradeForm.scheduleId && (<button type="button" onClick={() => setGradeForm((prev) => ({ ...prev, scheduleId: "" }))} className="mt-1.5 text-xs text-gray-400 hover:text-red-500 font-medium transition-colors">Сбросить выбор</button>)}
+                  <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">Дата урока <span className="text-red-400">*</span></label>
+                  <div className="bg-white rounded-xl border-2 border-purple-200 overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2 bg-purple-50 border-b border-purple-200">
+                      <button type="button" onClick={() => { const d = new Date(dueDateWeek); d.setDate(d.getDate() - 7); if (isDateInAcademicYear(d)) { setDueDateWeek(d); setSelectedQuarter(getQuarterNumberByDate(d)); } }} className="w-7 h-7 rounded-full bg-white border border-purple-200 hover:bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm transition-colors">‹</button>
+                      <div className="text-center">
+                        <span className="text-xs font-bold text-purple-800 block">{dueDateWeek.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} — {new Date(dueDateWeek.getTime() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}</span>
+                        <span className="text-[10px] text-purple-600 font-medium">{selectedQuarter === "1" ? "I" : selectedQuarter === "2" ? "II" : selectedQuarter === "3" ? "III" : "IV"} четверть</span>
+                      </div>
+                      <button type="button" onClick={() => { const d = new Date(dueDateWeek); d.setDate(d.getDate() + 7); if (isDateInAcademicYear(d)) { setDueDateWeek(d); setSelectedQuarter(getQuarterNumberByDate(d)); } }} className="w-7 h-7 rounded-full bg-white border border-purple-200 hover:bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm transition-colors">›</button>
+                    </div>
+                    <div className="p-2">
+                      <div className="flex justify-center mb-2">
+                        <select value={selectedQuarter} onChange={(e) => { const q = e.target.value; setSelectedQuarter(q); const m = getQuarterStartDate(q); const day = m.getDay(); const mon = new Date(m); mon.setDate(m.getDate() - ((day + 6) % 7)); mon.setHours(0, 0, 0, 0); setDueDateWeek(mon); }} className="px-2 py-1 rounded-lg bg-purple-50 text-purple-800 text-xs font-semibold border border-purple-300 focus:outline-none">
+                          <option value="1">I четверть</option><option value="2">II четверть</option><option value="3">III четверть</option><option value="4">IV четверть</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-7 gap-1">
+                        {(() => { const dates: any[] = []; for (let i = 1; i <= 6; i++) { const d = new Date(dueDateWeek); d.setDate(d.getDate() + (i - 1)); dates.push({ dayOfWeek: i, date: d, dateStr: d.toISOString().split("T")[0] }); } return dates.map(({ dayOfWeek, date, dateStr }) => { const lessonForSubject = schedule.find(s => s.subjectId === parseInt(gradeForm.subjectId) && ((s.lessonDate && s.lessonDate === dateStr) || (s.dayOfWeek != null && s.dayOfWeek === dayOfWeek))); const isSelected = gradeForm.date === dateStr; return (<button key={dayOfWeek} type="button" disabled={!lessonForSubject} onClick={() => { if (lessonForSubject) setGradeForm((prev) => ({ ...prev, date: dateStr, scheduleId: String(lessonForSubject.id) })); }} title={lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : SHORT_DAYS[dayOfWeek]} className={`flex flex-col items-center p-1.5 rounded-lg text-xs font-semibold transition-all border ${isSelected ? "bg-purple-500 text-white border-purple-500 shadow-sm" : lessonForSubject ? "bg-white border-purple-300 text-purple-800 hover:bg-purple-100 hover:border-purple-400 cursor-pointer" : "bg-gray-50 border-gray-100 text-gray-400 cursor-default"}`}><span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span><span className={`text-[10px] ${isSelected ? "text-purple-100" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>{lessonForSubject && !isSelected && <span className="text-[8px] text-purple-600 mt-0.5 leading-tight truncate max-w-full">{lessonForSubject.subjectName}</span>}</button>); }); })()}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {!gradeForm.scheduleId && (
+              {gradeForm.subjectId && schedule.length === 0 && (
                 <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">Или укажите дату вручную <span className="text-red-400">*</span></label>
+                  <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">Дата урока <span className="text-red-400">*</span></label>
                   <input type="date" value={gradeForm.date} onChange={(e) => setGradeForm((prev) => ({ ...prev, date: e.target.value }))} className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:outline-none bg-white text-gray-900 font-medium" />
                 </div>
               )}
