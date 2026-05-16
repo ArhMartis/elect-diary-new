@@ -614,4 +614,15 @@ export const quarterConfirmations = sqliteTable("quarter_confirmations", {
   uniqueGroupQuarter: index("quarter_confirmations_unique").on(table.groupId, table.quarter, table.academicYear),
 }));
 
+export const resetTokens = sqliteTable("reset_tokens", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  used: integer("used", { mode: "boolean" }).default(false),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+});
+
 

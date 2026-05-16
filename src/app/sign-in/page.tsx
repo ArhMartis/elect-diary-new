@@ -130,7 +130,11 @@ export default function SignInPage() {
                   )}
                 </button>
               </div>
-              <p className="mt-1.5 text-xs text-gray-400 italic">Функция восстановления пароля в разработке. Обратитесь к администратору.</p>
+              <p className="mt-1.5">
+                <Link href="/forgot-password" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline underline-offset-2">
+                  Забыли пароль?
+                </Link>
+              </p>
             </div>
 
             <button type="submit" disabled={pending} className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
