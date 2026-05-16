@@ -131,9 +131,9 @@ export default function SignInPage() {
                 </button>
               </div>
               <p className="mt-1.5">
-                <span onClick={() => router.push("/forgot-password")} className="cursor-pointer text-xs text-indigo-600 hover:text-indigo-800 font-medium underline underline-offset-2">
+                <a href="/forgot-password" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline underline-offset-2">
                   Забыли пароль?
-                </span>
+                </a>
               </p>
             </div>
 
