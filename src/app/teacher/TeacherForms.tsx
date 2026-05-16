@@ -810,7 +810,11 @@ export default function TeacherForms({
                           {holidayName && <span className="text-[10px] text-sky-600 font-medium">Каникулы!</span>}
                         </div>
                       )}
-                      {dayLessons.length === 0 ? (
+                      {holidayName ? (
+                        <div className="flex items-center justify-center min-h-[80px]">
+                          <p className="text-xs text-sky-600 text-center font-medium">🏖️ Каникулы — отдых от занятий</p>
+                        </div>
+                      ) : dayLessons.length === 0 ? (
                         <p className="text-xs text-gray-300 text-center py-6 italic flex items-center justify-center min-h-[60px]">Нет уроков</p>
                       ) : (
                         <div className="space-y-1.5">
