@@ -438,6 +438,8 @@ calendar-date.cally {
   --cally-color-text: #1f2937;
   --cally-color-background: #ffffff;
   --cally-color-border: #e5e7eb;
+  --color-accent: #10b981;
+  --color-text-on-accent: #ffffff;
   color-scheme: light;
 }
 
@@ -446,6 +448,8 @@ html[data-theme="dark"] calendar-date.cally {
   --cally-color-text: #cdd6f4;
   --cally-color-background: #1e1e2e;
   --cally-color-border: #45475a;
+  --color-accent: #10b981;
+  --color-text-on-accent: #ffffff;
   color-scheme: dark;
 }
 

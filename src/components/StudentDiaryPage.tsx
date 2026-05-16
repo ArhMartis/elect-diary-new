@@ -662,7 +662,7 @@ function HolidayCalendarSection({ sharedData, setSharedData, canEdit }: HolidayC
         {isOpen && (
           <div
             ref={popoverRef}
-            className="fixed z-[9999] rounded-xl shadow-2xl border border-gray-200 p-3 bg-white dark:bg-[#1e1e2e] dark:border-gray-600"
+            className="fixed z-[9999] rounded-xl shadow-2xl border border-gray-200 p-3 bg-white"
             style={{ 
               top: popoverPos.top,
               left: popoverPos.left,
