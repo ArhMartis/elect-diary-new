@@ -1,0 +1,1 @@
+ALTER TABLE `subjects` ADD `teacher_id` text REFERENCES user(id);

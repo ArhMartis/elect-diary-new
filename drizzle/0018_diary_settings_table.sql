@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS `diary_settings` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`academic_year` text,
+	`school_name` text,
+	`school_address` text,
+	`director` text,
+	`director_phone` text,
+	`vice_principal` text,
+	`vice_principal_phone` text,
+	`vice_principal_edu` text,
+	`vice_principal_edu_phone` text,
+	`psychologist` text,
+	`psychologist_phone` text,
+	`social_pedagogue` text,
+	`social_pedagogue_phone` text,
+	`holidays_autumn` text,
+	`holidays_winter` text,
+	`holidays_spring` text,
+	`holidays_summer` text,
+	`updated_at` integer NOT NULL
+);

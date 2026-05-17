@@ -1,0 +1,1 @@
+ALTER TABLE `academic_periods` ADD `group_id` integer REFERENCES groups(id);

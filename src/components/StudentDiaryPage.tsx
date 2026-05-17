@@ -1722,6 +1722,7 @@ export default function StudentDiaryPage({
 
   const baseSections = [
     { id: "week", label: "📅 Расписание" },
+    { id: "allgrades", label: "📈 Оценки" },
     ...(effectiveUserRole === "admin" || effectiveUserRole === "principal" || isHomeroomTeacher || effectiveUserRole === "parent"
       ? [{ id: "summary", label: "📋 Сведения" }]
       : []),
@@ -2754,7 +2755,146 @@ const holidayName = getHolidayNameByDate(dayDate);
           </div>
         )}
 
-{/* Предметы */}
+        {activeSection === "allgrades" && (() => {
+          const groupedBySubject: Record<string, { q1: typeof grades; q2: typeof grades; q3: typeof grades; q4: typeof grades; all: typeof grades }> = {};
+          const getQuarterByDate = (d: string): string => {
+            const m = new Date(d).getMonth() + 1;
+            const day = new Date(d).getDate();
+            if ((m === 9) || (m === 10 && day <= 27)) return '1';
+            if ((m === 10 && day >= 28) || (m === 11 && day <= 3)) return '1';
+            if ((m === 11 && day >= 4) || (m === 12 && day <= 24)) return '2';
+            if ((m === 12 && day >= 25) || (m === 1 && day <= 8)) return '2';
+            if ((m === 1 && day >= 9) || m === 2 || (m === 3 && day <= 23)) return '3';
+            if ((m === 3 && day >= 24 && day <= 30)) return '3';
+            if ((m === 3 && day >= 31) || m === 4 || m === 5) return '4';
+            return '1';
+          };
+          const sorted = [...grades].filter(g => g.date).sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
+          for (const g of sorted) {
+            const subj = g.subjectName || 'Без предмета';
+            if (!groupedBySubject[subj]) groupedBySubject[subj] = { q1: [], q2: [], q3: [], q4: [], all: [] };
+            const q = g.date ? getQuarterByDate(g.date as string) : '1';
+            groupedBySubject[subj][`q${q}` as keyof typeof groupedBySubject[string]].push(g);
+            groupedBySubject[subj].all.push(g);
+          }
+          const canDelete = effectiveUserRole === "admin" || effectiveUserRole === "principal" || isHomeroomTeacher;
+          const [deletingGradeId, setDeletingGradeId] = useState<number | null>(null);
+          const [confirmClear, setConfirmClear] = useState<string | null>(null);
+          const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
+
+          const handleDeleteGrade = async (gradeId: number) => {
+            try {
+              const res = await fetch(`/api/grades/${gradeId}`, { method: "DELETE" });
+              if (res.ok) { setDeletingGradeId(null); window.location.reload(); }
+            } catch {}
+          };
+          const handleClearAll = async () => {
+            try {
+              await Promise.all(grades.map(g => fetch(`/api/grades/${g.id}`, { method: "DELETE" })));
+              setConfirmClear(null); window.location.reload();
+            } catch {}
+          };
+
+          return (
+            <div className="p-3 md:p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-emerald-800 dark:text-emerald-300">📈 Все оценки</h2>
+                {canDelete && grades.length > 0 && (
+                  <button onClick={() => setConfirmClear("all")} className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-xs font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-all border border-red-200 dark:border-red-700">
+                    🗑 Очистить все
+                  </button>
+                )}
+              </div>
+              {grades.length === 0 ? (
+                <div className="text-center py-12 text-gray-400 dark:text-gray-500 font-medium">Оценок пока нет</div>
+              ) : (
+                <div className="space-y-3">
+                  {Object.entries(groupedBySubject).map(([subjectName, qGrades]) => {
+                    const totalGrades = Object.values(qGrades).slice(0, 4).flat().length;
+                    const avg = (subjGrades: typeof grades) => {
+                      const nums = subjGrades.map(g => Number(g.value)).filter(n => !isNaN(n));
+                      return nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2) : null;
+                    };
+                    const allNums = qGrades.all.map(g => Number(g.value)).filter(n => !isNaN(n));
+                    const totalAvg = allNums.length ? (allNums.reduce((a, b) => a + b, 0) / allNums.length).toFixed(2) : null;
+                    return (
+                      <details key={subjectName} className="bg-white dark:bg-[#1e1e2e] rounded-xl border border-emerald-200 dark:border-emerald-800 overflow-hidden group" open={expandedSubject === subjectName} onToggle={(e) => setExpandedSubject(e.currentTarget.open ? subjectName : null)}>
+                        <summary className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-b border-emerald-200 dark:border-emerald-800 cursor-pointer hover:from-emerald-100 dark:hover:from-emerald-900/30 transition-all flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">{subjectName}</span>
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full font-semibold">{totalGrades} оценок</span>
+                            {totalAvg && <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">Ø {totalAvg}</span>}
+                          </div>
+                          {canDelete && <button onClick={(e) => { e.stopPropagation(); setConfirmClear(subjectName); }} className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium opacity-0 group-open:opacity-100 transition-opacity">Очистить</button>}
+                        </summary>
+                        <div className="p-4 space-y-4">
+                          {['1','2','3','4'].map(q => {
+                            const qg = qGrades[`q${q}` as keyof typeof qGrades] as typeof grades;
+                            const qAvg = avg(qg);
+                            const qLabel = q === '1' ? 'I' : q === '2' ? 'II' : q === '3' ? 'III' : 'IV';
+                            return (
+                              <div key={q}>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">{qLabel} четверть</span>
+                                  {qAvg && <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Средний: {qAvg}</span>}
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {qg.length === 0 ? (
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 italic">Нет оценок</span>
+                                  ) : qg.map(g => {
+                                    const val = Number(g.value);
+                                    const color = isNaN(val) ? 'bg-gray-200 text-gray-600' : val >= 9 ? 'bg-emerald-500 text-white' : val >= 7 ? 'bg-blue-500 text-white' : val >= 5 ? 'bg-yellow-500 text-white' : val >= 4 ? 'bg-orange-500 text-white' : 'bg-red-500 text-white';
+                                    return (
+                                      <div key={g.id} className="relative group/grade">
+                                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-extrabold shadow-sm ${color}`}>
+                                          {g.value}
+                                        </span>
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 dark:bg-gray-900 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover/grade:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                                          {g.date} {g.comment ? `• ${g.comment}` : ''}
+                                          {canDelete && <button onClick={() => setDeletingGradeId(g.id)} className="ml-2 text-red-300 hover:text-red-100">✕</button>}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </details>
+                    );
+                  })}
+                </div>
+              )}
+              {deletingGradeId !== null && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDeletingGradeId(null)}>
+                  <div className="bg-white dark:bg-[#1e1e2e] rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Удалить оценку?</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">Это действие нельзя отменить.</p>
+                    <div className="flex gap-3">
+                      <button onClick={() => setDeletingGradeId(null)} className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">Отмена</button>
+                      <button onClick={() => handleDeleteGrade(deletingGradeId)} className="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-all">Удалить</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {confirmClear !== null && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setConfirmClear(null)}>
+                  <div className="bg-white dark:bg-[#1e1e2e] rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Очистить {confirmClear === "all" ? "все оценки" : `оценки по "${confirmClear}"`}?</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">Это удалит {confirmClear === "all" ? `${grades.length} оценок` : 'все оценки этого предмета'}. Отменить нельзя.</p>
+                    <div className="flex gap-3">
+                      <button onClick={() => setConfirmClear(null)} className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">Отмена</button>
+                      <button onClick={confirmClear === "all" ? handleClearAll : async() => { await Promise.all(grades.filter(g => g.subjectName === confirmClear).map(g => fetch(`/api/grades/${g.id}`, { method: "DELETE" }))); setConfirmClear(null); window.location.reload(); }} className="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-all">Удалить</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Предметы */}
         {activeSection === "subjects" && (() => {
           const teacherSubjectNames = new Set<string>();
           if ((effectiveUserRole === "teacher" || isHomeroomTeacher) && currentUserName) {

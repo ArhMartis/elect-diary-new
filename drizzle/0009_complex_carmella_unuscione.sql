@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `full_name` text NOT NULL;
