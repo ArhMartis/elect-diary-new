@@ -2545,12 +2545,15 @@ const holidayName = getHolidayNameByDate(dayDate);
                       )}
                       
                       {/* Отображение праздника */}
-                      {celebrationName && !isHoliday && (
-                        <div className="mb-2 p-2 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-lg border border-amber-300 text-center">
-                          <span className="text-xs font-bold text-amber-800 block">{celebrationName}</span>
-                        </div>
-                      )}
-                      
+                       {celebrationName && !isHoliday && (
+                         <div className="mb-2 p-2 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-lg border border-amber-300 text-center">
+                           <span className="text-xs font-bold text-amber-800 block">{celebrationName}</span>
+                         </div>
+                       )}
+                       
+                       {/* Оценки за день */}
+                       {dayDate && (() => { const ds = localDateStr(dayDate); const dg = grades.filter(g => g.date && g.date.startsWith(ds)); if (dg.length === 0) return null; return (<div className="mb-1 flex flex-wrap gap-1">{dg.map(g => { const v = Number(g.value); const bg = isNaN(v) ? '#9ca3af' : v >= 9 ? '#10b981' : v >= 7 ? '#3b82f6' : v >= 5 ? '#eab308' : v >= 4 ? '#f97316' : '#ef4444'; return (<span key={g.id} className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-extrabold shadow-sm text-white" style={{backgroundColor: bg}}>{g.value}</span>); })}</div>); })()}
+                       
                        {!isHoliday && (
                         <div className="space-y-1">
                           {dayLessons.length === 0 ? (
