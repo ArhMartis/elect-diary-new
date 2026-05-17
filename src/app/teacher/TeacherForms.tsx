@@ -612,7 +612,7 @@ export default function TeacherForms({
         body: JSON.stringify({ teacherId, groupId, subjectId, lessonDate: selectedSchedule?.lessonDate || homeworkForm.date || null, description: homeworkForm.description, dueDate: nextLesson?.lessonDate || null }),
       });
       if (response.ok) {
-        setHomeworkMessage({ type: "success", text: `Домашнее задание добавлено! ${nextLesson ? `Срок сдачи: ${formatDate(nextLesson.lessonDate)} (${nextLesson.subjectName})` : "Срок сдачи не указан"}` });
+        setHomeworkMessage({ type: "success", text: `Домашнее задание добавлено!${nextLesson ? ` Срок сдачи: ${formatDate(nextLesson.lessonDate)} (${nextLesson.subjectName})` : ""}` });
         setHomeworkForm({ scheduleId: "", subjectId: "", description: "", date: new Date().toISOString().split("T")[0], dueDate: "", dueTime: "" });
         fetch(`/api/homework?groupId=${groupId}`).then(res => res.json()).then(data => { if (Array.isArray(data)) setHomeworkList(data); });
       } else {
