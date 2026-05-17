@@ -796,6 +796,9 @@ export default function StudentDiaryPage({
   const commentsPerPage = 5;
   const [editingCell, setEditingCell] = useState<{ subjectIdx: number; field: string } | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  const [deletingGradeId, setDeletingGradeId] = useState<number | null>(null);
+  const [confirmClear, setConfirmClear] = useState<string | null>(null);
+  const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
 
   const handleCellEdit = async (subjectIdx: number, field: string, value: string) => {
     const subj = data.subjects[subjectIdx];
@@ -2778,9 +2781,6 @@ const holidayName = getHolidayNameByDate(dayDate);
             groupedBySubject[subj].all.push(g);
           }
           const canDelete = effectiveUserRole === "admin" || effectiveUserRole === "principal" || isHomeroomTeacher;
-          const [deletingGradeId, setDeletingGradeId] = useState<number | null>(null);
-          const [confirmClear, setConfirmClear] = useState<string | null>(null);
-          const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
 
           const handleDeleteGrade = async (gradeId: number) => {
             try {
@@ -2797,14 +2797,31 @@ const holidayName = getHolidayNameByDate(dayDate);
 
           return (
             <div className="p-3 md:p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-emerald-800 dark:text-emerald-300">📈 Все оценки</h2>
-                {canDelete && grades.length > 0 && (
-                  <button onClick={() => setConfirmClear("all")} className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-xs font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-all border border-red-200 dark:border-red-700">
-                    🗑 Очистить все
-                  </button>
-                )}
-              </div>
+              {(() => {
+                const allNums = grades.map(g => Number(g.value)).filter(n => !isNaN(n));
+                const overallAvg = allNums.length ? (allNums.reduce((a, b) => a + b, 0) / allNums.length).toFixed(2) : null;
+                return (
+                  <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl p-4 flex items-center justify-between shadow-md">
+                    <div>
+                      <h2 className="text-lg font-bold text-white">📈 Все оценки</h2>
+                      <p className="text-emerald-100 text-xs mt-0.5">{grades.length} оценок</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {overallAvg && (
+                        <div className="text-center">
+                          <div className="text-2xl font-black text-white">{overallAvg}</div>
+                          <div className="text-[10px] text-emerald-100 font-medium">Средний балл</div>
+                        </div>
+                      )}
+                      {canDelete && grades.length > 0 && (
+                        <button onClick={() => setConfirmClear("all")} className="px-3 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-bold transition-all border border-white/30 backdrop-blur-sm">
+                          🗑 Очистить
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
               {grades.length === 0 ? (
                 <div className="text-center py-12 text-gray-400 dark:text-gray-500 font-medium">Оценок пока нет</div>
               ) : (
@@ -2818,14 +2835,14 @@ const holidayName = getHolidayNameByDate(dayDate);
                     const allNums = qGrades.all.map(g => Number(g.value)).filter(n => !isNaN(n));
                     const totalAvg = allNums.length ? (allNums.reduce((a, b) => a + b, 0) / allNums.length).toFixed(2) : null;
                     return (
-                      <details key={subjectName} className="bg-white dark:bg-[#1e1e2e] rounded-xl border border-emerald-200 dark:border-emerald-800 overflow-hidden group" open={expandedSubject === subjectName} onToggle={(e) => setExpandedSubject(e.currentTarget.open ? subjectName : null)}>
-                        <summary className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-b border-emerald-200 dark:border-emerald-800 cursor-pointer hover:from-emerald-100 dark:hover:from-emerald-900/30 transition-all flex items-center justify-between">
+                      <details key={subjectName} className="bg-white rounded-xl border border-emerald-200 overflow-hidden group" open={expandedSubject === subjectName} onToggle={(e) => setExpandedSubject(e.currentTarget.open ? subjectName : null)}>
+                        <summary className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 cursor-pointer hover:from-emerald-100 transition-all flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">{subjectName}</span>
-                            <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full font-semibold">{totalGrades} оценок</span>
-                            {totalAvg && <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">Ø {totalAvg}</span>}
+                            <span className="text-sm font-bold text-emerald-800">{subjectName}</span>
+                            <span className="text-xs text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-semibold">{totalGrades} оценок</span>
+                            {totalAvg && <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">Ø {totalAvg}</span>}
                           </div>
-                          {canDelete && <button onClick={(e) => { e.stopPropagation(); setConfirmClear(subjectName); }} className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium opacity-0 group-open:opacity-100 transition-opacity">Очистить</button>}
+                          {canDelete && <button onClick={(e) => { e.stopPropagation(); setConfirmClear(subjectName); }} className="text-xs text-red-500 hover:text-red-700 font-medium opacity-0 group-open:opacity-100 transition-opacity">Очистить</button>}
                         </summary>
                         <div className="p-4 space-y-4">
                           {['1','2','3','4'].map(q => {
@@ -2835,23 +2852,24 @@ const holidayName = getHolidayNameByDate(dayDate);
                             return (
                               <div key={q}>
                                 <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">{qLabel} четверть</span>
-                                  {qAvg && <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Средний: {qAvg}</span>}
+                                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">{qLabel} четверть</span>
+                                  {qAvg && <span className="text-xs font-semibold text-emerald-600">Средний: {qAvg}</span>}
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
                                   {qg.length === 0 ? (
-                                    <span className="text-xs text-gray-400 dark:text-gray-500 italic">Нет оценок</span>
+                                    <span className="text-xs text-gray-400 italic">Нет оценок</span>
                                   ) : qg.map(g => {
                                     const val = Number(g.value);
                                     const color = isNaN(val) ? 'bg-gray-200 text-gray-600' : val >= 9 ? 'bg-emerald-500 text-white' : val >= 7 ? 'bg-blue-500 text-white' : val >= 5 ? 'bg-yellow-500 text-white' : val >= 4 ? 'bg-orange-500 text-white' : 'bg-red-500 text-white';
                                     return (
                                       <div key={g.id} className="relative group/grade">
-                                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-extrabold shadow-sm ${color}`}>
+                                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-extrabold shadow-sm cursor-default ${color}`}>
                                           {g.value}
                                         </span>
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 dark:bg-gray-900 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover/grade:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
-                                          {g.date} {g.comment ? `• ${g.comment}` : ''}
-                                          {canDelete && <button onClick={() => setDeletingGradeId(g.id)} className="ml-2 text-red-300 hover:text-red-100">✕</button>}
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-[11px] rounded-xl whitespace-nowrap opacity-0 group-hover/grade:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl leading-relaxed min-w-[120px]">
+                                          <div className="font-bold">{g.date}</div>
+                                          {g.comment && <div className="text-gray-300 text-[10px]">«{g.comment}»</div>}
+                                          <div className="text-gray-400 text-[10px] mt-0.5">{g.teacherName || 'Неизвестно'}</div>
                                         </div>
                                       </div>
                                     );
