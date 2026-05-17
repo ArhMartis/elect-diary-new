@@ -2801,23 +2801,25 @@ const holidayName = getHolidayNameByDate(dayDate);
                 const allNums = grades.map(g => Number(g.value)).filter(n => !isNaN(n));
                 const overallAvg = allNums.length ? (allNums.reduce((a, b) => a + b, 0) / allNums.length).toFixed(2) : null;
                 return (
-                  <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl p-4 flex items-center justify-between shadow-md">
-                    <div>
-                      <h2 className="text-lg font-bold text-white">📈 Все оценки</h2>
-                      <p className="text-emerald-100 text-xs mt-0.5">{grades.length} оценок</p>
-                    </div>
-                    <div className="flex items-center gap-4">
+                  <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl p-4 shadow-md relative overflow-hidden">
+                    <div className="flex items-center justify-between relative z-10">
+                      <div>
+                        <h2 className="text-lg font-bold text-white">📈 Все оценки</h2>
+                        <p className="text-emerald-100 text-xs mt-0.5">{grades.length} оценок</p>
+                      </div>
                       {overallAvg && (
-                        <div className="text-center">
-                          <div className="text-2xl font-black text-white">{overallAvg}</div>
-                          <div className="text-[10px] text-emerald-100 font-medium">Средний балл</div>
+                        <div className="absolute left-1/2 -translate-x-1/2 text-center">
+                          <div className="text-3xl font-black text-white drop-shadow-lg">{overallAvg}</div>
+                          <div className="text-[10px] text-emerald-100 font-medium -mt-0.5">Средний балл</div>
                         </div>
                       )}
-                      {canDelete && grades.length > 0 && (
-                        <button onClick={() => setConfirmClear("all")} className="px-3 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-bold transition-all border border-white/30 backdrop-blur-sm">
-                          🗑 Очистить
-                        </button>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {canDelete && grades.length > 0 && (
+                          <button onClick={() => setConfirmClear("all")} className="px-3 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-bold transition-all border border-white/30 backdrop-blur-sm">
+                            🗑 Очистить
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -2835,7 +2837,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                     const allNums = qGrades.all.map(g => Number(g.value)).filter(n => !isNaN(n));
                     const totalAvg = allNums.length ? (allNums.reduce((a, b) => a + b, 0) / allNums.length).toFixed(2) : null;
                     return (
-                      <details key={subjectName} className="bg-white rounded-xl border border-emerald-200 overflow-hidden group" open={expandedSubject === subjectName} onToggle={(e) => setExpandedSubject(e.currentTarget.open ? subjectName : null)}>
+                      <details key={subjectName} className="bg-white rounded-xl border border-emerald-200 group" open={expandedSubject === subjectName} onToggle={(e) => setExpandedSubject(e.currentTarget.open ? subjectName : null)}>
                         <summary className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 cursor-pointer hover:from-emerald-100 transition-all flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <span className="text-sm font-bold text-emerald-800">{subjectName}</span>
@@ -2862,11 +2864,11 @@ const holidayName = getHolidayNameByDate(dayDate);
                                     const val = Number(g.value);
                                     const color = isNaN(val) ? 'bg-gray-200 text-gray-600' : val >= 9 ? 'bg-emerald-500 text-white' : val >= 7 ? 'bg-blue-500 text-white' : val >= 5 ? 'bg-yellow-500 text-white' : val >= 4 ? 'bg-orange-500 text-white' : 'bg-red-500 text-white';
                                     return (
-                                      <div key={g.id} className="relative group/grade">
+                                      <div key={g.id} className="relative group/grade inline-flex">
                                         <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-extrabold shadow-sm cursor-default ${color}`}>
                                           {g.value}
                                         </span>
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-[11px] rounded-xl whitespace-nowrap opacity-0 group-hover/grade:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl leading-relaxed min-w-[120px]">
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-[11px] rounded-xl whitespace-nowrap opacity-0 group-hover/grade:opacity-100 transition-opacity pointer-events-none z-[9999] shadow-xl leading-relaxed min-w-[120px]">
                                           <div className="font-bold">{g.date}</div>
                                           {g.comment && <div className="text-gray-300 text-[10px]">«{g.comment}»</div>}
                                           <div className="text-gray-400 text-[10px] mt-0.5">{g.teacherName || 'Неизвестно'}</div>
