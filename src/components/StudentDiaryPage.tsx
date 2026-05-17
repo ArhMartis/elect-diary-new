@@ -2869,8 +2869,8 @@ const holidayName = getHolidayNameByDate(dayDate);
                                           {g.value}
                                         </span>
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-[11px] rounded-xl whitespace-nowrap opacity-0 group-hover/grade:opacity-100 transition-opacity pointer-events-none z-[9999] shadow-xl leading-relaxed min-w-[140px]">
-                                          <div className="font-bold">{g.value}</div>
                                           <div className="text-gray-300 text-[10px]">📅 {g.date}</div>
+                                          <div className="text-lg font-black mt-0.5">{g.value}</div>
                                           {g.comment && <div className="text-gray-300 text-[10px]">💬 «{g.comment}»</div>}
                                           <div className="text-gray-400 text-[10px] mt-1">👤 {g.teacherName || 'Неизвестно'}</div>
                                         </div>
