@@ -159,6 +159,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     comment: g.comment,
     date: g.date,
     subjectName: g.subject?.name || null,
+    subjectId: g.subjectId,
     teacherName: g.teacher?.fullName || null,
   }));
 

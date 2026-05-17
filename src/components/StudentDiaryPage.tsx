@@ -68,6 +68,7 @@ interface Grade {
   comment?: string | null;
   date: string | null;
   subjectName: string | null;
+  subjectId?: number | null;
   teacherName?: string | null;
 }
 
@@ -2567,7 +2568,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                                 const isSpecialLesson = specialSubjectNames.includes(lesson.subject);
                                 const eventClass = isEventLesson ? 'bg-emerald-200 border-emerald-500 shadow-sm' : isSpecialLesson ? 'bg-blue-200 border-blue-500 shadow-sm' : '';
                                 const eventTextClass = isEventLesson ? 'text-emerald-900' : isSpecialLesson ? 'text-blue-900' : 'text-gray-900';
-                                const gradeForLesson = grades.find(g => g.date && g.subjectName && g.subjectName.trim() === lesson.subject.trim() && g.date.startsWith(localDateStr(dayDate)));
+                                const gradeForLesson = grades.find(g => g.date && g.subjectName && g.subjectName.trim().toLowerCase() === lesson.subject.trim().toLowerCase() && g.date.startsWith(localDateStr(dayDate)));
                                 const gVal = gradeForLesson ? Number(gradeForLesson.value) : null;
                                 const gColor = gVal === null ? '' : gVal >= 9 ? '#10b981' : gVal >= 7 ? '#3b82f6' : gVal >= 5 ? '#eab308' : gVal >= 4 ? '#f97316' : '#ef4444';
                                 return (
