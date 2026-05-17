@@ -2516,9 +2516,14 @@ export default function StudentDiaryPage({
                   // Вычисляем дату для этого дня
                   const dayDate = new Date(selectedWeek);
                   dayDate.setDate(dayDate.getDate() + (day.dayOfWeek - 1));
+                  const ds = localDateStr(dayDate);
                   
                   // Получаем уроки с учетом специфических записей на эту дату
                   const dayLessons = getDayLessons(selectedQuarter, day.name, dayDate);
+                  
+                  // Мапа оценок: ключ = название_предмета, значение = оценка
+                  const dayGradesMap = new Map<string, Grade>();
+                  grades.forEach(g => { if (g.date && g.date.startsWith(ds) && g.subjectName) dayGradesMap.set(g.subjectName.trim().toLowerCase(), g); });
                   
                   // Проверяем каникулы и праздники
 const holidayName = getHolidayNameByDate(dayDate);
@@ -2568,7 +2573,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                                 const isSpecialLesson = specialSubjectNames.includes(lesson.subject);
                                 const eventClass = isEventLesson ? 'bg-emerald-200 border-emerald-500 shadow-sm' : isSpecialLesson ? 'bg-blue-200 border-blue-500 shadow-sm' : '';
                                 const eventTextClass = isEventLesson ? 'text-emerald-900' : isSpecialLesson ? 'text-blue-900' : 'text-gray-900';
-                                const gradeForLesson = grades.find(g => g.date && g.subjectName && g.subjectName.trim().toLowerCase() === lesson.subject.trim().toLowerCase() && g.date.startsWith(localDateStr(dayDate)));
+                                const gradeForLesson = dayGradesMap.get(lesson.subject.trim().toLowerCase()) || null;
                                 const gVal = gradeForLesson ? Number(gradeForLesson.value) : null;
                                 const gColor = gVal === null ? '' : gVal >= 9 ? '#10b981' : gVal >= 7 ? '#3b82f6' : gVal >= 5 ? '#eab308' : gVal >= 4 ? '#f97316' : '#ef4444';
                                 return (
@@ -2596,8 +2601,8 @@ const holidayName = getHolidayNameByDate(dayDate);
                                     {lessonMarkType === 'key-event' && '⭐'}
                                   </span>
                                 )}
-                                {gVal !== null && (
-                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-extrabold shadow-sm text-white shrink-0" style={{backgroundColor: gColor}}>{gradeForLesson!.value}</span>
+                                {(gradeForLesson && gVal !== null) && (
+                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-extrabold shadow-sm text-white shrink-0" style={{backgroundColor: gColor}}>{gradeForLesson.value}</span>
                                 )}
                                 {canEditSchedule() && (
                                   <button
@@ -2886,7 +2891,6 @@ const holidayName = getHolidayNameByDate(dayDate);
                                         </span>
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-[11px] rounded-xl whitespace-nowrap opacity-0 group-hover/grade:opacity-100 transition-opacity pointer-events-none z-[9999] shadow-xl leading-relaxed min-w-[140px]">
                                           <div className="font-bold">{g.date}</div>
-                                          <div className="text-gray-300 text-[10px] mt-0.5">{g.value}</div>
                                           {g.comment && <div className="text-gray-300 text-[10px]">💬 «{g.comment}»</div>}
                                           <div className="text-gray-400 text-[10px] mt-1">👤 {g.teacherName || 'Неизвестно'}</div>
                                         </div>
