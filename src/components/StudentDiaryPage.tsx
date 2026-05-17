@@ -2552,7 +2552,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                        )}
                        
                        {/* Оценки за день */}
-                       {dayDate && (() => { const ds = localDateStr(dayDate); const dg = grades.filter(g => g.date && g.date.startsWith(ds)); if (dg.length === 0) return null; return (<div className="mb-1 flex flex-wrap gap-1">{dg.map(g => { const v = Number(g.value); const bg = isNaN(v) ? '#9ca3af' : v >= 9 ? '#10b981' : v >= 7 ? '#3b82f6' : v >= 5 ? '#eab308' : v >= 4 ? '#f97316' : '#ef4444'; return (<span key={g.id} className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-extrabold shadow-sm text-white" style={{backgroundColor: bg}}>{g.value}</span>); })}</div>); })()}
+                       {dayDate && (() => { const ds = localDateStr(dayDate); const dg = grades.filter(g => g.date && g.date.startsWith(ds)); if (dg.length === 0) return null; return (<div className="mb-1 flex flex-wrap gap-1.5">{dg.map(g => { const v = Number(g.value); const bg = isNaN(v) ? '#9ca3af' : v >= 9 ? '#10b981' : v >= 7 ? '#3b82f6' : v >= 5 ? '#eab308' : v >= 4 ? '#f97316' : '#ef4444'; return (<span key={g.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold" style={{backgroundColor: bg + '20', color: bg, border: '1px solid ' + bg}}>{g.subjectName ? g.subjectName + ': ' : ''}{g.value}</span>); })}</div>); })()}
                        
                        {!isHoliday && (
                         <div className="space-y-1">
