@@ -2559,8 +2559,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                        
                        {/* Оценки за день — удалено, показываются внутри уроков */}
                        
-                       {/* Оценки за день */}
-                       {(() => { const dd = ds; const dg = grades.filter(g => g.date && g.date.startsWith(dd)); if (dg.length === 0) return null; return (<div className="mb-1 flex flex-wrap gap-1">{dg.map(g => { const v = Number(g.value); const bg = isNaN(v) ? '#9ca3af' : v >= 9 ? '#10b981' : v >= 7 ? '#3b82f6' : v >= 5 ? '#eab308' : v >= 4 ? '#f97316' : '#ef4444'; return (<span key={g.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold" style={{backgroundColor: bg + '20', color: bg, border: '1px solid ' + bg}}>{g.subjectName ? g.subjectName + ': ' : ''}{g.value}</span>); })}</div>); })()}
+                       {false && (() => { const dd = ds; const dg = grades.filter(g => g.date && g.date.startsWith(dd)); if (dg.length === 0) return null; return (<div className="mb-1 flex flex-wrap gap-1">{dg.map(g => { const v = Number(g.value); const bg = isNaN(v) ? '#9ca3af' : v >= 9 ? '#10b981' : v >= 7 ? '#3b82f6' : v >= 5 ? '#eab308' : v >= 4 ? '#f97316' : '#ef4444'; return (<span key={g.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold" style={{backgroundColor: bg + '20', color: bg, border: '1px solid ' + bg}}>{g.subjectName ? g.subjectName + ': ' : ''}{g.value}</span>); })}</div>); })()}
                        
                        {!isHoliday && (
                         <div className="space-y-1">
@@ -2576,6 +2575,9 @@ const holidayName = getHolidayNameByDate(dayDate);
                                 const isSpecialLesson = specialSubjectNames.includes(lesson.subject);
                                 const eventClass = isEventLesson ? 'bg-emerald-200 border-emerald-500 shadow-sm' : isSpecialLesson ? 'bg-blue-200 border-blue-500 shadow-sm' : '';
                                 const eventTextClass = isEventLesson ? 'text-emerald-900' : isSpecialLesson ? 'text-blue-900' : 'text-gray-900';
+                                const lessonGrade = dayGradesMap.get(lesson.subject.trim().toLowerCase()) || null;
+                                const lessonGradeVal = lessonGrade ? Number(lessonGrade.value) : null;
+                                const lessonGradeColor = lessonGradeVal === null ? '' : lessonGradeVal >= 9 ? '#10b981' : lessonGradeVal >= 7 ? '#3b82f6' : lessonGradeVal >= 5 ? '#eab308' : lessonGradeVal >= 4 ? '#f97316' : '#ef4444';
                                 return (
                               <div
                                 key={lesson.lessonNumber}
@@ -2600,6 +2602,9 @@ const holidayName = getHolidayNameByDate(dayDate);
                                     {lessonMarkType === 'independent' && '✏️'}
                                     {lessonMarkType === 'key-event' && '⭐'}
                                   </span>
+                                )}
+                                {lessonGrade && lessonGradeVal !== null && (
+                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-extrabold shadow-sm text-white shrink-0" style={{backgroundColor: lessonGradeColor}}>{lessonGrade.value}</span>
                                 )}
                                 {canEditSchedule() && (
                                   <button
