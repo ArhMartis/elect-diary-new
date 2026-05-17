@@ -1926,7 +1926,7 @@ export default function StudentDiaryPage({
       {/* Модальное окно редактирования расписания */}
       {renderScheduleModal()}
 
-      <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-0 print:my-0 print:shadow-none rounded-xl overflow-hidden">
+      <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-0 print:my-0 print:shadow-none rounded-xl">
         {/* Навигация */}
         <div className="bg-white border-b border-emerald-200 px-2 md:px-4 py-1">
           <div className="relative">
