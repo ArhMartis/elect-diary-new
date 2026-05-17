@@ -132,6 +132,13 @@ interface StudentDiaryPageProps {
 
 const MONTHS = ["Сентябрь", "Октябрь", "Ноябрь", "Декабрь", "Январь", "Февраль", "Март", "Апрель", "Май"];
 
+function localDateStr(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 const HOLIDAYS_LIST = [
   { date: "1 января", name: "Новый год" },
   { date: "7 января", name: "Рождество Христово (Православное)" },
@@ -3001,7 +3008,7 @@ const holidayName = getHolidayNameByDate(dayDate);
             };
 
             const getDayInfo = (date: Date) => {
-              const dateStr = date.toISOString().split('T')[0];
+              const dateStr = localDateStr(date);
               const dayNameRu = DAYS_OF_WEEK.find(d => d.dayOfWeek === date.getDay())?.name || '';
               const dayLessons = dayNameRu ? getDayLessons(selectedQuarter, dayNameRu, date) : [];
               const dayGrades = grades.filter(g => g.date && g.date.startsWith(dateStr));
@@ -3036,8 +3043,8 @@ const holidayName = getHolidayNameByDate(dayDate);
 
             const { dates, offset, year } = getMonthDates(viewMonthIdx);
             const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
-            const isToday = (date: Date) => date.toISOString().split('T')[0] === todayStr;
+            const todayStr = localDateStr(today);
+            const isToday = (date: Date) => localDateStr(date) === todayStr;
 
             return (
               <div className="p-4">
