@@ -827,7 +827,16 @@ export default function TeacherForms({
               </div>
               <button onClick={() => navigateWeek("next")} className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-lg font-bold transition-colors">&rsaquo;</button>
             </div>
-            <div className="flex justify-center mt-2">
+            <div className="flex justify-center items-center gap-2 mt-2">
+              <button onClick={() => { 
+                const now = new Date();
+                const dow = now.getDay();
+                const monday = new Date(now);
+                monday.setDate(now.getDate() - ((dow + 6) % 7));
+                monday.setHours(0, 0, 0, 0);
+                setSelectedWeek(monday); 
+                setSelectedQuarter(getQuarterNumberByDate(now)); 
+              }} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-sm font-bold transition-colors" title="Сегодня">📅</button>
               <select
                 value={selectedQuarter}
                 onChange={(e) => {
@@ -876,7 +885,7 @@ export default function TeacherForms({
                           setSelectingDueDate(false);
                         }
                       }}
-                      className={`rounded-xl border-2 p-3 transition-all ${
+                      className={`rounded-xl border-2 p-3 transition-all flex flex-col ${
                       isToday
                         ? "bg-white border-indigo-400 shadow-md shadow-indigo-100/50"
                         : selectingDueDate
@@ -907,7 +916,9 @@ export default function TeacherForms({
                           <p className="text-xs text-sky-600 text-center font-medium">🏖️ Каникулы — отдых от занятий</p>
                         </div>
                       ) : dayLessons.length === 0 ? (
-                        <p className="text-xs text-gray-300 text-center py-6 italic flex items-center justify-center min-h-[60px]">Нет уроков</p>
+                        <div className="flex-1 flex items-center justify-center w-full text-center" style={{minHeight: '100px'}}>
+                          <p className="text-sm text-gray-400 font-medium">Нет уроков</p>
+                        </div>
                       ) : (
                         <div className="space-y-1.5">
                           {dayLessons.map((lesson) => {
@@ -1082,10 +1093,9 @@ export default function TeacherForms({
                           const day = quarterStart.getDay();
                           const monday = new Date(quarterStart);
                           monday.setDate(quarterStart.getDate() - ((day + 6) % 7));
-                          monday.setHours(0, 0, 0, 0);
-                          setDueDateWeek(monday);
-                          setTimeout(() => scheduleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200); 
-                        }}
+                           monday.setHours(0, 0, 0, 0);
+                           setDueDateWeek(monday);
+                         }}
                         className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${
                           homeworkForm.subjectId === String(subject.id)
                             ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200/50"
@@ -1100,12 +1110,9 @@ export default function TeacherForms({
               </div>
 
               {homeworkForm.subjectId && (
-                <div ref={hwFormRef}>
-                  <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">
-                    Дата урока <span className="text-red-400">*</span>
-                  </label>
-                  <div className="rounded-xl border-2 border-amber-200 overflow-hidden" style={{backgroundColor: '#ffffff'}}>
-                    <div className="flex items-center justify-between px-3 py-2 bg-amber-50 border-b border-amber-200">
+                  <div ref={hwFormRef}>
+                  <div className="rounded-xl border-2 border-amber-200 dark:border-amber-700 overflow-hidden bg-white dark:bg-gray-800">
+                    <div className="flex items-center justify-between px-3 py-2 bg-amber-50 dark:bg-gray-700 border-b border-amber-200 dark:border-amber-700">
                       <button type="button" onClick={() => {
                         const d = new Date(dueDateWeek);
                         d.setDate(d.getDate() - 7);
@@ -1170,7 +1177,7 @@ export default function TeacherForms({
                             return false;
                           });
                           const existingHw = homeworkList.find(hw => hw.lessonDate === dateStr && hw.subjectId === parseInt(homeworkForm.subjectId));
-                          const isSelected = homeworkForm.dueDate === dateStr;
+                          const isSelected = homeworkForm.date === dateStr;
                           const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
                           const hName = getHolidayNameByDate(date);
                           const cel = getHolidayByDate(date);
@@ -1238,7 +1245,7 @@ export default function TeacherForms({
                         <span className="ml-2 text-xs text-amber-700 font-medium">
                           ✓ {new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
                         </span>
-                        <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, dueDate: "", dueTime: "" }))} className="ml-1 px-2 py-1 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
+                        <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, date: "", dueDate: "", dueTime: "" }))} className="ml-1 px-2 py-1 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
                       </>
                     )}
                   </div>
@@ -1277,22 +1284,24 @@ export default function TeacherForms({
                           <CallyCalendar
                             value={homeworkForm.dueDate}
                             onChange={(val) => {
+                              // Нормализуем дату к YYYY-MM-DD сразу
+                              const normDate = typeof val === 'string' ? val.split('T')[0].split(' ')[0] : '';
                               setCalendarError(null);
-                              if (isWeekend(val)) {
+                              if (isWeekend(normDate)) {
                                 setCalendarError("Выходной день. Выберите будний день.");
                                 return;
                               }
-                              if (isHolidayDate(val)) {
+                              if (isHolidayDate(normDate)) {
                                 setCalendarError("Выбранная дата попадает на каникулы.");
                                 return;
                               }
-                              if (!hasLessonForSubject(val)) {
+                              if (!hasLessonForSubject(normDate)) {
                                 setCalendarError("На эту дату нет уроков выбранного предмета.");
                                 return;
                               }
-                              setHomeworkForm((prev) => ({ ...prev, date: val, dueDate: val, dueTime: "" }));
+                              setHomeworkForm((prev) => ({ ...prev, date: normDate, dueDate: normDate, dueTime: "" }));
                               // Синхронизируем мини-календарь
-                              const selDate = new Date(val + "T00:00:00");
+                              const selDate = new Date(normDate + "T00:00:00");
                               const dow = selDate.getDay();
                               const daysFromMonday = dow === 0 ? 6 : dow - 1;
                               const mon = new Date(selDate);
@@ -1334,7 +1343,7 @@ export default function TeacherForms({
                 {homeworkForm.description.length >= MAX_HOMEWORK_LENGTH && (<p className="text-red-400 text-xs mt-1 font-medium">Достигнуто максимальное количество символов</p>)}
               </div>
 
-              <button type="submit" disabled={savingHomework || (!homeworkForm.scheduleId && !homeworkForm.subjectId)} className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-200/40 text-sm tracking-wide">
+              <button type="submit" disabled={savingHomework || !homeworkForm.description.trim() || !homeworkForm.date || (!homeworkForm.scheduleId && !homeworkForm.subjectId)} className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-200/40 text-sm tracking-wide">
                 {savingHomework ? (
                   <span className="flex items-center justify-center gap-2"><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Сохранение...</span>
                 ) : (
@@ -1385,7 +1394,6 @@ export default function TeacherForms({
                           monday.setDate(quarterStart.getDate() - ((day + 6) % 7));
                           monday.setHours(0, 0, 0, 0);
                           setDueDateWeek(monday);
-                          setTimeout(() => scheduleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200); 
                         }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${gradeForm.subjectId === String(subject.id) ? "bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-200/50" : "bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50"}`}>
                           {subject.name}
                         </button>
@@ -1398,7 +1406,7 @@ export default function TeacherForms({
               {gradeForm.subjectId && schedule.length > 0 && (
                 <div>
                   <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">Дата урока <span className="text-red-400">*</span></label>
-                  <div ref={gradeFormRef} className="rounded-xl border-2 border-purple-200 overflow-hidden" style={{backgroundColor: '#ffffff'}}>
+                  <div ref={gradeFormRef} className="rounded-xl border-2 border-purple-200 dark:border-purple-700 overflow-hidden bg-white dark:bg-gray-800">
                     <div className="flex items-center justify-between px-3 py-2 bg-purple-50 border-b border-purple-200">
                       <button type="button" onClick={() => { const d = new Date(dueDateWeek); d.setDate(d.getDate() - 7); if (isDateInAcademicYear(d)) { setDueDateWeek(d); setSelectedQuarter(getQuarterNumberByDate(d)); } }} className="w-7 h-7 rounded-full bg-white border border-purple-200 hover:bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm transition-colors">‹</button>
                       <div className="text-center">
@@ -1594,9 +1602,9 @@ export default function TeacherForms({
                             <button
                               key={lesson.id}
                               type="button"
-                                onClick={() => {
-                                  setAttendanceForm((prev) => ({ ...prev, subjectId: String(lesson.subjectId) }));
-                                }}
+                         onClick={() => { 
+                           setAttendanceForm((prev) => ({ ...prev, subjectId: String(lesson.subjectId) }));
+                         }}
                               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                                 attendanceForm.subjectId === String(lesson.subjectId)
                                   ? "bg-amber-500 text-white border-amber-500 shadow-sm"
