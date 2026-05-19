@@ -72,6 +72,9 @@ export const user = sqliteTable("user", {
 
   // Класс/группа ученика
   groupId: integer("group_id"),
+
+  // Двухфакторная аутентификация включена
+  twoFactorEnabled: integer("two_factor_enabled", { mode: "boolean" }).default(false),
 });
 
 /* =========================================================
@@ -337,6 +340,10 @@ export const grades = sqliteTable("grades", {
   // Четверть (1-4)
   academicPeriodId: integer("academic_period_id")
     .references(() => academicPeriods.id, { onDelete: "set null" }),
+
+  // Дата создания оценки
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
 });
 
 

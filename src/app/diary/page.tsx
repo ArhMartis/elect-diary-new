@@ -2,8 +2,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { user, groups, grades, schedule, subjects, groupSubjects, teacherSubjects, teacherClasses, parentsToStudents } from "@/db/schema/auth_schema";
-import { eq, and } from "drizzle-orm";
+import { user, groups, grades, schedule, subjects, groupSubjects, teacherSubjects, teacherClasses, parentsToStudents, homework } from "@/db/schema/auth_schema";
+import { eq, and, lte, gte } from "drizzle-orm";
 import StudentDiaryPage from "@/components/StudentDiaryPage";
 import { isTeacherHomeroomTeacher, isUserParentOfStudent, getDirector, getHomeroomTeacherByGroup, getDiarySettings } from "@/app/student/actions";
 import StudentSelectorForm from "./StudentSelectorForm";
@@ -90,6 +90,11 @@ export default async function DiaryPage({ searchParams }: PageProps) {
       );
     }
     targetStudentId = parentLink.studentId;
+    // Если родитель пытается зайти в чужой дневник — перенаправляем на своего ученика
+    const params = await searchParams;
+    if (params.studentId && params.studentId !== targetStudentId) {
+      redirect(`/diary?studentId=${targetStudentId}`);
+    }
     const student = await db.query.user.findFirst({
       where: eq(user.id, targetStudentId),
       with: { group: true },
@@ -102,6 +107,11 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     }
   } else {
     targetStudentId = currentUserId;
+    // Если ученик пытается зайти в чужой дневник — перенаправляем на свой
+    const params = await searchParams;
+    if (params.studentId && params.studentId !== targetStudentId) {
+      redirect(`/diary`);
+    }
     targetStudentName = currentUser.fullName || "";
     const studentRecord = await db.query.user.findFirst({
       where: eq(user.id, currentUserId),
@@ -161,17 +171,35 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     subjectName: g.subject?.name || null,
     subjectId: g.subjectId,
     teacherName: g.teacher?.fullName || null,
+    createdAt: g.createdAt ? g.createdAt.getTime() : null,
   }));
 
   const scheduleFlat = allSchedule.map((s) => ({
     id: s.id,
     lessonNumber: s.lessonNumber,
+    subjectId: s.subjectId,
     subjectName: subjectMap.get(s.subjectId) || null,
     teacherName: s.teacherId ? (teacherMap.get(s.teacherId) ?? null) : null,
     lessonDate: s.lessonDate,
     dayOfWeek: s.dayOfWeek,
     quarter: s.quarter,
   }));
+
+  // Загружаем домашние задания для класса ученика
+  let homeworkFlat: { id: number; subjectId: number; subjectName: string | null; lessonDate: string; description: string }[] = [];
+  if (targetStudentGroupId) {
+    const allHomework = await db.select({
+      id: homework.id,
+      subjectId: homework.subjectId,
+      subjectName: subjects.name,
+      lessonDate: homework.lessonDate,
+      description: homework.description,
+    })
+    .from(homework)
+    .leftJoin(subjects, eq(homework.subjectId, subjects.id))
+    .where(eq(homework.groupId, targetStudentGroupId));
+    homeworkFlat = allHomework.map(h => ({ ...h, subjectName: h.subjectName || null }));
+  }
 
   const directorData = await getDirector();
   const homeroomTeacherData = targetStudentGroupId
@@ -296,6 +324,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
       studentGrade={targetStudentGrade}
       studentGroupId={targetStudentGroupId}
       grades={gradesFlat}
+      homework={homeworkFlat}
       schedule={scheduleFlat}
       currentUserId={currentUserId}
       currentUserName={currentUser.fullName || ""}

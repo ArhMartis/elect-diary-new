@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { absences } from "@/db/schema/diary-extra";
+import { absences, attendanceRecords } from "@/db/schema/diary-extra";
 import { eq, and } from "drizzle-orm";
-import { sql } from "drizzle-orm";
 
 function getCurrentAcademicYear(): string {
   const now = new Date();
@@ -18,32 +17,61 @@ function getMonthName(date: Date): string {
   return months[date.getMonth()];
 }
 
-/**
- * API: GET /api/absences
- * 
- * Получение данных о пропусках ученика
- * 
- * Query параметры:
- * - studentId: string - ID ученика
- * - date?: string - конкретная дата (YYYY-MM-DD)
- * - month?: string - месяц (напр. "Сентябрь")
- */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const studentId = searchParams.get("studentId");
     const date = searchParams.get("date");
-    const month = searchParams.get("month");
+    const subjectId = searchParams.get("subjectId");
+
+    // Если указан только studentId (без date, без subjectId) — возвращаем все записи
+    if (studentId && !date && !subjectId) {
+      const records = await db
+        .select()
+        .from(attendanceRecords)
+        .where(eq(attendanceRecords.studentId, studentId));
+      return NextResponse.json(records);
+    }
+
+    // Если указаны дата и предмет (без studentId) — возвращаем все записи за этот урок
+    if (date && subjectId && !studentId) {
+      const records = await db
+        .select()
+        .from(attendanceRecords)
+        .where(and(
+          eq(attendanceRecords.date, date),
+          eq(attendanceRecords.subjectId, parseInt(subjectId))
+        ));
+      return NextResponse.json(records);
+    }
 
     if (!studentId) {
       return NextResponse.json({ error: "Не указан studentId" }, { status: 400 });
     }
 
-    // Если запрос за конкретной датой - это запрос посещаемости
+    // Запрос за конкретной датой + предметом (для одного ученика)
+    if (date && subjectId) {
+      const records = await db
+        .select()
+        .from(attendanceRecords)
+        .where(and(
+          eq(attendanceRecords.studentId, studentId),
+          eq(attendanceRecords.date, date),
+          eq(attendanceRecords.subjectId, parseInt(subjectId))
+        ));
+      return NextResponse.json(records);
+    }
+
+    // Запрос за конкретной датой (все записи ученика)
     if (date) {
-      // TODO: Реализовать таблицу для дневной посещаемости
-      // Пока возвращаем заглушку
-      return NextResponse.json([]);
+      const records = await db
+        .select()
+        .from(attendanceRecords)
+        .where(and(
+          eq(attendanceRecords.studentId, studentId),
+          eq(attendanceRecords.date, date)
+        ));
+      return NextResponse.json(records);
     }
 
     // Получаем пропуски по месяцам
@@ -62,32 +90,37 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * API: POST /api/absences
- * 
- * Сохранение данных о пропусках/посещаемости
- * 
- * Body (для дневной посещаемости):
- * - studentId: string
- * - date: string (YYYY-MM-DD)
- * - type: "present" | "absent" | "unexcused"
- * 
- * Body (для месячной статистики):
- * - studentId: string
- * - month: string
- * - total: number
- * - unexcused: number
- */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { studentId, date, type, month, total, unexcused } = body;
+    const { studentId, subjectId, date, type, month, total, unexcused } = body;
 
     // Дневная посещаемость
-    if (date && type) {
-      // TODO: Создать отдельную таблицу для дневной посещаемости
-      // Пока просто логируем
-      return NextResponse.json({ success: true, message: "Посещаемость отмечена (заглушка)" });
+    if (date && type && studentId && subjectId) {
+      // Upsert: вставляем или обновляем запись
+      const existing = await db.query.attendanceRecords.findFirst({
+        where: and(
+          eq(attendanceRecords.studentId, studentId),
+          eq(attendanceRecords.subjectId, subjectId),
+          eq(attendanceRecords.date, date)
+        ),
+      });
+
+      if (existing) {
+        await db
+          .update(attendanceRecords)
+          .set({ type })
+          .where(eq(attendanceRecords.id, existing.id));
+      } else {
+        await db.insert(attendanceRecords).values({
+          studentId,
+          subjectId,
+          date,
+          type,
+        });
+      }
+
+      return NextResponse.json({ success: true });
     }
 
     // Месячная статистика пропусков
@@ -100,7 +133,6 @@ export async function POST(request: NextRequest) {
 
     const academicYear = getCurrentAcademicYear();
 
-    // Проверяем, есть ли уже запись за этот месяц
     const existing = await db.query.absences.findFirst({
       where: and(
         eq(absences.studentId, studentId),
@@ -110,13 +142,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (existing) {
-      // Обновляем существующую запись
       await db
         .update(absences)
         .set({ total, unexcused })
         .where(eq(absences.id, existing.id));
     } else {
-      // Создаем новую запись
       await db.insert(absences).values({
         studentId,
         month,

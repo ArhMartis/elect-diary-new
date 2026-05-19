@@ -25,7 +25,25 @@ export const auth = betterAuth({
     schema,
   }),
 
-  emailAndPassword: { enabled: true },
+  emailAndPassword: { 
+    enabled: true,
+    minPasswordLength: 6,
+  },
+
+  errors: {
+    // Перевод сообщений об ошибках
+    PASSWORD_TOO_SHORT: "Пароль слишком короткий. Минимум 6 символов.",
+    PASSWORD_TOO_LONG: "Пароль слишком длинный. Максимум 128 символов.",
+    EMAIL_INVALID: "Некорректный email адрес.",
+    EMAIL_REQUIRED: "Email обязателен.",
+    PASSWORD_REQUIRED: "Пароль обязателен.",
+    USER_ALREADY_EXISTS: "Пользователь с таким email уже существует.",
+    USER_NOT_FOUND: "Пользователь не найден.",
+    INVALID_PASSWORD: "Неверный пароль.",
+    EMAIL_NOT_VERIFIED: "Email не подтвержден.",
+    INVALID_TOKEN: "Недействительный токен.",
+    TOKEN_EXPIRED: "Срок действия токена истек.",
+  },
 
   emailVerification: {
     sendOnSignUp: true,

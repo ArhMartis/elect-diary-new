@@ -70,11 +70,13 @@ interface Grade {
   subjectName: string | null;
   subjectId?: number | null;
   teacherName?: string | null;
+  createdAt?: number | null;
 }
 
 interface Lesson {
   id: number;
   lessonNumber: number;
+  subjectId: number | null;
   subjectName: string | null;
   teacherName: string | null;
   lessonDate: string | null;
@@ -104,6 +106,7 @@ interface StudentDiaryPageProps {
   subjectTeacherMap?: Record<string, string>;
   eventSubjectNames?: string[];
   specialSubjectNames?: string[];
+  homework?: { id: number; subjectId: number; subjectName: string | null; lessonDate: string; description: string }[];
   initialContacts?: {
     director: string;
     directorPhone: string;
@@ -311,6 +314,42 @@ function getQuarterStartDate(quarter: string, academicYear: string): Date {
 
 function getApproxStartOfWeekForQuarter(quarter: string, academicYear: string): Date {
   return getStartOfWeek(getQuarterStartDate(quarter, academicYear));
+}
+
+// Форматирование дат каникул: "28.10.2025 - 03.11.2025" → "28.10—03.11"
+function formatHolidayDate(dateStr: string): string {
+  const s = dateStr.trim();
+  const parts = s.split(/\s+[-–—]\s+/).map(p => p.trim());
+  if (parts.length >= 2) {
+    const fmt = (d: string) => {
+      const clean = d.trim();
+      if (clean.includes('.')) {
+        const seg = clean.split('.');
+        return seg.slice(0, 3).join('.');
+      }
+      if (clean.includes('-')) {
+        const seg = clean.split('-');
+        if (seg.length === 3) return `${seg[2]}.${seg[1]}.${seg[0]}`;
+        return seg.slice(0, 2).join('.');
+      }
+      return clean;
+    };
+    return `${fmt(parts[0])}—${fmt(parts[1])}`;
+  }
+  return s.replace(/\s*-\s*/g, '—');
+}
+
+function getQuarterByDate(d: string): string {
+  const m = new Date(d).getMonth() + 1;
+  const day = new Date(d).getDate();
+  if ((m === 9) || (m === 10 && day <= 27)) return '1';
+  if ((m === 10 && day >= 28) || (m === 11 && day <= 3)) return '1';
+  if ((m === 11 && day >= 4) || (m === 12 && day <= 24)) return '2';
+  if ((m === 12 && day >= 25) || (m === 1 && day <= 8)) return '2';
+  if ((m === 1 && day >= 9) || m === 2 || (m === 3 && day <= 23)) return '3';
+  if ((m === 3 && day >= 24 && day <= 30)) return '3';
+  if ((m === 3 && day >= 31) || m === 4 || m === 5) return '4';
+  return '1';
 }
 
 // Получить название каникул по дате
@@ -738,7 +777,7 @@ function HolidayCalendarSection({ sharedData, setSharedData, canEdit }: HolidayC
                   )}
                 </div>
               ) : (
-                <p className="text-gray-800 text-lg font-bold">{sharedData.holidays[item.key as keyof typeof sharedData.holidays] || "Не указаны"}</p>
+                <p className="text-gray-800 text-lg font-bold">{sharedData.holidays[item.key as keyof typeof sharedData.holidays] ? formatHolidayDate(sharedData.holidays[item.key as keyof typeof sharedData.holidays]) : "Не указаны"}</p>
               )}
             </div>
         ))}
@@ -773,6 +812,7 @@ export default function StudentDiaryPage({
   subjectTeacherMap = {},
   eventSubjectNames = [],
   specialSubjectNames = [],
+  homework = [],
   initialContacts,
   initialHolidays,
   userAvatar = "",
@@ -794,6 +834,7 @@ export default function StudentDiaryPage({
   const [parentVerification, setParentVerification] = useState<{ parentId: string; verifiedAt: Date } | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isParentVerifying, setIsParentVerifying] = useState(false);
+  const [attendanceRecords, setAttendanceRecords] = useState<{studentId: string; subjectId: number; date: string; type: string}[]>([]);
   const [comments, setComments] = useState<{id: number; teacherId: string; teacherName: string | null; comment: string; date: number}[]>([]);
   const [newComment, setNewComment] = useState("");
   const [addingComment, setAddingComment] = useState(false);
@@ -994,6 +1035,8 @@ export default function StudentDiaryPage({
   const [absence, setAbsence] = useState({ absent: "", absentUnexcused: "" });
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [showStudentSwitcher, setShowStudentSwitcher] = useState(false);
+  const [classStudents, setClassStudents] = useState<{ id: string; fullName: string }[]>([]);
 
   // Отметки для уроков (контрольная, самостоятельная, ключевое событие)
   type LessonMarkType = 'test' | 'independent' | 'key-event' | null;
@@ -1486,6 +1529,16 @@ export default function StudentDiaryPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, studentId]); // Не зависим от data, загружаем один раз
 
+  // Загрузка пропусков
+  useEffect(() => {
+    if (studentId) {
+      fetch(`/api/absences?studentId=${studentId}`)
+        .then(res => res.json())
+        .then(data => { if (Array.isArray(data)) setAttendanceRecords(data); })
+        .catch(() => {});
+    }
+  }, [studentId]);
+
   // Загрузка замечаний
   useEffect(() => {
     if (!isLoaded || !studentId) return;
@@ -1586,6 +1639,18 @@ export default function StudentDiaryPage({
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, []);
+
+  // Загрузка учеников класса для переключателя
+  useEffect(() => {
+    if (showStudentSwitcher && studentGroupId) {
+      fetch(`/api/students?classId=${studentGroupId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data)) setClassStudents(data.map((s: any) => ({ id: s.id, fullName: s.fullName })));
+        })
+        .catch(() => setClassStudents([]));
+    }
+  }, [showStudentSwitcher, studentGroupId]);
 
   // ============================================================================
   // ОБРАБОТЧИКИ
@@ -1894,6 +1959,35 @@ export default function StudentDiaryPage({
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 font-sans pt-4">
       {/* Модальное окно аватара */}
+      {/* Модалка выбора ученика в текущем классе */}
+      {showStudentSwitcher && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowStudentSwitcher(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg text-gray-900">Выберите ученика</h3>
+              <button onClick={() => setShowStudentSwitcher(false)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            {classStudents.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">Загрузка...</p>
+            ) : (
+              <div className="space-y-1">
+                {classStudents.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => { window.location.href = `/diary?studentId=${s.id}`; }}
+                    className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${s.id === studentId ? 'bg-emerald-100 text-emerald-800' : 'hover:bg-gray-100 text-gray-700'}`}
+                  >
+                    {s.id === studentId && '✓ '}{s.fullName}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {showAvatarModal && userAvatar && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
@@ -1919,13 +2013,33 @@ export default function StudentDiaryPage({
         </div>
       )}
 
+      <style>{`
+        .no-comments-card {
+          background-color: #fef3c7 !important;
+        }
+        .no-comments-title {
+          color: #92400e !important;
+        }
+        .no-comments-subtitle {
+          color: #d97706 !important;
+        }
+        .dark .no-comments-card {
+          background-color: #181825 !important;
+        }
+        .dark .no-comments-title {
+          color: #a6adc8 !important;
+        }
+        .dark .no-comments-subtitle {
+          color: #7f849c !important;
+        }
+      `}</style>
       {/* Модальное окно: ученик без класса */}
       {showNoClassModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center border-2 border-amber-300">
             <div className="text-6xl mb-2">⚠️</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Вы не определили класс этого ученика!</h2>
-            <p className="text-gray-600 mb-6">Назначьте класс через админ-панель или обратитесь к администрации.</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Вы не определены в класс!</h2>
+            <p className="text-gray-600 mb-6">Обратитесь к администратору или попробуйте позже.</p>
             <button onClick={() => window.location.href = "/"} className="block w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all shadow-md">Назад</button>
           </div>
         </div>
@@ -1936,7 +2050,7 @@ export default function StudentDiaryPage({
 
       <div className="max-w-[210mm] mx-auto bg-white shadow-xl my-0 print:my-0 print:shadow-none rounded-xl">
         {/* Навигация */}
-        <div className="bg-white border-b border-emerald-200 px-2 md:px-4 py-1">
+        <div className="bg-white border-b border-emerald-200 px-2 md:px-4 py-1 pt-6 md:pt-8">
           <div className="relative">
             <div className="flex gap-1.5 md:gap-2 overflow-x-auto pb-1 scroll-smooth" style={{ scrollbarWidth: 'thin', scrollbarColor: '#10b981 #e5e7eb', WebkitOverflowScrolling: 'touch' }}>
               {sections.map(section => (
@@ -1955,31 +2069,60 @@ export default function StudentDiaryPage({
 
         {/* Шапка с профилем — после навигации */}
         <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 px-3 md:px-4 py-2 md:py-3 mb-4 relative">
-          <div className="flex justify-between items-center flex-wrap gap-2 relative z-10">
-            <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-2 md:gap-3 min-h-[44px]">
+            {/* Кнопка Назад — слева */}
+            <div className="w-[65px] md:w-[85px] shrink-0">
               <a
-                href={effectiveUserRole === "admin" ? "/admin" : effectiveUserRole === "teacher" ? "/teacher" : effectiveUserRole === "parent" ? "/" : "/diary"}
+                href={effectiveUserRole === "admin" ? "/admin" : effectiveUserRole === "teacher" ? (studentGroupId ? `/teacher?groupId=${studentGroupId}` : "/teacher") : "/diary"}
                 className="inline-flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 bg-white border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-all text-xs md:text-sm font-semibold"
               >
                 Назад
               </a>
             </div>
 
-            <div className="flex items-center gap-3">
-              {effectiveUserRole === "admin" && (
+            {/* ФИО и класс — по центру */}
+            <div className="flex-1 flex items-center justify-center gap-2 md:gap-3">
+              <div
+                className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-300 cursor-pointer hover:opacity-80 transition-opacity shrink-0 flex items-center justify-center"
+                onClick={() => userAvatar && setShowAvatarModal(true)}
+              >
+                {userAvatar ? (
+                  <Image
+                    src={userAvatar}
+                    alt="Avatar"
+                    fill
+                    className="object-cover rounded-full"
+                    style={{ aspectRatio: '1/1' }}
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold shrink-0">
+                    {studentFullName.charAt(0)}
+                  </div>
+                )}
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-gray-800 text-sm md:text-base">{studentFullName}</p>
+                <p className="text-xs md:text-sm text-gray-600">{studentGrade}</p>
+              </div>
+            </div>
+
+            {/* Правая часть */}
+            <div className="flex items-center gap-1.5 md:gap-2 w-[65px] md:w-auto justify-end shrink-0">
+              {effectiveUserRole === "admin" ? (
                 <>
                   <a
                     href="/diary"
-                    className="inline-flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all text-xs md:text-sm font-semibold"
+                    className="inline-flex items-center gap-1 px-2 py-1 md:px-3 md:py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all text-xs md:text-sm font-semibold whitespace-nowrap"
+                    title="Выбрать другого ученика"
                   >
-                    🔄 <span className="hidden md:inline">Сменить класс и/или ученика</span><span className="md:hidden">Сменить</span>
+                    🔄<span className="hidden md:inline ml-1">Сменить</span>
                   </a>
-                  <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg px-3 py-2 border border-indigo-200">
-                    <span className="text-sm text-indigo-500">🎭</span>
+                  <div className="flex items-center gap-1 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg px-1.5 py-1 md:px-2 md:py-1.5 border border-indigo-200">
+                    <span className="text-xs md:text-sm text-indigo-500">🎭</span>
                     <select
                       value={tempUserRole}
                       onChange={(e) => setTempUserRole(e.target.value)}
-                      className="text-sm border-0 bg-transparent text-violet-700 font-semibold focus:outline-none cursor-pointer"
+                      className="text-xs md:text-sm border-0 bg-transparent text-violet-700 font-semibold focus:outline-none cursor-pointer w-[20px] md:w-auto"
                     >
                       <option value="">{userRole || "Роль"}</option>
                       <option value="admin">👑 Админ</option>
@@ -1990,33 +2133,17 @@ export default function StudentDiaryPage({
                     </select>
                   </div>
                 </>
-              )}
-            </div>
-          </div>
-
-          {/* ФИО и класс — по центру */}
-          <div className="flex items-center justify-center gap-2 md:gap-3 mt-2">
-            <div
-              className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-300 cursor-pointer hover:opacity-80 transition-opacity shrink-0 flex items-center justify-center"
-              onClick={() => userAvatar && setShowAvatarModal(true)}
-            >
-              {userAvatar ? (
-                <Image
-                  src={userAvatar}
-                  alt="Avatar"
-                  fill
-                  className="object-cover rounded-full"
-                  style={{ aspectRatio: '1/1' }}
-                />
+              ) : effectiveUserRole === "teacher" || effectiveUserRole === "homeroomTeacher" ? (
+                <button
+                  onClick={() => setShowStudentSwitcher(true)}
+                  className="inline-flex items-center gap-1 px-2 py-1 md:px-3 md:py-1.5 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-all text-xs md:text-sm font-semibold whitespace-nowrap"
+                  title="Выбрать другого ученика"
+                >
+                  📋<span className="hidden md:inline ml-1">Ученик</span>
+                </button>
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold shrink-0">
-                  {studentFullName.charAt(0)}
-                </div>
+                <div className="w-[65px] md:w-auto"></div>
               )}
-            </div>
-            <div className="text-center">
-              <p className="font-bold text-gray-800">{studentFullName}</p>
-              <p className="text-sm text-gray-600">{studentGrade}</p>
             </div>
           </div>
         </div>
@@ -2128,10 +2255,10 @@ export default function StudentDiaryPage({
 
               <div className="space-y-4">
                 {comments.length === 0 ? (
-                  <div className="bg-white dark:bg-[#181825] rounded-2xl shadow-sm border border-rose-100 dark:border-rose-900 p-10 text-center">
+                  <div className="no-comments-card rounded-2xl shadow-sm border border-amber-200 dark:border-rose-900 p-10 text-center">
                     <div className="text-5xl mb-4">✨</div>
-                    <p className="text-gray-500 dark:text-[#a6adc8] text-lg font-semibold">Нет замечаний</p>
-                    <p className="text-gray-400 dark:text-[#7f849c] text-sm mt-1">У ученика пока нет замечаний от учителей</p>
+                    <p className="no-comments-title text-lg font-semibold">Нет замечаний</p>
+                    <p className="no-comments-subtitle text-sm mt-1">У ученика пока нет замечаний от учителей</p>
                   </div>
                 ) : (
                   <>
@@ -2302,11 +2429,11 @@ export default function StudentDiaryPage({
 
         {/* Контакты */}
         {activeSection === "contacts" && (
-          <div className="min-h-[297mm] p-4 md:p-12 bg-gradient-to-b from-violet-50/50 to-white">
+          <div className="p-4 md:p-12 bg-gradient-to-b from-violet-50/50 to-white">
             <div className="text-center mb-4 md:mb-10"><div className="text-3xl md:text-4xl mb-2">📞</div><h2 className="text-xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-purple-600">Контактная информация</h2>
             {canEditContacts() && <p className="text-xs text-violet-500 mt-2">💡 Редактируется администратором — заполняется один раз и применяется для всех учеников класса</p>}
             </div>
-            <div className="grid md:grid-cols-2 gap-4 mb-10 items-start">
+            <div className="grid md:grid-cols-2 gap-4 items-start">
               {[
                 {label: "👔 Руководитель учреждения", field: "director" as const, phoneField: "directorPhone" as const, isDirector: true, readOnlyName: false},
                 {label: "🍎 Классный руководитель", field: "homeroomTeacher" as const, phoneField: "homeroomTeacherPhone" as const, isHomeroom: true, readOnlyName: true},
@@ -2348,88 +2475,6 @@ export default function StudentDiaryPage({
               ))}
             </div>
             
-            {/* Расписание звонков */}
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6 shadow-lg">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl">🔔</span>
-                  <div>
-                    <h3 className="text-xl font-bold text-amber-800">Расписание звонков</h3>
-                    <p className="text-sm text-amber-600">Расписание уроков и перемен</p>
-                  </div>
-                </div>
-                {canEditContacts() && (
-                  <span className="text-xs text-amber-600 bg-amber-100 px-3 py-1 rounded-full">✏️ Режим редактирования</span>
-                )}
-              </div>
-              
-              <div className="overflow-hidden rounded-xl border border-amber-200">
-                <table className="w-full">
-                  <thead className="bg-gradient-to-r from-amber-400 to-orange-400 text-white">
-                    <tr>
-                      <th className="py-3 px-4 text-left font-bold">№</th>
-                      <th className="py-3 px-4 text-center font-bold">Начало</th>
-                      <th className="py-3 px-4 text-center font-bold">Конец</th>
-                      <th className="py-3 px-4 text-center font-bold">Перемена</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bellSchedule.map((bell, index) => (
-                      <tr key={index} className="bg-white">
-                        <td className="py-3 px-4 font-bold text-amber-800">{bell.number}</td>
-                        <td className="py-3 px-4">
-                          {canEditContacts() ? (
-                            <input
-                              type="time"
-                              value={bell.start}
-                              onChange={(e) => updateBellSchedule(index, 'start', e.target.value)}
-                              className="w-full text-center border-2 border-amber-200 rounded-lg py-1 px-2 text-amber-800 font-semibold focus:border-amber-400 focus:outline-none"
-                            />
-                          ) : (
-                            <span className="block text-center font-semibold text-gray-800">{bell.start}</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          {canEditContacts() ? (
-                            <input
-                              type="time"
-                              value={bell.end}
-                              onChange={(e) => updateBellSchedule(index, 'end', e.target.value)}
-                              className="w-full text-center border-2 border-amber-200 rounded-lg py-1 px-2 text-amber-800 font-semibold focus:border-amber-400 focus:outline-none"
-                            />
-                          ) : (
-                            <span className="block text-center font-semibold text-gray-800">{bell.end}</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          {canEditContacts() ? (
-                            <div className="flex items-center justify-center gap-1">
-                              <input
-                                type="text"
-                                value={bell.break}
-                                onChange={(e) => updateBellSchedule(index, 'break', e.target.value)}
-                                className="w-16 text-center border-2 border-amber-200 rounded-lg py-1 px-2 text-amber-800 font-semibold focus:border-amber-400 focus:outline-none"
-                              />
-                              <span className="text-sm text-amber-600">мин</span>
-                            </div>
-                          ) : (
-                            <span className="block text-center font-semibold text-gray-800">
-                              {bell.break ? `${bell.break} мин` : '—'}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              {canEditContacts() && (
-                <p className="text-xs text-amber-600 mt-4 text-center">
-                  💡 Изменения сохраняются автоматически при редактировании
-                </p>
-              )}
-            </div>
           </div>
         )}
 
@@ -2485,27 +2530,23 @@ export default function StudentDiaryPage({
               </div>
 
               {/* Информация о каникулах всех четвертей */}
-              <div className="mb-4 p-3 bg-gradient-to-r from-sky-100 to-blue-100 rounded-lg border-2 border-sky-300">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">🏖️</span>
-                  <span className="font-bold text-sky-800">Каникулы:</span>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                  <div className="bg-white/70 px-3 py-2 rounded-lg">
-                    <span className="font-semibold text-sky-700">🍂 Осенние:</span>{' '}
-                    <span className="text-sky-900 font-medium">{sharedData.holidays?.autumn || "28.10 - 03.11"}</span>
+              <div className="mb-4 p-3 bg-gradient-to-r from-sky-100 to-blue-100 dark:from-sky-900/50 dark:to-blue-900/50 rounded-lg border-2 border-sky-300 dark:border-sky-700">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 text-xs">
+                  <div className="bg-white/70 px-2 py-1.5 rounded-lg">
+                    <div className="font-semibold text-sky-700 text-[11px]">🍂 Осенние</div>
+                    <div className="text-sky-900 font-bold whitespace-nowrap text-[11px]">{formatHolidayDate(sharedData.holidays?.autumn || "28.10 - 03.11")}</div>
                   </div>
-                  <div className="bg-white/70 px-3 py-2 rounded-lg">
-                    <span className="font-semibold text-sky-700">❄️ Зимние:</span>{' '}
-                    <span className="text-sky-900 font-medium">{sharedData.holidays?.winter || "25.12 - 08.01"}</span>
+                  <div className="bg-white/70 px-2 py-1.5 rounded-lg">
+                    <div className="font-semibold text-sky-700 text-[11px]">❄️ Зимние</div>
+                    <div className="text-sky-900 font-bold whitespace-nowrap text-[11px]">{formatHolidayDate(sharedData.holidays?.winter || "25.12 - 08.01")}</div>
                   </div>
-                  <div className="bg-white/70 px-3 py-2 rounded-lg">
-                    <span className="font-semibold text-sky-700">🌸 Весенние:</span>{' '}
-                    <span className="text-sky-900 font-medium">{sharedData.holidays?.spring || "24.03 - 30.03"}</span>
+                  <div className="bg-white/70 px-2 py-1.5 rounded-lg">
+                    <div className="font-semibold text-sky-700 text-[11px]">🌸 Весенние</div>
+                    <div className="text-sky-900 font-bold whitespace-nowrap text-[11px]">{formatHolidayDate(sharedData.holidays?.spring || "24.03 - 30.03")}</div>
                   </div>
-                  <div className="bg-white/70 px-3 py-2 rounded-lg">
-                    <span className="font-semibold text-sky-700">☀️ Летние:</span>{' '}
-                    <span className="text-sky-900 font-medium">{sharedData.holidays?.summer || "01.06 - 31.08"}</span>
+                  <div className="bg-white/70 px-2 py-1.5 rounded-lg">
+                    <div className="font-semibold text-sky-700 text-[11px]">☀️ Летние</div>
+                    <div className="text-sky-900 font-bold whitespace-nowrap text-[11px]">{formatHolidayDate(sharedData.holidays?.summer || "01.06 - 31.08")}</div>
                   </div>
                 </div>
               </div>
@@ -2521,10 +2562,10 @@ export default function StudentDiaryPage({
                   // Получаем уроки с учетом специфических записей на эту дату
                   const dayLessons = getDayLessons(selectedQuarter, day.name, dayDate);
                   
-                  // Мапа оценок: ключ = название_предмета, значение = оценка
+                  // Мапа оценок: ключ = название_предмета, значение = оценка за эту дату
                   const dayGradesMap = new Map<string, Grade>();
                   grades.forEach(g => { if (g.date && g.date.startsWith(ds) && g.subjectName) dayGradesMap.set(g.subjectName.trim().toLowerCase(), g); });
-                  
+
                   // Проверяем каникулы и праздники
 const holidayName = getHolidayNameByDate(dayDate);
                    const celebration = getHolidayByDate(dayDate, disabledHolidays);
@@ -2533,7 +2574,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                    const isToday = dayDate.toDateString() === new Date().toDateString();
                    
                    return (
-                     <div key={day.name} className={`rounded-lg p-3 border-2 ${isHoliday ? 'bg-gradient-to-br from-sky-100 to-blue-100 border-sky-400' : isToday ? 'bg-amber-50 border-amber-400 shadow-md' : 'bg-white border-emerald-200'}`}>
+                      <div key={day.name} className={`rounded-lg p-3 border-2 flex flex-col ${isHoliday ? 'bg-gradient-to-br from-sky-100 to-blue-100 border-sky-400' : isToday ? 'bg-amber-50 border-amber-400 shadow-md' : 'bg-white border-emerald-200'}`}>
                        <h4 className={`font-bold text-sm mb-2 ${isHoliday ? 'text-sky-900' : isToday ? 'text-amber-700' : 'text-emerald-900'}`}>
                          {day.name}
                          <span className="block text-xs font-normal opacity-75 mt-1">
@@ -2543,12 +2584,12 @@ const holidayName = getHolidayNameByDate(dayDate);
                       </h4>
                       
                       {/* Отображение каникул */}
-                      {holidayName && (
-                        <div className="mb-2 p-2 bg-white/70 rounded-lg text-center">
-                          <span className="text-xs font-bold text-sky-700 block">{holidayName}</span>
-                          <span className="text-xs text-sky-600 font-medium">Каникулы!</span>
-                        </div>
-                      )}
+                       {holidayName && (
+                         <div className="mb-2 p-2 bg-white/70 dark:bg-gray-800/70 rounded-lg text-center border border-sky-200 dark:border-sky-700">
+                           <span className="text-xs font-bold text-sky-700 dark:text-sky-300 block">{holidayName}</span>
+                           <span className="text-xs text-sky-600 dark:text-sky-400 font-medium">Каникулы!</span>
+                         </div>
+                       )}
                       
                       {/* Отображение праздника */}
                        {celebrationName && !isHoliday && (
@@ -2559,12 +2600,14 @@ const holidayName = getHolidayNameByDate(dayDate);
                        
                        {/* Оценки за день — удалено, показываются внутри уроков */}
                        
-                       {false && (() => { const dd = ds; const dg = grades.filter(g => g.date && g.date.startsWith(dd)); if (dg.length === 0) return null; return (<div className="mb-1 flex flex-wrap gap-1">{dg.map(g => { const v = Number(g.value); const bg = isNaN(v) ? '#9ca3af' : v >= 9 ? '#10b981' : v >= 7 ? '#3b82f6' : v >= 5 ? '#eab308' : v >= 4 ? '#f97316' : '#ef4444'; return (<span key={g.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold" style={{backgroundColor: bg + '20', color: bg, border: '1px solid ' + bg}}>{g.subjectName ? g.subjectName + ': ' : ''}{g.value}</span>); })}</div>); })()}
+                       {false && (() => { const dd = ds; const dg = grades.filter(g => g.date && g.date.startsWith(dd)); if (dg.length === 0) return null; return (<div className="mb-2 flex flex-wrap gap-1">{dg.map(g => { const v = Number(g.value); const bg = isNaN(v) ? '#9ca3af' : v >= 9 ? '#34d399' : v >= 7 ? '#60a5fa' : v >= 5 ? '#facc15' : v >= 4 ? '#fb923c' : '#f87171'; return (<span key={g.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold" style={{backgroundColor: bg + '20', color: bg, border: '1px solid ' + bg}}>{g.subjectName ? g.subjectName + ': ' : ''}{g.value}</span>); })}</div>); })()}
                        
-                       {!isHoliday && (
-                        <div className="space-y-1">
-                          {dayLessons.length === 0 ? (
-                            <p className="text-xs text-gray-400 italic text-center py-2">Нет уроков</p>
+                        {!isHoliday && (
+                         <div className="flex-1 flex flex-col">
+                           {dayLessons.length === 0 ? (
+                             <div className="flex-1 flex items-center justify-center text-center">
+                               <p className="text-sm text-gray-400 font-medium">Нет уроков</p>
+                             </div>
                           ) : (
                               dayLessons.map(lesson => {
                                 const lessonMarkInfo = getLessonMark(day.name, lesson.lessonNumber);
@@ -2575,9 +2618,10 @@ const holidayName = getHolidayNameByDate(dayDate);
                                 const isSpecialLesson = specialSubjectNames.includes(lesson.subject);
                                 const eventClass = isEventLesson ? 'bg-emerald-200 border-emerald-500 shadow-sm' : isSpecialLesson ? 'bg-blue-200 border-blue-500 shadow-sm' : '';
                                 const eventTextClass = isEventLesson ? 'text-emerald-900' : isSpecialLesson ? 'text-blue-900' : 'text-gray-900';
-                                const lessonGrade = dayGradesMap.get(lesson.subject.trim().toLowerCase()) || null;
+                                const lessonSubjectKey = lesson.subject.trim().toLowerCase();
+                                const lessonGrade = dayGradesMap.get(lessonSubjectKey) || null;
                                 const lessonGradeVal = lessonGrade ? Number(lessonGrade.value) : null;
-                                const lessonGradeColor = lessonGradeVal === null ? '' : lessonGradeVal >= 9 ? '#10b981' : lessonGradeVal >= 7 ? '#3b82f6' : lessonGradeVal >= 5 ? '#eab308' : lessonGradeVal >= 4 ? '#f97316' : '#ef4444';
+                                const lessonGradeColor = lessonGradeVal === null ? '' : lessonGradeVal >= 9 ? '#34d399' : lessonGradeVal >= 7 ? '#60a5fa' : lessonGradeVal >= 5 ? '#facc15' : lessonGradeVal >= 4 ? '#fb923c' : '#f87171';
                                 return (
                               <div
                                 key={lesson.lessonNumber}
@@ -2590,6 +2634,19 @@ const holidayName = getHolidayNameByDate(dayDate);
                                     {isSpecialLesson && <span className="mr-0.5">🏆</span>}
                                     {lesson.subject}
                                   </span>
+                                  {(() => { const hwItem = homework.find(h => h.subjectName?.trim().toLowerCase() === lesson.subject.trim().toLowerCase() && h.lessonDate === ds); if (!hwItem) return null; return (<span className="text-[10px] text-amber-600 truncate block" title={hwItem.description}>📝 {hwItem.description}</span>); })()}
+                                  {(() => {
+                                    const attSubjId = schedule.find(s => s.subjectName?.trim().toLowerCase() === lesson.subject.trim().toLowerCase())?.subjectId;
+                                    if (!attSubjId) return null;
+                                    const att = attendanceRecords.find(r => r.date === ds && r.subjectId === attSubjId);
+                                    if (!att) return null;
+                                    return (
+                                      <span className={`text-[12px] font-extrabold shrink-0 px-2 py-0.5 rounded-md border-2 ${att.type === 'absent' ? 'text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/40 border-orange-400 dark:border-orange-600' : 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/40 border-red-400 dark:border-red-600'}`}
+                                        title={att.type === 'absent' ? 'Пропуск' : 'Неуважительная причина'}>
+                                        Н
+                                      </span>
+                                    );
+                                  })()}
                                   {lessonMarkInfo?.comment && (
                                     <span className="text-[10px] text-gray-500 truncate block" title={lessonMarkInfo.comment}>
                                       💬 {lessonMarkInfo.comment}
@@ -2604,8 +2661,17 @@ const holidayName = getHolidayNameByDate(dayDate);
                                   </span>
                                 )}
                                 {lessonGrade && lessonGradeVal !== null && (
-                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-extrabold shadow-sm text-white shrink-0" style={{backgroundColor: lessonGradeColor}}>{lessonGrade.value}</span>
+                                  <div className="relative group/gsched inline-flex">
+                                    <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[11px] font-extrabold shadow-sm text-white shrink-0" style={{backgroundColor: lessonGradeColor}}>{lessonGrade.value}</span>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-[11px] rounded-xl whitespace-nowrap opacity-0 group-hover/gsched:opacity-100 transition-opacity pointer-events-none z-[9999] shadow-xl leading-relaxed min-w-[140px]">
+                                      <div className="font-bold">{lessonGrade.date}</div>
+                                      {lessonGrade.createdAt && <div className="text-gray-400">🕐 добавлена {new Date(lessonGrade.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>}
+                                      {lessonGrade.comment && <div className="text-gray-300">💬 «{lessonGrade.comment}»</div>}
+                                      <div className="text-gray-400 mt-0.5">👤 {lessonGrade.teacherName || 'Неизвестно'}</div>
+                                    </div>
+                                  </div>
                                 )}
+                                {canEditSchedule() && (() => { const hwItem = homework.find(h => h.subjectName?.trim().toLowerCase() === lesson.subject.trim().toLowerCase() && h.lessonDate === ds); if (!hwItem) return null; return (<button onClick={async (e) => { e.stopPropagation(); try { await fetch(`/api/homework`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: hwItem.id }) }); window.location.reload(); } catch {} }} className="text-[10px] text-red-400 hover:text-red-600 shrink-0 leading-none p-1 border border-red-200 rounded hover:bg-red-50" title="Удалить ДЗ">✕</button>); })()}
                                 {canEditSchedule() && (
                                   <button
                                     onClick={() => openLessonEditModal(day.name, lesson.lessonNumber, lessonKey, lesson.subject, dayDate)}
@@ -2783,18 +2849,6 @@ const holidayName = getHolidayNameByDate(dayDate);
 
         {activeSection === "allgrades" && (() => {
           const groupedBySubject: Record<string, { q1: typeof grades; q2: typeof grades; q3: typeof grades; q4: typeof grades; all: typeof grades }> = {};
-          const getQuarterByDate = (d: string): string => {
-            const m = new Date(d).getMonth() + 1;
-            const day = new Date(d).getDate();
-            if ((m === 9) || (m === 10 && day <= 27)) return '1';
-            if ((m === 10 && day >= 28) || (m === 11 && day <= 3)) return '1';
-            if ((m === 11 && day >= 4) || (m === 12 && day <= 24)) return '2';
-            if ((m === 12 && day >= 25) || (m === 1 && day <= 8)) return '2';
-            if ((m === 1 && day >= 9) || m === 2 || (m === 3 && day <= 23)) return '3';
-            if ((m === 3 && day >= 24 && day <= 30)) return '3';
-            if ((m === 3 && day >= 31) || m === 4 || m === 5) return '4';
-            return '1';
-          };
           const sorted = [...grades].filter(g => g.date).sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
           for (const g of sorted) {
             const subj = g.subjectName || 'Без предмета';
@@ -2803,7 +2857,7 @@ const holidayName = getHolidayNameByDate(dayDate);
             groupedBySubject[subj][`q${q}` as keyof typeof groupedBySubject[string]].push(g);
             groupedBySubject[subj].all.push(g);
           }
-          const canDelete = effectiveUserRole === "admin" || effectiveUserRole === "principal" || isHomeroomTeacher;
+          const canDelete = effectiveUserRole === "admin";
 
           const handleDeleteGrade = async (gradeId: number) => {
             try {
@@ -2893,8 +2947,9 @@ const holidayName = getHolidayNameByDate(dayDate);
                                         </span>
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-[11px] rounded-xl whitespace-nowrap opacity-0 group-hover/grade:opacity-100 transition-opacity pointer-events-none z-[9999] shadow-xl leading-relaxed min-w-[140px]">
                                           <div className="font-bold">{g.date}</div>
-                                          {g.comment && <div className="text-gray-300 text-[10px]">💬 «{g.comment}»</div>}
-                                          <div className="text-gray-400 text-[10px] mt-1">👤 {g.teacherName || 'Неизвестно'}</div>
+                                          {g.createdAt && <div className="text-gray-400">🕐 добавлена {new Date(g.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>}
+                                          {g.comment && <div className="text-gray-300">💬 «{g.comment}»</div>}
+                                          <div className="text-gray-400 mt-0.5">👤 {g.teacherName || 'Неизвестно'}</div>
                                         </div>
                                       </div>
                                     );
@@ -3034,7 +3089,12 @@ const holidayName = getHolidayNameByDate(dayDate);
                 const markInfo = getLessonMark(dayNameRu, lesson.lessonNumber);
                 if (markInfo?.type) marksForDay.push(markInfo.type);
               });
-              return { dayLessons, dayGrades, marksForDay, holidayName, celebration };
+              const dayAttendance = attendanceRecords.filter(r => r.date === dateStr);
+              const hasAbsence = dayAttendance.length > 0;
+              const absenceTypes = [...new Set(dayAttendance.map(r => r.type))];
+              const hasEventLesson = dayLessons.some(l => eventSubjectNames.includes(l.subject));
+              const hasSpecialLesson = dayLessons.some(l => specialSubjectNames.includes(l.subject));
+              return { dayLessons, dayGrades, marksForDay, holidayName, celebration, hasAbsence, absenceTypes, hasEventLesson, hasSpecialLesson };
             };
 
             const formatMonthIdx = (quarter: string): number[] => {
@@ -3134,8 +3194,10 @@ const holidayName = getHolidayNameByDate(dayDate);
                         );
                       }
 
+                      const absenceColor = info.hasAbsence ? (info.absenceTypes.includes('unexcused') ? 'bg-red-50 ring-1 ring-red-300' : 'bg-orange-50 ring-1 ring-orange-300') : '';
+
                       return (
-                        <div key={day} className={`p-1.5 min-h-[70px] ${todayHl ? 'bg-amber-50 ring-2 ring-amber-400' : 'bg-white hover:bg-indigo-50'} transition-colors cursor-default`}>
+                        <div key={day} className={`p-1.5 min-h-[70px] ${todayHl ? 'bg-amber-50 ring-2 ring-amber-400' : 'bg-white hover:bg-indigo-50'} ${absenceColor} transition-colors cursor-default`}>
                           <div className={`text-xs font-bold ${todayHl ? 'text-amber-700' : 'text-gray-700'}`}>{day}</div>
                           <div className="flex flex-wrap gap-0.5 mt-1">
                             {hasC && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-red-100 text-red-700 font-bold" title="Контрольная">К</span>}
@@ -3144,6 +3206,9 @@ const holidayName = getHolidayNameByDate(dayDate);
                             {hasGr && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-emerald-100 text-emerald-700 font-bold" title="Оценка">📊</span>}
                             {hasLess && !hasC && !hasS && !hasK && !hasGr && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-gray-100 text-gray-500" title="Уроки">📖</span>}
                             {info.celebration?.name && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-amber-100 text-amber-700 font-bold" title={info.celebration.name}>🎉</span>}
+                            {info.hasAbsence && <span className={`inline-block text-[11px] px-1.5 py-0.5 leading-none rounded font-extrabold border-2 ${info.absenceTypes.includes('unexcused') ? 'bg-red-100 text-red-700 border-red-400' : 'bg-orange-100 text-orange-700 border-orange-400'}`} title={info.absenceTypes.includes('unexcused') ? 'Неуважительная причина' : 'Пропуск'}>Н</span>}
+                            {info.hasEventLesson && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-emerald-100 text-emerald-700 font-bold" title="Мероприятие / Классный час">🎯</span>}
+                            {info.hasSpecialLesson && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-blue-100 text-blue-700 font-bold" title="Специализированный предмет">🏆</span>}
                           </div>
                           {hasGr && (
                             <div className="flex flex-wrap gap-0.5 mt-0.5">
@@ -3171,6 +3236,10 @@ const holidayName = getHolidayNameByDate(dayDate);
                   <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-purple-100 border border-purple-300 inline-block"></span><span className="text-gray-600 font-medium">Ключ. событие</span></div>
                   <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-300 inline-block"></span><span className="text-gray-600 font-medium">Оценка</span></div>
                   <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-sky-50 border border-sky-200 inline-block"></span><span className="text-gray-600 font-medium">Каникулы</span></div>
+                  <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-100 border border-orange-300 inline-block"></span><span className="text-gray-600 font-medium">Пропуск</span></div>
+                  <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100 border border-red-300 inline-block"></span><span className="text-gray-600 font-medium">Неуваж.</span></div>
+                  <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-300 inline-block"></span><span className="text-gray-600 font-medium">Мероприятие</span></div>
+                  <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-100 border border-blue-300 inline-block"></span><span className="text-gray-600 font-medium">Спец. предмет</span></div>
                 </div>
 
                 <div className="bg-gradient-to-r from-indigo-50 to-violet-50 rounded-xl border border-indigo-200 p-4">
@@ -3182,7 +3251,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                     {dates.filter(({ date, isWeekend }) => {
                       if (isWeekend) return false;
                       const info = getDayInfo(date);
-                      return info.holidayName !== null || info.celebration?.name || info.marksForDay.length > 0 || info.dayGrades.length > 0 || info.dayLessons.length > 0;
+                      return info.holidayName !== null || info.celebration?.name || info.marksForDay.length > 0 || info.dayGrades.length > 0 || info.hasAbsence || info.hasEventLesson || info.hasSpecialLesson;
                     }).map(({ date, day }) => {
                       const info = getDayInfo(date);
                       const isH = info.holidayName !== null;
@@ -3210,11 +3279,17 @@ const holidayName = getHolidayNameByDate(dayDate);
                                   📊 {info.dayGrades.map(g => `${g.subjectName || '?'}: ${g.value}`).join(', ')}
                                 </span>
                               )}
-                              {info.dayLessons.length > 0 && info.marksForDay.length === 0 && info.dayGrades.length === 0 && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
-                                  📖 {info.dayLessons.map(l => l.subject).join(', ')}
+                              {info.hasAbsence && (
+                                <span className={`text-[11px] px-2 py-0.5 rounded-md font-extrabold border-2 ${
+                                  info.absenceTypes.includes('unexcused') 
+                                    ? 'bg-red-100 text-red-700 border-red-400' 
+                                    : 'bg-orange-100 text-orange-700 border-orange-400'
+                                }`}>
+                                  {info.absenceTypes.includes('unexcused') ? '🚫 Неуваж.' : '⚠️ Пропуск'}
                                 </span>
                               )}
+                              {info.hasEventLesson && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold">🎯 Мероприятие</span>}
+                              {info.hasSpecialLesson && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold">🏆 Спец. предмет</span>}
                             </div>
                           </div>
                         </div>
@@ -3223,7 +3298,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                     {dates.filter(({ date, isWeekend }) => {
                       if (isWeekend) return false;
                       const info = getDayInfo(date);
-                      return info.holidayName !== null || info.celebration?.name || info.marksForDay.length > 0 || info.dayGrades.length > 0 || info.dayLessons.length > 0;
+                      return info.holidayName !== null || info.celebration?.name || info.marksForDay.length > 0 || info.dayGrades.length > 0 || info.hasAbsence || info.hasEventLesson || info.hasSpecialLesson;
                     }).length === 0 && (
                       <div className="text-center text-sm text-gray-400 py-4">Нет данных за этот месяц</div>
                     )}
@@ -3631,11 +3706,96 @@ const holidayName = getHolidayNameByDate(dayDate);
 
         {/* Каникулы */}
         {activeSection === "holidays" && (
+          <>
           <HolidayCalendarSection 
             sharedData={sharedData}
             setSharedData={setSharedData}
             canEdit={canEditInstitution()}
           />
+            
+            {/* Расписание звонков */}
+            <div className="mx-3 md:mx-8 mb-8 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">🔔</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-amber-800">Расписание звонков</h3>
+                    <p className="text-sm text-amber-600">Расписание уроков и перемен</p>
+                  </div>
+                </div>
+                {canEditContacts() && (
+                  <span className="text-xs text-amber-600 bg-amber-100 px-3 py-1 rounded-full">✏️ Режим редактирования</span>
+                )}
+              </div>
+              
+              <div className="overflow-hidden rounded-xl border border-amber-200">
+                <table className="w-full">
+                  <thead className="bg-gradient-to-r from-amber-400 to-orange-400 text-white">
+                    <tr>
+                      <th className="py-3 px-4 text-left font-bold">№</th>
+                      <th className="py-3 px-4 text-center font-bold">Начало</th>
+                      <th className="py-3 px-4 text-center font-bold">Конец</th>
+                      <th className="py-3 px-4 text-center font-bold">Перемена</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bellSchedule.map((bell, index) => (
+                      <tr key={index} className="bg-white">
+                        <td className="py-3 px-4 font-bold text-amber-800">{bell.number}</td>
+                        <td className="py-3 px-4">
+                          {canEditContacts() ? (
+                            <input
+                              type="time"
+                              value={bell.start}
+                              onChange={(e) => updateBellSchedule(index, 'start', e.target.value)}
+                              className="w-full text-center border-2 border-amber-200 rounded-lg py-1 px-2 text-amber-800 font-semibold focus:border-amber-400 focus:outline-none"
+                            />
+                          ) : (
+                            <span className="block text-center font-semibold text-gray-800">{bell.start}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {canEditContacts() ? (
+                            <input
+                              type="time"
+                              value={bell.end}
+                              onChange={(e) => updateBellSchedule(index, 'end', e.target.value)}
+                              className="w-full text-center border-2 border-amber-200 rounded-lg py-1 px-2 text-amber-800 font-semibold focus:border-amber-400 focus:outline-none"
+                            />
+                          ) : (
+                            <span className="block text-center font-semibold text-gray-800">{bell.end}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {canEditContacts() ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <input
+                                type="text"
+                                value={bell.break}
+                                onChange={(e) => updateBellSchedule(index, 'break', e.target.value)}
+                                className="w-16 text-center border-2 border-amber-200 rounded-lg py-1 px-2 text-amber-800 font-semibold focus:border-amber-400 focus:outline-none"
+                              />
+                              <span className="text-sm text-amber-600">мин</span>
+                            </div>
+                          ) : (
+                            <span className="block text-center font-semibold text-gray-800">
+                              {bell.break ? `${bell.break} мин` : '—'}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {canEditContacts() && (
+                <p className="text-xs text-amber-600 mt-4 text-center">
+                  💡 Изменения сохраняются автоматически при редактировании
+                </p>
+              )}
+            </div>
+          </>
         )}
 
         {/* Праздники */}
@@ -4234,6 +4394,7 @@ const holidayName = getHolidayNameByDate(dayDate);
         {/* Кнопки сохранения и печати */}
         <div className="-mt-6 p-4 bg-gray-50 border-t-2 border-gray-200 print:hidden">
           <div className="flex justify-center gap-4">
+            {effectiveUserRole === "admin" && (
             <button
               onClick={handleSaveDiary}
               className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
@@ -4243,6 +4404,7 @@ const holidayName = getHolidayNameByDate(dayDate);
               </svg>
               Сохранить дневник
             </button>
+            )}
             <button
               onClick={handlePrint}
               className="px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2"

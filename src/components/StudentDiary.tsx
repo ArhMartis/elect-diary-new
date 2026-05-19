@@ -10,6 +10,7 @@ interface Grade {
   date: string | null;
   subjectName: string | null;
   teacherName?: string | null;
+  createdAt?: number | null;
 }
 
 interface Lesson {

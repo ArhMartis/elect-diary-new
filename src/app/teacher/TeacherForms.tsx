@@ -73,6 +73,14 @@ const DAYS_OF_WEEK_TRANSLATIONS = ["", "Понедельник", "Вторник
 const SHORT_DAYS = ["", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 const DAYS_OF_WEEK_LIST = ["", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
 
+// Helper function to get local date string in YYYY-MM-DD format
+function localDateStr(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 const HOLIDAYS_LIST = [
   { date: "1 января", name: "Новый год" },
   { date: "7 января", name: "Рождество Христово (Православное)" },
@@ -190,6 +198,8 @@ export default function TeacherForms({
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectingDueDate, setSelectingDueDate] = useState(false);
   const scheduleRef = useRef<HTMLDivElement>(null);
+  const hwFormRef = useRef<HTMLDivElement>(null);
+  const gradeFormRef = useRef<HTMLDivElement>(null);
   const [showCalendarPopup, setShowCalendarPopup] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [dueDateWeek, setDueDateWeek] = useState(() => {
@@ -205,7 +215,7 @@ export default function TeacherForms({
     scheduleId: "",
     subjectId: "",
     description: "",
-    date: new Date().toISOString().split("T")[0],
+    date: localDateStr(new Date()),
     dueDate: "",
     dueTime: "",
   });
@@ -218,14 +228,14 @@ export default function TeacherForms({
     scheduleId: "",
     subjectId: "",
     value: "",
-    date: new Date().toISOString().split("T")[0],
+    date: localDateStr(new Date()),
     comment: "",
   });
   const [savingGrade, setSavingGrade] = useState(false);
   const [gradeMessage, setGradeMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const [attendanceForm, setAttendanceForm] = useState({
-    date: new Date().toISOString().split("T")[0],
+    date: localDateStr(new Date()),
     attendance: {} as Record<string, "present" | "absent" | "unexcused">,
     subjectId: "",
   });
@@ -383,6 +393,22 @@ export default function TeacherForms({
     setAttendanceForm((prev) => ({ ...prev, attendance: initialAttendance }));
   }, [attendanceForm.date, students]);
 
+  // Синхронизируем мини-календарь с dueDate
+  useEffect(() => {
+    if (homeworkForm.dueDate) {
+      const dueDate = new Date(homeworkForm.dueDate + "T00:00:00");
+      if (!isNaN(dueDate.getTime())) {
+        const dow = dueDate.getDay();
+        const daysFromMonday = dow === 0 ? 6 : dow - 1;
+        const mon = new Date(dueDate);
+        mon.setDate(dueDate.getDate() - daysFromMonday);
+        mon.setHours(0, 0, 0, 0);
+        setDueDateWeek(mon);
+        setSelectedQuarter(getQuarterNumberByDate(dueDate));
+      }
+    }
+  }, [homeworkForm.dueDate]);
+
   const teacherSubjectIds = useMemo(() => new Set(subjects.map((s) => s.id)), [subjects]);
 
   // Дедупликация расписания - оставляем только уникальные уроки
@@ -444,7 +470,7 @@ export default function TeacherForms({
       dates.push({
         dayOfWeek: i,
         date: d,
-        dateStr: d.toISOString().split("T")[0],
+        dateStr: localDateStr(d),
       });
     }
     return dates;
@@ -546,20 +572,26 @@ export default function TeacherForms({
   };
 
   const handleSelectLesson = (item: ScheduleItem) => {
+    // Вычисляем дату урока из выбранной недели + день недели
+    const dayOfWeek = item.dayOfWeek ?? 1;
+    const d = new Date(selectedWeek);
+    d.setDate(d.getDate() + (dayOfWeek - 1));
+    const lessonDate = item.lessonDate || localDateStr(d);
+
     if (scheduleModalFor === "homework") {
-      setHomeworkForm((prev) => ({ ...prev, scheduleId: String(item.id), subjectId: String(item.subjectId) }));
+      setHomeworkForm((prev) => ({ ...prev, scheduleId: String(item.id), subjectId: String(item.subjectId), date: lessonDate }));
     } else {
-      setGradeForm((prev) => ({ ...prev, scheduleId: String(item.id), subjectId: String(item.subjectId), date: item.lessonDate || prev.date }));
+      setGradeForm((prev) => ({ ...prev, scheduleId: String(item.id), subjectId: String(item.subjectId), date: lessonDate }));
     }
     setShowScheduleModal(false);
   };
 
   const handleLessonClick = (item: ScheduleItem, tab: "homework" | "grades" | "quarterly" | "attendance" | "yearly") => {
-    const dateStr = selectedWeek.toISOString().split("T")[0];
+    const dateStr = localDateStr(selectedWeek);
     const dayOfWeek = item.dayOfWeek ?? 1;
     const d = new Date(selectedWeek);
     d.setDate(d.getDate() + (dayOfWeek - 1));
-    const lessonDate = d.toISOString().split("T")[0];
+    const lessonDate = localDateStr(d);
 
     if (selectingDueDate) {
       setHomeworkForm((prev) => ({ ...prev, dueDate: lessonDate }));
@@ -577,6 +609,15 @@ export default function TeacherForms({
         dueDate: "",
         dueTime: "",
       }));
+      // Синхронизируем мини-календарь с выбранной датой
+      const selDate = new Date(lessonDate + "T00:00:00");
+      const dow = selDate.getDay();
+      const daysFromMonday = dow === 0 ? 6 : dow - 1;
+      const mon = new Date(selDate);
+      mon.setDate(selDate.getDate() - daysFromMonday);
+      mon.setHours(0, 0, 0, 0);
+      setDueDateWeek(mon);
+      setSelectedQuarter(getQuarterNumberByDate(selDate));
     } else if (tab === "quarterly") {
       setActiveTab("quarterly");
       setQuarterlyForm((prev) => ({
@@ -593,6 +634,21 @@ export default function TeacherForms({
         subjectId: String(item.subjectId),
         date: lessonDate,
       }));
+      // Синхронизируем мини-календарь с выбранной датой
+      const selDate = new Date(lessonDate + "T00:00:00");
+      const dow = selDate.getDay();
+      const daysFromMonday = dow === 0 ? 6 : dow - 1;
+      const mon = new Date(selDate);
+      mon.setDate(selDate.getDate() - daysFromMonday);
+      mon.setHours(0, 0, 0, 0);
+      setDueDateWeek(mon);
+      setSelectedQuarter(getQuarterNumberByDate(selDate));
+    }
+    // Скролл к форме
+    if (tab === "homework") {
+      setTimeout(() => hwFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+    } else if (tab === "grades") {
+      setTimeout(() => gradeFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 300);
     }
   };
 
@@ -613,7 +669,7 @@ export default function TeacherForms({
       });
       if (response.ok) {
         setHomeworkMessage({ type: "success", text: `Домашнее задание добавлено!${nextLesson ? ` Срок сдачи: ${formatDate(nextLesson.lessonDate)} (${nextLesson.subjectName})` : ""}` });
-        setHomeworkForm({ scheduleId: "", subjectId: "", description: "", date: new Date().toISOString().split("T")[0], dueDate: "", dueTime: "" });
+        setHomeworkForm({ scheduleId: "", subjectId: "", description: "", date: localDateStr(new Date()), dueDate: "", dueTime: "" });
         fetch(`/api/homework?groupId=${groupId}`).then(res => res.json()).then(data => { if (Array.isArray(data)) setHomeworkList(data); });
       } else {
         const error = await response.json();
@@ -621,6 +677,24 @@ export default function TeacherForms({
       }
     } catch { setHomeworkMessage({ type: "error", text: "Ошибка сети" }); }
     finally { setSavingHomework(false); }
+  };
+
+  const handleDeleteHomework = async (homeworkId: number) => {
+    if (!confirm("Вы уверены, что хотите удалить это домашнее задание?")) return;
+    try {
+      const response = await fetch("/api/homework", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: homeworkId }),
+      });
+      if (response.ok) {
+        setHomeworkMessage({ type: "success", text: "Домашнее задание удалено" });
+        fetch(`/api/homework?groupId=${groupId}`).then(res => res.json()).then(data => { if (Array.isArray(data)) setHomeworkList(data); });
+      } else {
+        const error = await response.json();
+        setHomeworkMessage({ type: "error", text: error.error || "Ошибка при удалении" });
+      }
+    } catch { setHomeworkMessage({ type: "error", text: "Ошибка сети" }); }
   };
 
   const handleGradeSubmit = async (e: React.FormEvent) => {
@@ -635,7 +709,7 @@ export default function TeacherForms({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ studentId: gradeForm.studentId, subjectId: parseInt(gradeForm.subjectId), teacherId, value: gradeForm.value, date, comment: gradeForm.comment || null }),
       });
-      if (response.ok) { setGradeMessage({ type: "success", text: "Оценка успешно выставлена!" }); setGradeForm({ studentId: "", scheduleId: "", subjectId: "", value: "", date: new Date().toISOString().split("T")[0], comment: "" }); }
+      if (response.ok) { setGradeMessage({ type: "success", text: "Оценка успешно выставлена!" }); setGradeForm({ studentId: "", scheduleId: "", subjectId: "", value: "", date: localDateStr(new Date()), comment: "" }); }
       else if (response.status === 409) { setGradeMessage({ type: "error", text: "Оценка уже существует на эту дату" }); }
       else { const error = await response.json(); setGradeMessage({ type: "error", text: error.error || "Ошибка при сохранении" }); }
     } catch { setGradeMessage({ type: "error", text: "Ошибка сети" }); }
@@ -791,7 +865,7 @@ export default function TeacherForms({
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {weekDates.map(({ dayOfWeek, date, dateStr }) => {
                   const dayLessons = scheduleByDayOfWeek[dayOfWeek] || [];
-                  const isToday = new Date().toISOString().split("T")[0] === dateStr;
+                  const isToday = localDateStr(new Date()) === dateStr;
                   const holidayName = getHolidayNameByDate(date);
                   const celebration = getHolidayByDate(date);
                   return (
@@ -837,51 +911,65 @@ export default function TeacherForms({
                       ) : (
                         <div className="space-y-1.5">
                           {dayLessons.map((lesson) => {
-                            const hw = getHomeworkForDate(dateStr, lesson.subjectId);
+                            // Для уроков с конкретной датой ищем ДЗ по lessonDate, иначе по текущей дате календаря
+                            const hwDateStr = lesson.lessonDate || dateStr;
+                            const hw = getHomeworkForDate(hwDateStr, lesson.subjectId);
                             const isTeacherLesson = subjects.length > 0 && teacherSubjectIds.has(lesson.subjectId);
                             const uniqueKey = `${lesson.dayOfWeek}-${lesson.subjectId}-${lesson.lessonNumber}`;
                             return (
                               <div key={uniqueKey} className={`group relative ${!isTeacherLesson ? "opacity-50" : ""}`}>
-                                <button
-                                  type="button"
-                                  onClick={() => isTeacherLesson && handleLessonClick(lesson, activeTab === "attendance" ? "homework" : activeTab)}
-                                  disabled={!isTeacherLesson}
-                                  className={`w-full flex items-center gap-2 p-2 rounded-lg text-left transition-all border ${
-                                    !isTeacherLesson
-                                      ? "bg-gray-100/50 border-gray-100 cursor-default"
-                                      : isToday
-                                        ? "bg-indigo-50/50 border-indigo-100 hover:bg-indigo-100 hover:border-indigo-300 cursor-pointer"
-                                        : "bg-gray-50/50 border-gray-100 hover:bg-indigo-50 hover:border-indigo-200 cursor-pointer"
-                                  }`}
-                                  title={isTeacherLesson ? "Нажмите, чтобы выбрать урок" : "Этот предмет не закреплён за вами"}
-                                >
-                                  <span className={`w-6 h-6 flex items-center justify-center rounded-full text-[11px] font-bold shrink-0 ${
-                                    !isTeacherLesson
-                                      ? "bg-gray-200 text-gray-400"
-                                      : isToday
-                                        ? "bg-indigo-200 text-indigo-800"
-                                        : "bg-gray-200 text-gray-700"
-                                  }`}>
-                                    {lesson.lessonNumber}
-                                  </span>
-                                  <div className="flex-1 min-w-0">
-                                    <span className={`text-xs font-bold block truncate ${
-                                      !isTeacherLesson ? "text-gray-500" : isToday ? "text-indigo-900" : "text-gray-800"
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => isTeacherLesson && handleLessonClick(lesson, activeTab === "attendance" ? "homework" : activeTab)}
+                                    disabled={!isTeacherLesson}
+                                    className={`flex-1 flex items-center gap-2 p-2 rounded-lg text-left transition-all border ${
+                                      !isTeacherLesson
+                                        ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 cursor-default opacity-60"
+                                        : isToday
+                                          ? "bg-indigo-200 dark:bg-indigo-900/40 border-indigo-400 dark:border-indigo-600 hover:bg-indigo-300 dark:hover:bg-indigo-800/50 hover:border-indigo-500 dark:hover:border-indigo-500 cursor-pointer shadow-sm"
+                                          : "bg-indigo-100 dark:bg-indigo-900/30 border-indigo-300 dark:border-indigo-600 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 hover:border-indigo-400 dark:hover:border-indigo-500 cursor-pointer"
+                                    }`}
+                                    title={isTeacherLesson ? "Нажмите, чтобы выбрать урок" : "Этот предмет не закреплён за вами"}
+                                  >
+                                    <span className={`w-6 h-6 flex items-center justify-center rounded-full text-[11px] font-bold shrink-0 ${
+                                      !isTeacherLesson
+                                        ? "bg-gray-400 dark:bg-gray-600 text-gray-700 dark:text-gray-400"
+                                        : isToday
+                                          ? "bg-indigo-500 dark:bg-indigo-700 text-white"
+                                          : "bg-indigo-400 dark:bg-indigo-700 text-white"
                                     }`}>
-                                      {lesson.subjectName}
+                                      {lesson.lessonNumber}
                                     </span>
-                                    {hw && isTeacherLesson && (
-                                      <span className="text-[10px] text-amber-600 font-medium block truncate" title={hw.description}>
-                                        📝 {hw.description}
+                                    <div className="flex-1 min-w-0">
+                                      <span className={`text-xs font-bold block truncate ${
+                                        !isTeacherLesson ? "text-gray-600 dark:text-gray-400" : "text-indigo-900 dark:text-indigo-200"
+                                      }`}>
+                                        {lesson.subjectName}
                                       </span>
+                                      {hw && isTeacherLesson && (
+                                        <span className="text-[10px] text-amber-600 font-medium block truncate" title={hw.description}>
+                                          📝 {hw.description}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {isTeacherLesson && (
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-gray-300 group-hover:text-indigo-400 shrink-0 transition-colors" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                      </svg>
                                     )}
-                                  </div>
-                                  {isTeacherLesson && (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-gray-300 group-hover:text-indigo-400 shrink-0 transition-colors" viewBox="0 0 20 20" fill="currentColor">
-                                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                    </svg>
+                                  </button>
+                                  {hw && isTeacherLesson && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteHomework(hw.id); }}
+                                      className="text-[12px] text-red-400 hover:text-red-600 shrink-0 leading-none p-1.5 border border-red-200 rounded hover:bg-red-50 z-10 relative"
+                                      title="Удалить ДЗ"
+                                    >
+                                      ✕
+                                    </button>
                                   )}
-                                </button>
+                                </div>
                               </div>
                             );
                           })}
@@ -987,7 +1075,17 @@ export default function TeacherForms({
                       <button
                         key={subject.id}
                         type="button"
-                        onClick={() => setHomeworkForm((prev) => ({ ...prev, subjectId: String(subject.id), scheduleId: "" }))}
+                        onClick={() => { 
+                          setHomeworkForm((prev) => ({ ...prev, subjectId: String(subject.id), scheduleId: "", date: localDateStr(new Date()), dueDate: "" })); 
+                          // Синхронизируем мини-календарь с выбранной четвертью
+                          const quarterStart = getQuarterStartDate(selectedQuarter);
+                          const day = quarterStart.getDay();
+                          const monday = new Date(quarterStart);
+                          monday.setDate(quarterStart.getDate() - ((day + 6) % 7));
+                          monday.setHours(0, 0, 0, 0);
+                          setDueDateWeek(monday);
+                          setTimeout(() => scheduleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200); 
+                        }}
                         className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${
                           homeworkForm.subjectId === String(subject.id)
                             ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200/50"
@@ -1002,11 +1100,11 @@ export default function TeacherForms({
               </div>
 
               {homeworkForm.subjectId && (
-                <div>
+                <div ref={hwFormRef}>
                   <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">
                     Дата урока <span className="text-red-400">*</span>
                   </label>
-                  <div className="bg-white rounded-xl border-2 border-amber-200 overflow-hidden">
+                  <div className="rounded-xl border-2 border-amber-200 overflow-hidden" style={{backgroundColor: '#ffffff'}}>
                     <div className="flex items-center justify-between px-3 py-2 bg-amber-50 border-b border-amber-200">
                       <button type="button" onClick={() => {
                         const d = new Date(dueDateWeek);
@@ -1062,7 +1160,7 @@ export default function TeacherForms({
                         for (let i = 1; i <= 6; i++) {
                           const d = new Date(dueDateWeek);
                           d.setDate(d.getDate() + (i - 1));
-                          dates.push({ dayOfWeek: i, date: d, dateStr: d.toISOString().split("T")[0] });
+                          dates.push({ dayOfWeek: i, date: d, dateStr: localDateStr(d) });
                         }
                         return dates.map(({ dayOfWeek, date, dateStr }) => {
                           const lessonForSubject = schedule.find(s => {
@@ -1071,36 +1169,55 @@ export default function TeacherForms({
                             if (s.dayOfWeek != null) return s.dayOfWeek === dayOfWeek;
                             return false;
                           });
+                          const existingHw = homeworkList.find(hw => hw.lessonDate === dateStr && hw.subjectId === parseInt(homeworkForm.subjectId));
                           const isSelected = homeworkForm.dueDate === dateStr;
                           const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
                           const hName = getHolidayNameByDate(date);
                           const cel = getHolidayByDate(date);
                           const isHoliday = hName !== null || cel !== null;
                           return (
-                            <button
+                            <span
                               key={dayOfWeek}
-                              type="button"
-                              disabled={isPast && !lessonForSubject}
-                              onClick={() => {
-                                if (lessonForSubject) {
-                          setHomeworkForm((prev) => ({ ...prev, dueDate: dateStr, dueTime: "" }));
-                                }
-                              }}
-                              title={isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : SHORT_DAYS[dayOfWeek])}
-                              className={`flex flex-col items-center p-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                                isSelected
-                                  ? "bg-amber-500 text-white border-amber-500 shadow-sm"
-                                  : isHoliday
-                                    ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                                    : lessonForSubject
-                                      ? "bg-white border-amber-300 text-amber-800 hover:bg-amber-100 hover:border-amber-400 cursor-pointer"
-                                      : "bg-gray-50 border-gray-100 text-gray-400 cursor-default"
-                              }`}
+                              className={`h-full w-full ${!lessonForSubject || isHoliday ? "cursor-not-allowed" : ""}`}
                             >
-                              <span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span>
-                              <span className={`text-[10px] ${isSelected ? "text-amber-100" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>
-                              {lessonForSubject && !isHoliday && <span className="text-[8px] text-amber-600 mt-0.5 leading-tight truncate max-w-full">{lessonForSubject.subjectName}</span>}
-                            </button>
+                              <button
+                                type="button"
+                                disabled={!lessonForSubject || isHoliday}
+                                onClick={() => {
+                                  if (lessonForSubject) {
+                             setHomeworkForm((prev) => ({ ...prev, date: dateStr, dueDate: dateStr, dueTime: "" }));
+                                  }
+                                }}
+                                title={isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}${existingHw ? " (есть ДЗ)" : ""}` : "Недоступно")}
+                                className={`w-full flex flex-col items-center rounded-lg text-xs font-semibold transition-all border ${
+                                  isSelected
+                                    ? "p-1 bg-amber-500 text-white border-amber-500 shadow-sm"
+                                    : isHoliday
+                                      ? "p-1 bg-gray-100 border-gray-200 text-gray-400"
+                                      : lessonForSubject
+                                        ? existingHw ? "p-1 bg-amber-100 border-amber-500 text-amber-800 hover:bg-amber-200 hover:border-amber-600 cursor-pointer" : "p-1 bg-white border-amber-300 text-amber-800 hover:bg-amber-100 hover:border-amber-400 cursor-pointer"
+                                        : "p-1.5 bg-gray-50 border-gray-100 text-gray-400"
+                                }`}
+                              >
+                                <span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span>
+                                <span className={`text-[10px] ${isSelected ? "text-amber-100" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>
+                                {lessonForSubject && !isHoliday && (
+                                  <span className={`text-[10px] mt-0.5 leading-tight truncate max-w-full ${isSelected ? 'text-amber-100' : 'text-amber-600'}`}>
+                                    {existingHw ? "📝 " + lessonForSubject.subjectName : lessonForSubject.subjectName}
+                                  </span>
+                                )}
+                              </button>
+                              {existingHw && lessonForSubject && !isHoliday && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteHomework(existingHw.id); }}
+                                  className="mt-1 w-full text-[10px] text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded py-0.5 transition-colors z-10 relative"
+                                  title="Удалить ДЗ"
+                                >
+                                  Удалить ДЗ
+                                </button>
+                              )}
+                            </span>
                           );
                         });
                       })()}
@@ -1173,7 +1290,16 @@ export default function TeacherForms({
                                 setCalendarError("На эту дату нет уроков выбранного предмета.");
                                 return;
                               }
-                              setHomeworkForm((prev) => ({ ...prev, dueDate: val, dueTime: "" }));
+                              setHomeworkForm((prev) => ({ ...prev, date: val, dueDate: val, dueTime: "" }));
+                              // Синхронизируем мини-календарь
+                              const selDate = new Date(val + "T00:00:00");
+                              const dow = selDate.getDay();
+                              const daysFromMonday = dow === 0 ? 6 : dow - 1;
+                              const mon = new Date(selDate);
+                              mon.setDate(selDate.getDate() - daysFromMonday);
+                              mon.setHours(0, 0, 0, 0);
+                              setDueDateWeek(mon);
+                              setSelectedQuarter(getQuarterNumberByDate(selDate));
                               setShowCalendarPopup(false);
                             }}
                             min="2025-09-01"
@@ -1188,7 +1314,7 @@ export default function TeacherForms({
               )}
 
               {!homeworkForm.scheduleId && homeworkForm.subjectId && schedule.length === 0 && (
-                <div>
+                <div ref={hwFormRef}>
                   <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">Дата урока <span className="text-red-400">*</span></label>
                   <input type="date" value={homeworkForm.date} onChange={(e) => setHomeworkForm((prev) => ({ ...prev, date: e.target.value }))} className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white text-gray-900 font-medium" />
                 </div>
@@ -1251,7 +1377,16 @@ export default function TeacherForms({
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {subjects.map((subject) => (
-                        <button key={subject.id} type="button" onClick={() => setGradeForm((prev) => ({ ...prev, subjectId: String(subject.id), scheduleId: "" }))} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${gradeForm.subjectId === String(subject.id) ? "bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-200/50" : "bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50"}`}>
+                        <button key={subject.id} type="button" onClick={() => { 
+                          setGradeForm((prev) => ({ ...prev, subjectId: String(subject.id), scheduleId: "", date: "" })); 
+                          const quarterStart = getQuarterStartDate(selectedQuarter);
+                          const day = quarterStart.getDay();
+                          const monday = new Date(quarterStart);
+                          monday.setDate(quarterStart.getDate() - ((day + 6) % 7));
+                          monday.setHours(0, 0, 0, 0);
+                          setDueDateWeek(monday);
+                          setTimeout(() => scheduleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200); 
+                        }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${gradeForm.subjectId === String(subject.id) ? "bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-200/50" : "bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50"}`}>
                           {subject.name}
                         </button>
                       ))}
@@ -1263,7 +1398,7 @@ export default function TeacherForms({
               {gradeForm.subjectId && schedule.length > 0 && (
                 <div>
                   <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">Дата урока <span className="text-red-400">*</span></label>
-                  <div className="bg-white rounded-xl border-2 border-purple-200 overflow-hidden">
+                  <div ref={gradeFormRef} className="rounded-xl border-2 border-purple-200 overflow-hidden" style={{backgroundColor: '#ffffff'}}>
                     <div className="flex items-center justify-between px-3 py-2 bg-purple-50 border-b border-purple-200">
                       <button type="button" onClick={() => { const d = new Date(dueDateWeek); d.setDate(d.getDate() - 7); if (isDateInAcademicYear(d)) { setDueDateWeek(d); setSelectedQuarter(getQuarterNumberByDate(d)); } }} className="w-7 h-7 rounded-full bg-white border border-purple-200 hover:bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm transition-colors">‹</button>
                       <div className="text-center">
@@ -1279,7 +1414,23 @@ export default function TeacherForms({
                         </select>
                       </div>
                       <div className="grid grid-cols-7 gap-1">
-                        {(() => { const dates: any[] = []; for (let i = 1; i <= 6; i++) { const d = new Date(dueDateWeek); d.setDate(d.getDate() + (i - 1)); dates.push({ dayOfWeek: i, date: d, dateStr: d.toISOString().split("T")[0] }); } return dates.map(({ dayOfWeek, date, dateStr }) => { const lessonForSubject = schedule.find(s => s.subjectId === parseInt(gradeForm.subjectId) && ((s.lessonDate && s.lessonDate === dateStr) || (s.dayOfWeek != null && s.dayOfWeek === dayOfWeek))); const isSelected = gradeForm.date === dateStr; const hName = getHolidayNameByDate(date); const cel = getHolidayByDate(date); const isHoliday = hName !== null || cel !== null; const isPast = date < new Date(new Date().setHours(0, 0, 0, 0)); return (<button key={dayOfWeek} type="button" disabled={isPast && !lessonForSubject} onClick={() => { if (lessonForSubject) setGradeForm((prev) => ({ ...prev, date: dateStr, scheduleId: String(lessonForSubject.id) })); }} title={isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : SHORT_DAYS[dayOfWeek])} className={`flex flex-col items-center p-1.5 rounded-lg text-xs font-semibold transition-all border ${isSelected ? "bg-purple-500 text-white border-purple-500 shadow-sm" : isHoliday ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed" : lessonForSubject ? "bg-white border-purple-300 text-purple-800 hover:bg-purple-100 hover:border-purple-400 cursor-pointer" : "bg-gray-50 border-gray-100 text-gray-400 cursor-default"}`}><span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span><span className={`text-[10px] ${isSelected ? "text-purple-100" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>{lessonForSubject && !isHoliday && <span className="text-[8px] text-purple-600 mt-0.5 leading-tight truncate max-w-full">{lessonForSubject.subjectName}</span>}</button>); }); })()}
+                        {(() => { const dates: any[] = []; for (let i = 1; i <= 6; i++) { const d = new Date(dueDateWeek); d.setDate(d.getDate() + (i - 1)); dates.push({ dayOfWeek: i, date: d, dateStr: localDateStr(d) }); } return dates.map(({ dayOfWeek, date, dateStr }) => { const lessonForSubject = schedule.find(s => s.subjectId === parseInt(gradeForm.subjectId) && ((s.lessonDate && s.lessonDate === dateStr) || (s.dayOfWeek != null && s.dayOfWeek === dayOfWeek))); const isSelected = gradeForm.date === dateStr; const hName = getHolidayNameByDate(date); const cel = getHolidayByDate(date); const isHoliday = hName !== null || cel !== null; const isPast = date < new Date(new Date().setHours(0, 0, 0, 0)); return (
+  <span key={dayOfWeek} className={`h-full w-full ${!lessonForSubject || isHoliday ? "cursor-not-allowed" : ""}`}>
+    <button
+      type="button"
+      disabled={!lessonForSubject || isHoliday}
+      onClick={() => { if (lessonForSubject) setGradeForm((prev) => ({ ...prev, date: dateStr, scheduleId: String(lessonForSubject.id) })); }}
+      title={isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : "Недоступно")}
+      className={`w-full flex flex-col items-center rounded-lg text-xs font-semibold transition-all border ${isSelected ? "p-1 bg-purple-500 text-white border-purple-500 shadow-sm" : isHoliday ? "p-1 bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed" : lessonForSubject ? "p-1 bg-white border-purple-300 text-purple-800 hover:bg-purple-100 hover:border-purple-400 cursor-pointer" : "p-1.5 bg-gray-50 border-gray-100 text-gray-400"}`}
+    >
+      <span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span>
+      <span className={`text-[10px] ${isSelected ? "text-purple-100" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>
+        {date.toLocaleDateString("ru-RU", { day: "numeric" })}
+      </span>
+      {lessonForSubject && !isHoliday && <span className={`text-[10px] mt-0.5 leading-tight truncate max-w-full ${isSelected ? 'text-purple-100' : 'text-purple-600'}`}>{lessonForSubject.subjectName}</span>}
+    </button>
+  </span>
+); }); })()}
                       </div>
                     </div>
                   </div>
@@ -1443,9 +1594,9 @@ export default function TeacherForms({
                             <button
                               key={lesson.id}
                               type="button"
-                              onClick={() => {
-                                setAttendanceForm(prev => ({ ...prev, subjectId: String(lesson.subjectId) }));
-                              }}
+                                onClick={() => {
+                                  setAttendanceForm((prev) => ({ ...prev, subjectId: String(lesson.subjectId) }));
+                                }}
                               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                                 attendanceForm.subjectId === String(lesson.subjectId)
                                   ? "bg-amber-500 text-white border-amber-500 shadow-sm"

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 import UnreadMessagesBadge from "./UnreadMessagesBadge";
 
-export default function Drawer({ isLoggedIn }: { isLoggedIn: boolean }) {
+export default function Drawer({ isLoggedIn, hasClass = true }: { isLoggedIn: boolean; hasClass?: boolean }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -118,7 +118,7 @@ export default function Drawer({ isLoggedIn }: { isLoggedIn: boolean }) {
               </a>
             </li>
             <li>
-              {isLoggedIn ? (
+              {isLoggedIn && hasClass ? (
                 <Link 
                   href="/messages" 
                   onClick={closeDrawer} 
@@ -133,13 +133,18 @@ export default function Drawer({ isLoggedIn }: { isLoggedIn: boolean }) {
                   Сообщения
                 </Link>
               ) : (
-                <div className="flex items-center gap-3 text-lg text-white/30 rounded-xl p-3 cursor-not-allowed">
+                <div className="flex items-center gap-3 text-lg text-white/30 rounded-xl p-3 cursor-not-allowed" title={isLoggedIn && !hasClass ? "Недоступно до назначения в класс" : undefined}>
                   <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                     </svg>
                   </div>
-                  <span className="relative">Сообщения<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></span>
+                  <span className="relative">
+                    Сообщения
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </span>
                 </div>
               )}
             </li>

@@ -152,6 +152,37 @@ export const finalGrades = sqliteTable("final_grades", {
 }));
 
 /* =====================================================
+   ATTENDANCE RECORDS (Посещаемость по дням)
+   Фиксация посещаемости каждого ученика на конкретную дату и урок
+   ===================================================== */
+
+export const attendanceRecords = sqliteTable("attendance_records", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+
+  studentId: text("student_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+
+  subjectId: integer("subject_id")
+    .notNull()
+    .references(() => subjects.id, { onDelete: "cascade" }),
+
+  date: text("date").notNull(), // YYYY-MM-DD
+
+  type: text("type").notNull(), // "absent" | "unexcused"
+
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+}, (table) => ({
+  uniqueAttendance: uniqueIndex("attendance_records_unique_idx").on(
+    table.studentId,
+    table.subjectId,
+    table.date
+  ),
+}));
+
+/* =====================================================
    ABSENCES (Пропуски)
    Учёт пропусков учебных занятий по месяцам
    ===================================================== */

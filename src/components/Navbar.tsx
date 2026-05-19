@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { db } from "@/db";
+import { user } from "@/db/schema/auth_schema";
+import { eq } from "drizzle-orm";
 import LogoutButton from "./LogoutButton";
 import AccountSwitcher from "./AccountSwitcher";
 import Avatar from "./Avatar";
@@ -17,6 +20,18 @@ export default async function Navbar() {
   });
 
   const role = session?.user.role;
+  
+  // Получаем groupId из БД для учеников
+  let userGroupId: number | null = null;
+  if (role === "student" && session?.user?.id) {
+    const userData = await db.query.user.findFirst({
+      where: eq(user.id, session.user.id),
+      columns: { groupId: true },
+    });
+    userGroupId = userData?.groupId || null;
+  }
+  
+  const hasClass = role !== "student" || !!userGroupId;
 
   const roleNames: Record<string, string> = {
     admin: "Админ",
@@ -32,7 +47,7 @@ export default async function Navbar() {
         <div className="flex justify-between items-center">
           {/* Меню + Логотип */}
           <div className="flex items-center">
-            <Drawer isLoggedIn={!!session} />
+            <Drawer isLoggedIn={!!session} hasClass={hasClass} />
             <Link href="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-all">
               <svg

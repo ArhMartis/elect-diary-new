@@ -5,21 +5,21 @@ import { eq, and, gte, lte } from "drizzle-orm";
 
 /**
  * API: GET /api/grades
- * 
+ *
  * Получение оценок ученика
- * 
+ *
  * Query параметры:
  * - studentId: string - ID ученика
  * - academicPeriodId?: number - ID четверти (опционально)
  * - startDate?: string - начало периода (YYYY-MM-DD)
  * - endDate?: string - конец периода (YYYY-MM-DD)
- * 
+ *
  * Таблицы:
- * - grades (id, studentId, subjectId, teacherId, value, date, comment, academicPeriodId)
+ * - grades (id, studentId, subjectId, teacherId, value, date, comment, academicPeriodId, createdAt)
  * - subjects (id, name)
  * - user (id, full_name)
  * - academicPeriods (id, name, startDate, endDate)
- * 
+ *
  * @returns Array<{
  *   id: number,
  *   studentId: string,
@@ -31,7 +31,8 @@ import { eq, and, gte, lte } from "drizzle-orm";
  *   date: string,
  *   comment: string | null,
  *   academicPeriodId: number | null,
- *   academicPeriodName: string | null
+ *   academicPeriodName: string | null,
+ *   createdAt: number | null
  * }>
  */
 export async function GET(request: NextRequest) {
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
         comment: grades.comment,
         academicPeriodId: grades.academicPeriodId,
         academicPeriodName: academicPeriods.name,
+        createdAt: grades.createdAt,
       })
       .from(grades)
       .leftJoin(subjects, eq(grades.subjectId, subjects.id))

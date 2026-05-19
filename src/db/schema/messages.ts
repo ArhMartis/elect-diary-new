@@ -13,7 +13,9 @@ export const messages = sqliteTable("messages", {
     .references(() => user.id, { onDelete: "cascade" }),
   groupId: integer("group_id"), // For class-wide messages
   isBroadcast: integer("is_broadcast", { mode: "boolean" }).default(false),
-  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
   readAt: text("read_at"),
   // File attachment fields
   fileUrl: text("file_url"),

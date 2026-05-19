@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface CallyCalendarProps {
   value?: string;
@@ -13,26 +13,31 @@ export function CallyCalendar({ value, onChange, min, max }: CallyCalendarProps)
   const containerRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLElement | null>(null);
   const onChangeRef = useRef(onChange);
-  const valueRef = useRef(value);
 
-  // Keep refs up to date without triggering re-renders
+  // Keep ref up to date
   useEffect(() => {
     onChangeRef.current = onChange;
-    valueRef.current = value;
-  });
+  }, [onChange]);
+
+  // Helper to normalize date
+  const normalizeDate = (dateStr: string): string => {
+    if (!dateStr) return '';
+    if (dateStr.includes('T')) {
+      return dateStr.split('T')[0];
+    }
+    return dateStr;
+  };
 
   useEffect(() => {
     let mounted = true;
 
     async function init() {
-      // Wait for cally to load
       await import('cally');
       if (!mounted) return;
 
       const container = containerRef.current;
       if (!container) return;
 
-      // Clear any existing content
       container.innerHTML = '';
 
       const calendarDate = document.createElement('calendar-date');
@@ -43,12 +48,8 @@ export function CallyCalendar({ value, onChange, min, max }: CallyCalendarProps)
       if (value) {
         (calendarDate as any).value = value;
       }
-      if (min) {
-        calendarDate.setAttribute('min', min);
-      }
-      if (max) {
-        calendarDate.setAttribute('max', max);
-      }
+      if (min) calendarDate.setAttribute('min', min);
+      if (max) calendarDate.setAttribute('max', max);
 
       const prevSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       prevSvg.setAttribute('aria-label', 'Previous');
@@ -74,32 +75,35 @@ export function CallyCalendar({ value, onChange, min, max }: CallyCalendarProps)
       calendarDate.appendChild(nextSvg);
       calendarDate.appendChild(calendarMonth);
 
-      // Stable handler that always calls the latest ref
+      // Handle change event
       const handleChange = (e: Event) => {
+        e.stopPropagation();
         const target = e.target as HTMLElement;
-        const newValue = (target as any).value || target.getAttribute('value') || '';
-        if (newValue && newValue !== valueRef.current) {
+        const rawValue = (target as any).value || '';
+        const newValue = normalizeDate(rawValue);
+        if (newValue) {
           onChangeRef.current?.(newValue);
         }
       };
 
-      // Fallback click handler for Shadow DOM events
+      // Also handle click on calendar cells
       const handleClick = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
-        if (target.closest('button') || target.closest('[role="gridcell"]') || target.closest('td')) {
-          // Give cally time to update its value
-          requestAnimationFrame(() => {
+        const button = target.closest('button[aria-pressed]') || target.closest('button');
+        if (button) {
+          setTimeout(() => {
             const calEl = container.querySelector('calendar-date');
-            const newValue = (calEl as any)?.value || calEl?.getAttribute('value') || '';
-            if (newValue && newValue !== valueRef.current) {
+            const rawValue = (calEl as any)?.value || '';
+            const newValue = normalizeDate(rawValue);
+            if (newValue) {
               onChangeRef.current?.(newValue);
             }
-          });
+          }, 50);
         }
       };
 
       calendarDate.addEventListener('change', handleChange);
-      container.addEventListener('click', handleClick);
+      calendarDate.addEventListener('click', handleClick);
       container.appendChild(calendarDate);
       calendarRef.current = calendarDate;
     }
@@ -114,35 +118,21 @@ export function CallyCalendar({ value, onChange, min, max }: CallyCalendarProps)
       }
       calendarRef.current = null;
     };
-  }, []); // Only run once on mount - we use refs for dynamic values
+  }, []); // Initialize once
 
-  // Update attributes when props change
+  // Update value when prop changes
   useEffect(() => {
     const cal = calendarRef.current;
     if (!cal) return;
     
     if (value !== undefined) {
-      (cal as any).value = value;
-    }
-    if (min !== undefined) {
-      if (min) {
-        cal.setAttribute('min', min);
-      } else {
-        cal.removeAttribute('min');
+      const normalizedValue = normalizeDate(value);
+      const currentValue = normalizeDate((cal as any).value || '');
+      if (normalizedValue !== currentValue) {
+        (cal as any).value = normalizedValue;
       }
     }
-    if (max !== undefined) {
-      if (max) {
-        cal.setAttribute('max', max);
-      } else {
-        cal.removeAttribute('max');
-      }
-    }
-  }, [value, min, max]);
+  }, [value]);
 
-  return (
-    <div 
-      ref={containerRef} 
-    />
-  );
+  return <div ref={containerRef} />;
 }

@@ -12,7 +12,7 @@ interface Message {
   receiverId: string | null;
   groupId: number | null;
   isBroadcast: boolean;
-  createdAt: string;
+  createdAt: string | number;
   readAt: string | null;
   fileUrl?: string | null;
   fileName?: string | null;
@@ -77,9 +77,35 @@ export default function MessagesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  // Проверка класса для учеников
+  const [hasCheckedClass, setHasCheckedClass] = useState(false);
+  const [userGroupId, setUserGroupId] = useState<number | null>(null);
 
   const userRole = session?.user?.role as string | undefined;
   const userId = session?.user?.id as string | undefined;
+
+  // Проверяем класс ученика
+  useEffect(() => {
+    if (!loadingSession && session?.user && userRole === "student") {
+      const groupIdFromSession = (session.user as any)?.groupId;
+      if (groupIdFromSession) {
+        setUserGroupId(groupIdFromSession);
+        setHasCheckedClass(true);
+      } else {
+        fetch("/api/student/me")
+          .then(res => res.json())
+          .then(data => {
+            setUserGroupId(data?.groupId || null);
+            setHasCheckedClass(true);
+          })
+          .catch(() => {
+            setHasCheckedClass(true);
+          });
+      }
+    } else if (!loadingSession) {
+      setHasCheckedClass(true);
+    }
+  }, [loadingSession, session, userRole]);
 
   const fetchMessages = useCallback(async () => {
     if (!userId) {
@@ -236,19 +262,52 @@ export default function MessagesPage() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return "";
-    // Handle literal "CURRENT_TIMESTAMP" (schema bug fallback)
-    if (dateStr === "CURRENT_TIMESTAMP") return "только что";
-    let normalized = dateStr.trim();
-    if (normalized.includes(" ") && !normalized.includes("T")) {
-      normalized = normalized.replace(" ", "T");
+  const formatDate = (dateValue: string | number | Date | null | undefined) => {
+    if (!dateValue) return "";
+    
+    let date: Date;
+    
+    // Handle timestamp in milliseconds (from database)
+    if (typeof dateValue === "number") {
+      date = new Date(dateValue);
     }
-    if (!normalized.includes("Z") && !normalized.includes("+")) {
-      normalized += "Z";
+    // Handle Date object
+    else if (dateValue instanceof Date) {
+      date = dateValue;
     }
-    const date = new Date(normalized);
-    if (isNaN(date.getTime())) return dateStr;
+    // Handle string
+    else {
+      const dateStr = String(dateValue).trim();
+      
+      // Handle literal "CURRENT_TIMESTAMP"
+      if (dateStr === "CURRENT_TIMESTAMP") {
+        date = new Date();
+      }
+      // Try to parse as number (timestamp)
+      else if (!isNaN(Number(dateStr))) {
+        date = new Date(Number(dateStr));
+      }
+      // Try to parse as ISO string
+      else {
+        date = new Date(dateStr);
+        
+        // If invalid, try SQLite format (2024-01-15 10:30:00)
+        if (isNaN(date.getTime()) && dateStr.includes(" ") && !dateStr.includes("T")) {
+          date = new Date(dateStr.replace(" ", "T") + "Z");
+        }
+        
+        // If still invalid, try with Z suffix
+        if (isNaN(date.getTime()) && !dateStr.includes("Z") && !dateStr.includes("+")) {
+          date = new Date(dateStr + "Z");
+        }
+      }
+    }
+    
+    // If still invalid, return original value
+    if (isNaN(date.getTime())) {
+      return String(dateValue);
+    }
+    
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
     
@@ -345,6 +404,41 @@ export default function MessagesPage() {
           <p className="text-2xl text-indigo-800 font-bold mb-4">Требуется авторизация</p>
           <Link href="/sign-in" className="px-8 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg inline-block">
             Войти
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Показываем загрузку пока проверяем класс
+  if (!loadingSession && hasCheckedClass === false && userRole === "student") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-indigo-700 font-bold text-lg">Проверка доступа...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Блокируем доступ только если точно знаем, что ученик без класса
+  if (!loadingSession && hasCheckedClass && userRole === "student" && !userGroupId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-3xl shadow-2xl border-2 border-amber-300">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <p className="text-2xl text-amber-800 font-bold mb-2">Доступ ограничен</p>
+          <p className="text-gray-600 mb-6">Сообщения недоступны до назначения в класс. Обратитесь к администратору.</p>
+          <Link 
+            href="/"
+            className="px-8 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg inline-block"
+          >
+            На главную
           </Link>
         </div>
       </div>

@@ -12,16 +12,21 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [form, setForm] = useState({ name: "", fullName: "", email: "", password: "", confirmPassword: "" });
+
+  const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const passwordError = form.password.length > 0 && form.password.length < 6 ? "Пароль должен содержать минимум 6 символов" : null;
+  const emailError = form.email.length > 0 && (!form.email.includes('@') || !form.email.includes('.') || form.email.indexOf('@') === 0 || form.email.lastIndexOf('.') < form.email.indexOf('@') + 2) ? "Введите корректный email (пример: user@domain.com)" : null;
+  const confirmError = form.confirmPassword.length > 0 && form.password !== form.confirmPassword ? "Пароли не совпадают" : null;
+
+  const canSubmit = form.name.trim() && form.fullName.trim() && form.email.trim() && !emailError && form.password.length >= 6 && form.password === form.confirmPassword;
 
   function handleSubmit(e: any) {
     e.preventDefault();
     setError(null);
 
-    const formData = new FormData(e.currentTarget);
-    const password = formData.get("password") as string;
-    const confirmPassword = formData.get("confirmPassword") as string;
-
-    if (password !== confirmPassword) {
+    if (form.password !== form.confirmPassword) {
       setError("Пароли не совпадают");
       return;
     }
@@ -29,21 +34,45 @@ export default function SignUpPage() {
     startTransition(async () => {
       try {
         const formDataObj = {
-          email: formData.get("email") as string,
-          password,
-          name: formData.get("name") as string,
-          fullName: formData.get("fullName") as string,
+          email: form.email,
+          password: form.password,
+          name: form.name,
+          fullName: form.fullName,
         };
 
         // @ts-ignore - fullName is defined in additionalFields config
         const result = await authClient.signUp.email(formDataObj);
 
-        // Сохраняем аккаунт для быстрого переключения
+        if ((result as any)?.error) {
+          const msg = (result as any).error.message || "";
+          // Переводим известные ошибки better-auth
+          const errorTranslations: Record<string, string> = {
+            "Password is too short": "Пароль слишком короткий. Минимум 6 символов.",
+            "Password is too long": "Пароль слишком длинный. Максимум 128 символов.",
+            "Invalid email": "Некорректный email адрес.",
+            "Email is required": "Email обязателен.",
+            "Password is required": "Пароль обязателен.",
+            "User already exists": "Пользователь с таким email уже существует.",
+          };
+          
+          // Ищем перевод ошибки
+          let translatedError = msg;
+          for (const [en, ru] of Object.entries(errorTranslations)) {
+            if (msg.includes(en)) {
+              translatedError = ru;
+              break;
+            }
+          }
+          
+          setError(translatedError || "Ошибка регистрации. Попробуйте другой email.");
+          return;
+        }
+
         const userData = (result as any)?.data?.user;
         saveAccount({
-          email: formDataObj.email,
-          password: formDataObj.password,
-          fullName: userData?.fullName || formDataObj.fullName,
+          email: form.email,
+          password: form.password,
+          fullName: userData?.fullName || form.fullName,
           role: userData?.role || "student",
         });
 
@@ -56,48 +85,30 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
-      {/* Фоновые декоративные элементы */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="relative w-full max-w-md">
-        {/* Логотип */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-3 mb-4 group">
             <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-all">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-8 w-8 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
             </div>
-            <h1 className="text-3xl font-bold text-white">
-              Knowledge<span className="opacity-80">BY</span>
-            </h1>
+            <h1 className="text-3xl font-bold text-white">Knowledge<span className="opacity-80">BY</span></h1>
           </Link>
           <p className="text-white/80 text-lg">Создайте аккаунт</p>
         </div>
 
-        {/* Форма */}
         <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-            Регистрация
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Регистрация</h2>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center gap-3">
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm flex items-center gap-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -106,9 +117,7 @@ export default function SignUpPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Имя
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Имя <span className="text-red-500">*</span></label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,17 +128,16 @@ export default function SignUpPage() {
                   name="name"
                   type="text"
                   placeholder="Иван Иванов"
+                  value={form.name}
+                  onChange={e => update("name", e.target.value)}
                   className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
                   disabled={pending}
-                  required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                ФИО
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">ФИО <span className="text-red-500">*</span></label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -140,17 +148,16 @@ export default function SignUpPage() {
                   name="fullName"
                   type="text"
                   placeholder="Иванов Иван Иванович"
+                  value={form.fullName}
+                  onChange={e => update("fullName", e.target.value)}
                   className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
                   disabled={pending}
-                  required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Email <span className="text-red-500">*</span></label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -161,17 +168,17 @@ export default function SignUpPage() {
                   name="email"
                   type="email"
                   placeholder="your@email.com"
-                  className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  value={form.email}
+                  onChange={e => update("email", e.target.value)}
+                  className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${emailError ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-100'}`}
                   disabled={pending}
-                  required
                 />
               </div>
+              {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Пароль
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Пароль <span className="text-red-500">*</span></label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -182,10 +189,10 @@ export default function SignUpPage() {
                   name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-12 py-3 border-2 border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  value={form.password}
+                  onChange={e => update("password", e.target.value)}
+                  className={`w-full pl-11 pr-12 py-3 border-2 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${passwordError ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-100'}`}
                   disabled={pending}
-                  required
-                  minLength={6}
                 />
                 <button
                   type="button"
@@ -204,13 +211,12 @@ export default function SignUpPage() {
                   )}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Минимум 6 символов</p>
+              {passwordError && <p className="text-xs text-red-500 mt-1">{passwordError}</p>}
+              {!passwordError && form.password.length > 0 && <p className="text-xs text-green-500 mt-1">✓ Пароль подходит</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Подтверждение пароля
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Подтверждение пароля <span className="text-red-500">*</span></label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -221,10 +227,10 @@ export default function SignUpPage() {
                   name="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-12 py-3 border-2 border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  value={form.confirmPassword}
+                  onChange={e => update("confirmPassword", e.target.value)}
+                  className={`w-full pl-11 pr-12 py-3 border-2 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${confirmError ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-100'}`}
                   disabled={pending}
-                  required
-                  minLength={6}
                 />
                 <button
                   type="button"
@@ -243,12 +249,16 @@ export default function SignUpPage() {
                   )}
                 </button>
               </div>
+              {confirmError && <p className="text-xs text-red-500 mt-1">{confirmError}</p>}
+              {!confirmError && form.confirmPassword.length > 0 && <p className="text-xs text-green-500 mt-1">✓ Пароли совпадают</p>}
             </div>
+
+            <p className="text-xs text-gray-500 text-center -mt-2">Поля со <span className="text-red-500">*</span> обязательны для заполнения</p>
 
             <button
               type="submit"
-              disabled={pending}
-              className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={!canSubmit || pending}
+              className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {pending ? (
                 <>
