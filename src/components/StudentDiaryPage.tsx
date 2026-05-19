@@ -2638,7 +2638,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                                     {isSpecialLesson && <span className="mr-0.5">🏆</span>}
                                     {lesson.subject}
                                   </span>
-                                  {(() => { const hwItem = homework.find(h => h.subjectName?.trim().toLowerCase() === lesson.subject.trim().toLowerCase() && h.lessonDate === ds); if (!hwItem) return null; return (<span className="text-[10px] text-amber-600 truncate block" title={hwItem.description}>📝 {hwItem.description}</span>); })()}
+                                  {(() => { const hwItem = homework.find(h => h.subjectName?.trim().toLowerCase() === lesson.subject.trim().toLowerCase() && h.lessonDate === ds); if (!hwItem) return null; return (<span className="text-[11px] text-amber-700 dark:text-amber-400 truncate block font-semibold" title={hwItem.description}>📝 {hwItem.description}</span>); })()}
                                   {(() => {
                                     const attSubjId = schedule.find(s => s.subjectName?.trim().toLowerCase() === lesson.subject.trim().toLowerCase())?.subjectId;
                                     if (!attSubjId) return null;
@@ -3216,12 +3216,6 @@ const holidayName = getHolidayNameByDate(dayDate);
                             {hasS && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-blue-100 text-blue-700 font-bold" title="Самостоятельная">С</span>}
                             {hasK && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-purple-100 text-purple-700 font-bold" title="Ключевое событие">★</span>}
                             {hasGr && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-emerald-100 text-emerald-700 font-bold" title="Оценка">📊</span>}
-                            {hasLess && !hasC && !hasS && !hasK && !hasGr && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-gray-100 text-gray-500" title="Уроки">📖</span>}
-                            {info.celebration?.name && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-amber-100 text-amber-700 font-bold" title={info.celebration.name}>🎉</span>}
-                            {info.hasAbsence && <span className={`inline-block text-[11px] px-1.5 py-0.5 leading-none rounded font-extrabold border-2 ${info.absenceTypes.includes('unexcused') ? 'bg-red-100 text-red-700 border-red-400' : 'bg-orange-100 text-orange-700 border-orange-400'}`} title={info.absenceTypes.includes('unexcused') ? 'Неуважительная причина' : 'Пропуск'}>Н</span>}
-                            {info.hasEventLesson && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-emerald-100 text-emerald-700 font-bold" title="Мероприятие / Классный час">🎯</span>}
-                            {info.hasSpecialLesson && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-blue-100 text-blue-700 font-bold" title="Специализированный предмет">🏆</span>}
-                            {info.hasHomework && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-amber-100 text-amber-700 font-bold" title="Домашнее задание">📝</span>}
                           </div>
                           {hasGr && (
                             <div className="flex flex-wrap gap-0.5 mt-0.5">
