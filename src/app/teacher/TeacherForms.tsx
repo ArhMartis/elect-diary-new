@@ -1200,16 +1200,16 @@ export default function TeacherForms({
                                   isSelected
                                     ? "p-1 bg-amber-500 text-white border-amber-500 shadow-sm"
                                     : isHoliday
-                                      ? "p-1 bg-gray-100 border-gray-200 text-gray-400"
+                                      ? "p-1 bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400"
                                       : lessonForSubject
-                                        ? existingHw ? "p-1 bg-amber-100 border-amber-500 text-amber-800 hover:bg-amber-200 hover:border-amber-600 cursor-pointer" : "p-1 bg-white border-amber-300 text-amber-800 hover:bg-amber-100 hover:border-amber-400 cursor-pointer"
-                                        : "p-1.5 bg-gray-50 border-gray-100 text-gray-400"
+                                        ? existingHw ? "p-1 bg-amber-100 border-amber-500 text-amber-800 hover:bg-amber-200 hover:border-amber-600 cursor-pointer" : "p-1 bg-amber-50 border-amber-400 text-amber-800 hover:bg-amber-100 hover:border-amber-500 cursor-pointer"
+                                        : "p-1.5 bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-400 dark:text-gray-500"
                                 }`}
                               >
                                 <span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span>
                                 <span className={`text-[10px] ${isSelected ? "text-amber-100" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>
                                 {lessonForSubject && !isHoliday && (
-                                  <span className={`text-[10px] mt-0.5 leading-tight truncate max-w-full ${isSelected ? 'text-amber-100' : 'text-amber-600'}`}>
+                                  <span className={`text-[11px] mt-0.5 leading-tight truncate max-w-full font-bold ${isSelected ? 'text-amber-100' : 'text-amber-700 dark:text-amber-400'}`}>
                                     {existingHw ? "📝 " + lessonForSubject.subjectName : lessonForSubject.subjectName}
                                   </span>
                                 )}
