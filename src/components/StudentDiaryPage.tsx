@@ -3140,7 +3140,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                     <button onClick={() => { const newIdx = Math.max(0, viewMonthIdx - 1); setViewMonthIdx(newIdx); setSelectedQuarter(getQuarterForMonth(newIdx)); }} className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-lg font-bold transition-colors">‹</button>
                     <div className="text-center">
                       <h2 className="text-2xl font-bold">{monthNames[viewMonthIdx]} {year}</h2>
-                      <div className="flex gap-1.5 justify-center mt-1">
+                      <div className="flex gap-1.5 justify-center mt-1 items-center">
                         {['1', '2', '3', '4'].map(q => (
                           <button
                             key={q}
@@ -3155,16 +3155,16 @@ const holidayName = getHolidayNameByDate(dayDate);
                             {q === '1' ? 'I' : q === '2' ? 'II' : q === '3' ? 'III' : 'IV'} чет.
                           </button>
                         ))}
+                        <button onClick={() => { 
+                          const now = new Date();
+                          const m = now.getMonth();
+                          const map: Record<number, number> = { 8:0, 9:1, 10:2, 11:3, 0:4, 1:5, 2:6, 3:7, 4:8 };
+                          const idx = map[m] ?? 0;
+                          setViewMonthIdx(idx);
+                          setSelectedQuarter(getQuarterForMonth(idx));
+                        }} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-sm font-bold transition-colors ml-1" title="Сегодня">📅</button>
                       </div>
                     </div>
-                    <button onClick={() => { 
-                      const now = new Date();
-                      const m = now.getMonth();
-                      const map: Record<number, number> = { 8:0, 9:1, 10:2, 11:3, 0:4, 1:5, 2:6, 3:7, 4:8 };
-                      const idx = map[m] ?? 0;
-                      setViewMonthIdx(idx);
-                      setSelectedQuarter(getQuarterForMonth(idx));
-                    }} className="mx-1 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-sm font-bold transition-colors" title="Сегодня">📅</button>
                     <button onClick={() => { const newIdx = Math.min(8, viewMonthIdx + 1); setViewMonthIdx(newIdx); setSelectedQuarter(getQuarterForMonth(newIdx)); }} className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-lg font-bold transition-colors">›</button>
                   </div>
                 </div>
@@ -3193,7 +3193,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                       <div key={d} className="bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-center py-2 text-xs font-bold">{d}</div>
                     ))}
                     {Array.from({ length: offset }).map((_, i) => (
-                      <div key={`empty-${i}`} className="bg-gray-50 p-2 min-h-[70px]" />
+                      <div key={`empty-${i}`} className="bg-gray-50 p-2 min-h-[80px]" />
                     ))}
                     {dates.map(({ date, day, isWeekend }) => {
                       const info = getDayInfo(date);
@@ -3207,7 +3207,7 @@ const holidayName = getHolidayNameByDate(dayDate);
 
                       if (isH || isWeekend) {
                         return (
-                          <div key={day} className={`p-1.5 min-h-[70px] ${isWeekend ? 'bg-gray-100' : 'bg-sky-50'} ${todayHl ? 'ring-2 ring-indigo-400' : ''}`}>
+                          <div key={day} className={`p-1.5 min-h-[80px] ${isWeekend ? 'bg-gray-100' : 'bg-sky-50'} ${todayHl ? 'ring-2 ring-indigo-400' : ''}`}>
                             <div className={`text-xs font-bold ${isWeekend ? 'text-gray-400' : 'text-sky-700'}`}>{day}</div>
                             {isH && <div className="text-[9px] text-sky-600 leading-tight mt-0.5 line-clamp-2">{info.holidayName}</div>}
                           </div>
@@ -3217,23 +3217,23 @@ const holidayName = getHolidayNameByDate(dayDate);
                       const absenceColor = info.hasAbsence ? (info.absenceTypes.includes('unexcused') ? 'bg-red-50 ring-1 ring-red-300' : 'bg-orange-50 ring-1 ring-orange-300') : '';
 
                       return (
-                        <div key={day} className={`p-1.5 min-h-[70px] ${todayHl ? 'bg-amber-50 ring-2 ring-amber-400' : 'bg-white hover:bg-indigo-50'} ${absenceColor} transition-colors cursor-default`}>
+                        <div key={day} className={`p-1.5 min-h-[80px] ${todayHl ? 'bg-amber-50 ring-2 ring-amber-400' : 'bg-white hover:bg-indigo-50'} ${absenceColor} transition-colors cursor-default`}>
                           <div className={`text-xs font-bold ${todayHl ? 'text-amber-700' : 'text-gray-700'}`}>{day}</div>
                           <div className="flex flex-wrap gap-0.5 mt-1">
-                            {hasC && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-red-100 text-red-700 font-bold" title="Контрольная">К</span>}
-                            {hasS && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-blue-100 text-blue-700 font-bold" title="Самостоятельная">С</span>}
-                            {hasK && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-purple-100 text-purple-700 font-bold" title="Ключевое событие">★</span>}
+                            {hasC && <span className="inline-block text-[12px] px-1 py-0 leading-tight rounded bg-red-100 text-red-700 font-bold" title="Контрольная">К</span>}
+                            {hasS && <span className="inline-block text-[12px] px-1 py-0 leading-tight rounded bg-blue-100 text-blue-700 font-bold" title="Самостоятельная">С</span>}
+                            {hasK && <span className="inline-block text-[12px] px-1 py-0 leading-tight rounded bg-purple-100 text-purple-700 font-bold" title="Ключевое событие">★</span>}
                             {hasGr && info.dayGrades.map((g, gi) => {
                               const val = Number(g.value);
                               const color = isNaN(val) ? '#9ca3af' : val >= 9 ? '#34d399' : val >= 7 ? '#60a5fa' : val >= 5 ? '#facc15' : val >= 4 ? '#fb923c' : '#f87171';
-                              return <span key={gi} className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-extrabold text-white shrink-0" style={{backgroundColor: color}} title={`${g.subjectName}: ${g.value}`}>{g.value}</span>;
+                              return <span key={gi} className="inline-flex items-center justify-center w-6 h-6 rounded text-[12px] font-extrabold text-white shrink-0" style={{backgroundColor: color}} title={`${g.subjectName}: ${g.value}`}>{g.value}</span>;
                             })}
-                            {info.celebration?.name && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-amber-100 text-amber-700 font-bold" title={info.celebration.name}>🎉</span>}
-                            {info.hasAbsence && <span className={`inline-block text-[10px] px-1 py-0 leading-tight rounded font-bold ${info.absenceTypes.includes('unexcused') ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`} title={info.absenceTypes.includes('unexcused') ? 'Неуважительная причина' : 'Пропуск'}>Н</span>}
-                            {info.hasEventLesson && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-emerald-100 text-emerald-700 font-bold" title="Мероприятие / Классный час">🎯</span>}
-                            {info.hasSpecialLesson && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-blue-100 text-blue-700 font-bold" title="Специализированный предмет">🏆</span>}
-                            {info.hasHomework && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-amber-100 text-amber-700 font-bold" title="Домашнее задание">📝</span>}
-                            {hasLess && !hasC && !hasS && !hasK && !hasGr && !info.hasAbsence && !info.hasEventLesson && !info.hasSpecialLesson && !info.hasHomework && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-gray-100 text-gray-500" title="Уроки">📖</span>}
+                            {info.celebration?.name && <span className="inline-block text-[12px] px-1 py-0 leading-tight rounded bg-amber-100 text-amber-700 font-bold" title={info.celebration.name}>🎉</span>}
+                            {info.hasAbsence && <span className={`inline-block text-[12px] px-1 py-0 leading-tight rounded font-bold ${info.absenceTypes.includes('unexcused') ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`} title={info.absenceTypes.includes('unexcused') ? 'Неуважительная причина' : 'Пропуск'}>Н</span>}
+                            {info.hasEventLesson && <span className="inline-block text-[12px] px-1 py-0 leading-tight rounded bg-emerald-100 text-emerald-700 font-bold" title="Мероприятие / Классный час">🎯</span>}
+                            {info.hasSpecialLesson && <span className="inline-block text-[12px] px-1 py-0 leading-tight rounded bg-blue-100 text-blue-700 font-bold" title="Специализированный предмет">🏆</span>}
+                            {info.hasHomework && <span className="inline-block text-[12px] px-1 py-0 leading-tight rounded bg-amber-100 text-amber-700 font-bold" title="Домашнее задание">📝</span>}
+                            {hasLess && !hasC && !hasS && !hasK && !hasGr && !info.hasAbsence && !info.hasEventLesson && !info.hasSpecialLesson && !info.hasHomework && <span className="inline-block text-[12px] px-1 py-0 leading-tight rounded bg-gray-100 text-gray-500" title="Уроки">📖</span>}
                           </div>
                         </div>
                       );
