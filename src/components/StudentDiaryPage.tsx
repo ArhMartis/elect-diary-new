@@ -3157,6 +3157,14 @@ const holidayName = getHolidayNameByDate(dayDate);
                         ))}
                       </div>
                     </div>
+                    <button onClick={() => { 
+                      const now = new Date();
+                      const m = now.getMonth();
+                      const map: Record<number, number> = { 8:0, 9:1, 10:2, 11:3, 0:4, 1:5, 2:6, 3:7, 4:8 };
+                      const idx = map[m] ?? 0;
+                      setViewMonthIdx(idx);
+                      setSelectedQuarter(getQuarterForMonth(idx));
+                    }} className="mx-1 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-sm font-bold transition-colors" title="Сегодня">📅</button>
                     <button onClick={() => { const newIdx = Math.min(8, viewMonthIdx + 1); setViewMonthIdx(newIdx); setSelectedQuarter(getQuarterForMonth(newIdx)); }} className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-lg font-bold transition-colors">›</button>
                   </div>
                 </div>
@@ -3215,17 +3223,18 @@ const holidayName = getHolidayNameByDate(dayDate);
                             {hasC && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-red-100 text-red-700 font-bold" title="Контрольная">К</span>}
                             {hasS && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-blue-100 text-blue-700 font-bold" title="Самостоятельная">С</span>}
                             {hasK && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-purple-100 text-purple-700 font-bold" title="Ключевое событие">★</span>}
-                            {hasGr && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-emerald-100 text-emerald-700 font-bold" title="Оценка">📊</span>}
-                            {hasLess && !hasC && !hasS && !hasK && !hasGr && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-gray-100 text-gray-500" title="Уроки">📖</span>}
+                            {hasGr && info.dayGrades.map((g, gi) => {
+                              const val = Number(g.value);
+                              const color = isNaN(val) ? '#9ca3af' : val >= 9 ? '#34d399' : val >= 7 ? '#60a5fa' : val >= 5 ? '#facc15' : val >= 4 ? '#fb923c' : '#f87171';
+                              return <span key={gi} className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-extrabold text-white shrink-0" style={{backgroundColor: color}} title={`${g.subjectName}: ${g.value}`}>{g.value}</span>;
+                            })}
+                            {info.celebration?.name && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-amber-100 text-amber-700 font-bold" title={info.celebration.name}>🎉</span>}
+                            {info.hasAbsence && <span className={`inline-block text-[10px] px-1 py-0 leading-tight rounded font-bold ${info.absenceTypes.includes('unexcused') ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`} title={info.absenceTypes.includes('unexcused') ? 'Неуважительная причина' : 'Пропуск'}>Н</span>}
+                            {info.hasEventLesson && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-emerald-100 text-emerald-700 font-bold" title="Мероприятие / Классный час">🎯</span>}
+                            {info.hasSpecialLesson && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-blue-100 text-blue-700 font-bold" title="Специализированный предмет">🏆</span>}
+                            {info.hasHomework && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-amber-100 text-amber-700 font-bold" title="Домашнее задание">📝</span>}
+                            {hasLess && !hasC && !hasS && !hasK && !hasGr && !info.hasAbsence && !info.hasEventLesson && !info.hasSpecialLesson && !info.hasHomework && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-gray-100 text-gray-500" title="Уроки">📖</span>}
                           </div>
-                          {hasGr && (
-                            <div className="flex flex-wrap gap-0.5 mt-0.5">
-                              {info.dayGrades.slice(0, 3).map((g, gi) => (
-                                <span key={gi} className="text-[10px] font-bold text-emerald-700">{g.value}</span>
-                              ))}
-                              {info.dayGrades.length > 3 && <span className="text-[10px] text-gray-400">+{info.dayGrades.length - 3}</span>}
-                            </div>
-                          )}
                         </div>
                       );
                     })}
