@@ -3071,7 +3071,8 @@ const holidayName = getHolidayNameByDate(dayDate);
               const month = monthNumbers[monthIdx];
               const daysInMonth = new Date(year, month + 1, 0).getDate();
               const firstDay = new Date(year, month, 1).getDay();
-              const offset = firstDay === 0 ? 5 : firstDay - 1;
+              // Пн=1, Вт=2, ..., Сб=6, Вс=0 → пропускаем воскресенье (6 пустых ячеек)
+              const offset = firstDay === 0 ? 6 : firstDay - 1;
               const dates: { date: Date; day: number; dayOfWeek: number; isWeekend: boolean }[] = [];
               for (let d = 1; d <= daysInMonth; d++) {
                 const dt = new Date(year, month, d);
@@ -3098,7 +3099,8 @@ const holidayName = getHolidayNameByDate(dayDate);
               const absenceTypes = [...new Set(dayAttendance.map(r => r.type))];
               const hasEventLesson = dayLessons.some(l => eventSubjectNames.includes(l.subject));
               const hasSpecialLesson = dayLessons.some(l => specialSubjectNames.includes(l.subject));
-              return { dayLessons, dayGrades, marksForDay, holidayName, celebration, hasAbsence, absenceTypes, hasEventLesson, hasSpecialLesson };
+              const hasHomework = homework.some(h => h.lessonDate === dateStr && h.description?.trim());
+              return { dayLessons, dayGrades, marksForDay, holidayName, celebration, hasAbsence, absenceTypes, hasEventLesson, hasSpecialLesson, hasHomework };
             };
 
             const formatMonthIdx = (quarter: string): number[] => {
@@ -3213,6 +3215,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                             {info.hasAbsence && <span className={`inline-block text-[11px] px-1.5 py-0.5 leading-none rounded font-extrabold border-2 ${info.absenceTypes.includes('unexcused') ? 'bg-red-100 text-red-700 border-red-400' : 'bg-orange-100 text-orange-700 border-orange-400'}`} title={info.absenceTypes.includes('unexcused') ? 'Неуважительная причина' : 'Пропуск'}>Н</span>}
                             {info.hasEventLesson && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-emerald-100 text-emerald-700 font-bold" title="Мероприятие / Классный час">🎯</span>}
                             {info.hasSpecialLesson && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-blue-100 text-blue-700 font-bold" title="Специализированный предмет">🏆</span>}
+                            {info.hasHomework && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-amber-100 text-amber-700 font-bold" title="Домашнее задание">📝</span>}
                           </div>
                           {hasGr && (
                             <div className="flex flex-wrap gap-0.5 mt-0.5">
@@ -3244,6 +3247,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                   <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100 border border-red-300 inline-block"></span><span className="text-gray-600 font-medium">Неуваж.</span></div>
                   <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-300 inline-block"></span><span className="text-gray-600 font-medium">Мероприятие</span></div>
                   <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-100 border border-blue-300 inline-block"></span><span className="text-gray-600 font-medium">Спец. предмет</span></div>
+                  <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-100 border border-amber-300 inline-block"></span><span className="text-gray-600 font-medium">ДЗ</span></div>
                 </div>
 
                 <div className="bg-gradient-to-r from-indigo-50 to-violet-50 rounded-xl border border-indigo-200 p-4">
@@ -3255,7 +3259,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                     {dates.filter(({ date, isWeekend }) => {
                       if (isWeekend) return false;
                       const info = getDayInfo(date);
-                      return info.holidayName !== null || info.celebration?.name || info.marksForDay.length > 0 || info.dayGrades.length > 0 || info.hasAbsence || info.hasEventLesson || info.hasSpecialLesson;
+                      return info.holidayName !== null || info.celebration?.name || info.marksForDay.length > 0 || info.dayGrades.length > 0 || info.hasAbsence || info.hasEventLesson || info.hasSpecialLesson || info.hasHomework;
                     }).map(({ date, day }) => {
                       const info = getDayInfo(date);
                       const isH = info.holidayName !== null;
@@ -3294,6 +3298,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                               )}
                               {info.hasEventLesson && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold">🎯 Мероприятие</span>}
                               {info.hasSpecialLesson && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold">🏆 Спец. предмет</span>}
+                              {info.hasHomework && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold">📝 ДЗ</span>}
                             </div>
                           </div>
                         </div>
@@ -3302,7 +3307,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                     {dates.filter(({ date, isWeekend }) => {
                       if (isWeekend) return false;
                       const info = getDayInfo(date);
-                      return info.holidayName !== null || info.celebration?.name || info.marksForDay.length > 0 || info.dayGrades.length > 0 || info.hasAbsence || info.hasEventLesson || info.hasSpecialLesson;
+                      return info.holidayName !== null || info.celebration?.name || info.marksForDay.length > 0 || info.dayGrades.length > 0 || info.hasAbsence || info.hasEventLesson || info.hasSpecialLesson || info.hasHomework;
                     }).length === 0 && (
                       <div className="text-center text-sm text-gray-400 py-4">Нет данных за этот месяц</div>
                     )}
