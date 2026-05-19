@@ -3216,6 +3216,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                             {hasS && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-blue-100 text-blue-700 font-bold" title="Самостоятельная">С</span>}
                             {hasK && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-purple-100 text-purple-700 font-bold" title="Ключевое событие">★</span>}
                             {hasGr && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-emerald-100 text-emerald-700 font-bold" title="Оценка">📊</span>}
+                            {hasLess && !hasC && !hasS && !hasK && !hasGr && <span className="inline-block text-[10px] px-1 py-0 leading-tight rounded bg-gray-100 text-gray-500" title="Уроки">📖</span>}
                           </div>
                           {hasGr && (
                             <div className="flex flex-wrap gap-0.5 mt-0.5">
@@ -3223,12 +3224,6 @@ const holidayName = getHolidayNameByDate(dayDate);
                                 <span key={gi} className="text-[10px] font-bold text-emerald-700">{g.value}</span>
                               ))}
                               {info.dayGrades.length > 3 && <span className="text-[10px] text-gray-400">+{info.dayGrades.length - 3}</span>}
-                            </div>
-                          )}
-                          {info.dayLessons.length > 0 && (
-                            <div className="text-[9px] text-gray-500 mt-0.5 line-clamp-1">
-                              {info.dayLessons.slice(0, 2).map(l => l.subject).join(', ')}
-                              {info.dayLessons.length > 2 && ` +${info.dayLessons.length - 2}`}
                             </div>
                           )}
                         </div>
