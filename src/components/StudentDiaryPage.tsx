@@ -3077,7 +3077,8 @@ const holidayName = getHolidayNameByDate(dayDate);
               for (let d = 1; d <= daysInMonth; d++) {
                 const dt = new Date(year, month, d);
                 const dow = dt.getDay();
-                dates.push({ date: dt, day: d, dayOfWeek: dow, isWeekend: dow === 0 || dow === 6 });
+                if (dow === 0) continue; // Пропускаем воскресенья
+                dates.push({ date: dt, day: d, dayOfWeek: dow, isWeekend: dow === 6 });
               }
               return { dates, offset, year };
             };
@@ -3100,7 +3101,12 @@ const holidayName = getHolidayNameByDate(dayDate);
               const hasEventLesson = dayLessons.some(l => eventSubjectNames.includes(l.subject));
               const hasSpecialLesson = dayLessons.some(l => specialSubjectNames.includes(l.subject));
               const hasHomework = homework.some(h => h.lessonDate === dateStr && h.description?.trim());
-              return { dayLessons, dayGrades, marksForDay, holidayName, celebration, hasAbsence, absenceTypes, hasEventLesson, hasSpecialLesson, hasHomework };
+              const dayHomework = homework.filter(h => h.lessonDate === dateStr && h.description?.trim());
+              const dayEventSubjects = dayLessons.filter(l => eventSubjectNames.includes(l.subject));
+              const daySpecialSubjects = dayLessons.filter(l => specialSubjectNames.includes(l.subject));
+              const dayEvents = dayEventSubjects.map(l => l.subject);
+              const daySpecials = daySpecialSubjects.map(l => l.subject);
+              return { dayLessons, dayGrades, marksForDay, holidayName, celebration, hasAbsence, absenceTypes, hasEventLesson, hasSpecialLesson, hasHomework, dayHomework, dayEvents, daySpecials };
             };
 
             const formatMonthIdx = (quarter: string): number[] => {
@@ -3256,8 +3262,7 @@ const holidayName = getHolidayNameByDate(dayDate);
                     Сведения за {monthNames[viewMonthIdx]}
                   </h3>
                   <div className="space-y-2">
-                    {dates.filter(({ date, isWeekend }) => {
-                      if (isWeekend) return false;
+                    {dates.filter(({ date }) => {
                       const info = getDayInfo(date);
                       return info.holidayName !== null || info.celebration?.name || info.marksForDay.length > 0 || info.dayGrades.length > 0 || info.hasAbsence || info.hasEventLesson || info.hasSpecialLesson || info.hasHomework;
                     }).map(({ date, day }) => {
@@ -3283,8 +3288,20 @@ const holidayName = getHolidayNameByDate(dayDate);
                                 </span>
                               ))}
                               {info.dayGrades.length > 0 && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold">
-                                  📊 {info.dayGrades.map(g => `${g.subjectName || '?'}: ${g.value}`).join(', ')}
+                                <span className="relative inline-flex group/gs">
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold cursor-default">
+                                    📊 {info.dayGrades.map(g => `${g.subjectName || '?'}: ${g.value}`).join(', ')}
+                                  </span>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-[11px] rounded-xl whitespace-nowrap opacity-0 group-hover/gs:opacity-100 transition-opacity pointer-events-none z-[9999] shadow-xl leading-relaxed min-w-[140px]">
+                                    {info.dayGrades.map((g, gi) => (
+                                      <div key={gi} className="mb-1 last:mb-0">
+                                        <div className="font-bold">{g.subjectName}: {g.value} — {g.date}</div>
+                                        {g.createdAt && <div className="text-gray-400">🕐 {new Date(g.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>}
+                                        {g.comment && <div className="text-gray-300">💬 «{g.comment}»</div>}
+                                        <div className="text-gray-400">👤 {g.teacherName || 'Неизвестно'}</div>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </span>
                               )}
                               {info.hasAbsence && (
@@ -3296,16 +3313,30 @@ const holidayName = getHolidayNameByDate(dayDate);
                                   {info.absenceTypes.includes('unexcused') ? '🚫 Неуваж.' : '⚠️ Пропуск'}
                                 </span>
                               )}
-                              {info.hasEventLesson && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold">🎯 Мероприятие</span>}
-                              {info.hasSpecialLesson && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold">🏆 Спец. предмет</span>}
-                              {info.hasHomework && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold">📝 ДЗ</span>}
+                              {info.hasEventLesson && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold" title={info.dayEvents.join(', ')}>🎯 {info.dayEvents.join(', ')}</span>}
+                              {info.hasSpecialLesson && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold" title={info.daySpecials.join(', ')}>🏆 {info.daySpecials.join(', ')}</span>}
+                              {info.hasHomework && (
+                                <span className="relative inline-flex group/ghw">
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold cursor-default">📝 ДЗ</span>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-[11px] rounded-xl whitespace-nowrap opacity-0 group-hover/ghw:opacity-100 transition-opacity pointer-events-none z-[9999] shadow-xl leading-relaxed min-w-[140px]">
+                                    {info.dayHomework.map((hw, hi) => {
+                                      const lessonNum = info.dayLessons.find(l => l.subject.trim().toLowerCase() === (hw.subjectName || '').trim().toLowerCase())?.lessonNumber;
+                                      return (
+                                        <div key={hi} className="mb-1 last:mb-0">
+                                          <div className="font-bold">{hw.subjectName}{lessonNum ? ` (${lessonNum} урок)` : ''}</div>
+                                          <div className="text-gray-300 text-[10px]">{hw.description}</div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
                       );
                     })}
-                    {dates.filter(({ date, isWeekend }) => {
-                      if (isWeekend) return false;
+                    {dates.filter(({ date }) => {
                       const info = getDayInfo(date);
                       return info.holidayName !== null || info.celebration?.name || info.marksForDay.length > 0 || info.dayGrades.length > 0 || info.hasAbsence || info.hasEventLesson || info.hasSpecialLesson || info.hasHomework;
                     }).length === 0 && (
