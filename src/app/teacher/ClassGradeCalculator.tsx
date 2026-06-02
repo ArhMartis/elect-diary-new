@@ -148,11 +148,15 @@ export default function ClassGradeCalculator({ students, subjects, groupId }: Gr
                 {subjectAverages.map((s, i) => (
                   <tr key={s.subjectName} className={i % 2 === 0 ? "bg-white" : "bg-indigo-50"}>
                     <td className="px-3 py-2 font-semibold text-gray-800 text-left">{s.subjectName}</td>
-                    <td className="px-2 py-2 text-center font-bold text-blue-700">{s.q1}<span className="text-[9px] text-gray-400 font-normal ml-0.5">({s.count1})</span></td>
-                    <td className="px-2 py-2 text-center font-bold text-purple-700">{s.q2}<span className="text-[9px] text-gray-400 font-normal ml-0.5">({s.count2})</span></td>
-                    <td className="px-2 py-2 text-center font-bold text-emerald-700">{s.q3}<span className="text-[9px] text-gray-400 font-normal ml-0.5">({s.count3})</span></td>
-                    <td className="px-2 py-2 text-center font-bold text-amber-700">{s.q4}<span className="text-[9px] text-gray-400 font-normal ml-0.5">({s.count4})</span></td>
-                    <td className="px-2 py-2 text-center font-bold text-rose-700 bg-rose-50/50">{s.current}<span className="text-[9px] text-gray-400 font-normal ml-0.5">({s.countCurrent})</span></td>
+                    <td className="px-2 py-2 text-center font-bold text-blue-700">{s.q1}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count1})</span></td>
+                    <td className="px-2 py-2 text-center font-bold text-purple-700">{s.q2}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count2})</span></td>
+                    <td className="px-2 py-2 text-center font-bold text-emerald-700">{s.q3}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count3})</span></td>
+                    <td className="px-2 py-2 text-center font-bold text-amber-700">{s.q4}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count4})</span></td>
+                    <td className="px-2 py-2 text-center font-bold text-rose-700 bg-rose-50/50">{s.current}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.countCurrent})</span></td>
+                    <td className="px-2 py-2 text-center font-bold text-purple-700">{s.q2}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count2})</span></td>
+                    <td className="px-2 py-2 text-center font-bold text-emerald-700">{s.q3}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count3})</span></td>
+                    <td className="px-2 py-2 text-center font-bold text-amber-700">{s.q4}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count4})</span></td>
+                    <td className="px-2 py-2 text-center font-bold text-rose-700 bg-rose-50/50">{s.current}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.countCurrent})</span></td>
                   </tr>
                 ))}
               </tbody>
