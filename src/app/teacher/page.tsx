@@ -3,11 +3,12 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { user, groups, teacherSubjects, teacherClasses, groupSubjects } from "@/db/schema/auth_schema";
+import { user, groups, teacherSubjects, teacherClasses, groupSubjects, subjects } from "@/db/schema/auth_schema";
 import { eq, inArray } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import TeacherForms from "./TeacherForms";
+import ClassGradeCalculator from "./ClassGradeCalculator";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
 
@@ -90,6 +91,9 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
 
   const canSwitchClass = allAssignedGroups.length > 1;
   const displayGroup = activeGroup || teacherGroup;
+
+  // Получаем все предметы для маппинга
+  const allSubjects = await db.select({ id: subjects.id, name: subjects.name }).from(subjects);
 
   return (
     <div className={`${inter.variable} font-sans min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6`}>
@@ -214,6 +218,14 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
             students={students.map(s => ({ id: s.id, fullName: s.fullName }))}
             taughtGroups={taughtGroups}
             isHomeroomTeacher={true}
+          />
+        )        }
+
+        {/* Средний балл класса (только для классного руководителя) */}
+        {displayGroup && displayGroup.id === teacherGroup?.id && teacherGroup?.teacherId === session.user.id && students.length > 0 && (
+          <ClassGradeCalculator 
+            students={students.map(s => ({ id: s.id, fullName: s.fullName }))} 
+            subjects={allSubjects}
           />
         )}
 
