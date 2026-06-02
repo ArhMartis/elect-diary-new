@@ -26,6 +26,7 @@ export default function ClassGradeCalculator({ students, subjects, groupId }: Gr
   const [grades, setGrades] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
   const [schedule, setSchedule] = useState<any[]>([]);
+  const [selectedQ, setSelectedQ] = useState("all");
 
   useEffect(() => {
     if (students.length === 0 || !groupId) { setLoading(false); return; }
@@ -66,7 +67,12 @@ export default function ClassGradeCalculator({ students, subjects, groupId }: Gr
         studentGrades.forEach((g: any) => {
           const val = Number(g.value);
           if (isNaN(val) || g.subjectId !== subj.id) return;
-          currentAll.push(val);
+          if (selectedQ === "all") {
+            currentAll.push(val);
+          } else if (g.date) {
+            const q = getQuarterByDate(g.date);
+            if (q === selectedQ) currentAll.push(val);
+          }
           if (g.date) {
             const q = getQuarterByDate(g.date);
             if (qGrades[q]) qGrades[q].push(val);
@@ -89,7 +95,7 @@ export default function ClassGradeCalculator({ students, subjects, groupId }: Gr
         countCurrent: currentAll.length,
       };
     });
-  }, [activeSubjects, students, grades]);
+  }, [activeSubjects, students, grades, selectedQ]);
 
   const classTotals = useMemo(() => {
     const qs = ['q1', 'q2', 'q3', 'q4', 'current'] as const;
@@ -117,6 +123,23 @@ export default function ClassGradeCalculator({ students, subjects, groupId }: Gr
         <div className="text-center py-8 text-gray-400 font-medium">Загрузка оценок...</div>
       ) : (
         <>
+          {/* Quarter selector */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-bold text-indigo-700">Показывать текущий балл:</span>
+            <select
+              value={selectedQ}
+              onChange={e => setSelectedQ(e.target.value)}
+              className="px-3 py-1.5 rounded-lg bg-white border-2 border-indigo-200 text-indigo-700 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+            >
+              <option value="all">За все время</option>
+              <option value="1">I четверть</option>
+              <option value="2">II четверть</option>
+              <option value="3">III четверть</option>
+              <option value="4">IV четверть</option>
+            </select>
+          </div>
+
+          {/* Class averages */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
             {[
               { label: "I четверть", key: "q1", color: "from-blue-500 to-indigo-500" },
@@ -149,10 +172,6 @@ export default function ClassGradeCalculator({ students, subjects, groupId }: Gr
                   <tr key={s.subjectName} className={i % 2 === 0 ? "bg-white" : "bg-indigo-50"}>
                     <td className="px-3 py-2 font-semibold text-gray-800 text-left">{s.subjectName}</td>
                     <td className="px-2 py-2 text-center font-bold text-blue-700">{s.q1}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count1})</span></td>
-                    <td className="px-2 py-2 text-center font-bold text-purple-700">{s.q2}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count2})</span></td>
-                    <td className="px-2 py-2 text-center font-bold text-emerald-700">{s.q3}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count3})</span></td>
-                    <td className="px-2 py-2 text-center font-bold text-amber-700">{s.q4}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count4})</span></td>
-                    <td className="px-2 py-2 text-center font-bold text-rose-700 bg-rose-50/50">{s.current}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.countCurrent})</span></td>
                     <td className="px-2 py-2 text-center font-bold text-purple-700">{s.q2}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count2})</span></td>
                     <td className="px-2 py-2 text-center font-bold text-emerald-700">{s.q3}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count3})</span></td>
                     <td className="px-2 py-2 text-center font-bold text-amber-700">{s.q4}<span className="text-[11px] text-gray-500 font-semibold ml-1">({s.count4})</span></td>
