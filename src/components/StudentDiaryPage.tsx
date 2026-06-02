@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } fr
 import Image from "next/image";
 import { saveDiarySettings } from "@/app/student/actions";
 import { CallyCalendar } from "./CallyCalendar";
+import GradeGoalCalculator from "./GradeGoalCalculator";
 
 // ============================================================================
 // ТИПЫ ДАННЫХ
@@ -3070,6 +3071,15 @@ const holidayName = getHolidayNameByDate(dayDate);
             </div>
           );
         })()}
+
+        {/* Калькулятор оценок */}
+        {activeSection === "allgrades" && (
+          <GradeGoalCalculator
+            grades={grades}
+            subjects={data.subjects}
+            studentName={studentFullName}
+          />
+        )}
 
         {/* Предметы */}
         {activeSection === "subjects" && (() => {
