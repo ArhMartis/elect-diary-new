@@ -750,6 +750,14 @@ export default function TeacherForms({
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+      <style>{`
+        .no-theme-bg { background-color: #ffffff !important; }
+        .no-theme-header { background-color: #fffbeb !important; }
+        .dark .no-theme-bg { background-color: #1f2937 !important; }
+        .dark .no-theme-header { background-color: #374151 !important; }
+        .no-theme-empty { background-color: rgba(249, 250, 251, 0.5) !important; border-color: #e5e7eb !important; }
+        .dark .no-theme-empty { background-color: #374151 !important; border-color: #4b5563 !important; }
+      `}</style>
       {showScheduleModal && currentModalSubjectId && (
         <SchedulePickerModal
           subjectId={currentModalSubjectId}
@@ -1111,8 +1119,8 @@ export default function TeacherForms({
 
               {homeworkForm.subjectId && (
                   <div ref={hwFormRef}>
-                  <div className="rounded-xl border-2 border-amber-200 dark:border-amber-700 overflow-hidden bg-white dark:bg-gray-800">
-                    <div className="flex items-center justify-between px-3 py-2 bg-amber-50 dark:bg-gray-700 border-b border-amber-200 dark:border-amber-700">
+                  <div className="rounded-xl border-2 border-amber-300 dark:border-amber-700 overflow-hidden no-theme-bg">
+                    <div className="flex items-center justify-between px-3 py-2 border-b no-theme-header" style={{borderColor: '#fcd34d'}}>
                       <button type="button" onClick={() => {
                         const d = new Date(dueDateWeek);
                         d.setDate(d.getDate() - 7);
@@ -1120,7 +1128,7 @@ export default function TeacherForms({
                           setDueDateWeek(d);
                           setSelectedQuarter(getQuarterNumberByDate(d));
                         }
-                      }} className="w-7 h-7 rounded-full bg-white border border-amber-200 hover:bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm transition-colors">‹</button>
+                       }} className="w-7 h-7 rounded-full bg-[#ffffff] border border-amber-300 hover:bg-[#fef3c7] flex items-center justify-center text-amber-700 font-bold text-sm transition-colors">‹</button>
                       <div className="text-center">
                         <span className="text-xs font-bold text-amber-800 block">
                           {dueDateWeek.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} — {" "}
@@ -1137,7 +1145,7 @@ export default function TeacherForms({
                           setDueDateWeek(d);
                           setSelectedQuarter(getQuarterNumberByDate(d));
                         }
-                      }} className="w-7 h-7 rounded-full bg-white border border-amber-200 hover:bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm transition-colors">›</button>
+                       }} className="w-7 h-7 rounded-full bg-[#ffffff] border border-amber-300 hover:bg-[#fef3c7] flex items-center justify-center text-amber-700 font-bold text-sm transition-colors">›</button>
                     </div>
                     <div className="p-2">
                       <div className="flex justify-center mb-2">
@@ -1153,7 +1161,7 @@ export default function TeacherForms({
                             monday.setHours(0, 0, 0, 0);
                             setDueDateWeek(monday);
                           }}
-                          className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-xs font-semibold border border-amber-300 focus:outline-none"
+                          className="px-2 py-1 rounded-lg bg-[#fffbeb] text-amber-800 text-xs font-semibold border border-amber-300 focus:outline-none"
                         >
                           <option value="1" className="text-gray-900">I четверть</option>
                           <option value="2" className="text-gray-900">II четверть</option>
@@ -1200,10 +1208,10 @@ export default function TeacherForms({
                                   isSelected
                                     ? "p-1 bg-amber-500 text-white border-amber-500 shadow-sm"
                                     : isHoliday
-                                      ? "p-1 bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400"
+                                      ? "p-1 bg-[#f3f4f6] dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400"
                                       : lessonForSubject
-                                        ? existingHw ? "p-1 bg-amber-100 border-amber-500 text-amber-800 hover:bg-amber-200 hover:border-amber-600 cursor-pointer" : "p-1 bg-amber-50 border-amber-400 text-amber-800 hover:bg-amber-100 hover:border-amber-500 cursor-pointer"
-                                        : "p-1.5 bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-400 dark:text-gray-500"
+                                        ? existingHw ? "p-1 bg-[#fef3c7] border-amber-500 text-amber-800 hover:bg-[#fde68a] hover:border-amber-600 cursor-pointer" : "p-1 bg-[#fffbeb] border-amber-400 text-amber-800 hover:bg-[#fef3c7] hover:border-amber-500 cursor-pointer"
+                                         : "p-1.5 no-theme-empty text-gray-400 dark:text-gray-500"
                                 }`}
                               >
                                 <span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span>

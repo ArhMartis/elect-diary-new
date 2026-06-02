@@ -952,6 +952,18 @@ export default function StudentDiaryPage({
     { number: "7", start: "13:40", end: "14:25", break: "10" },
     { number: "8", start: "14:35", end: "15:20", break: "" },
   ]);
+
+  // Загрузка расписания звонков с сервера
+  useEffect(() => {
+    fetch("/api/bell-schedule")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setBellSchedule(data.map((s: any) => ({ number: s.number, start: s.start, end: s.end, break: s.break || "" })));
+        }
+      })
+      .catch(() => {});
+  }, []);
   
   const updateBellSchedule = (index: number, field: string, value: string) => {
     if (!canEditContacts()) return;
@@ -959,6 +971,27 @@ export default function StudentDiaryPage({
     newSchedule[index] = { ...newSchedule[index], [field]: value };
     setBellSchedule(newSchedule);
   };
+
+  // Сохранение расписания звонков на сервер
+  const saveBellSchedule = useCallback(async (schedule: typeof bellSchedule) => {
+    try {
+      await fetch("/api/bell-schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schedule }),
+      });
+    } catch {}
+  }, []);
+
+  // Автосохранение при изменении
+  const bellScheduleRef = useRef(bellSchedule);
+  bellScheduleRef.current = bellSchedule;
+  useEffect(() => {
+    if (bellSchedule.length > 0) {
+      const timer = setTimeout(() => saveBellSchedule(bellScheduleRef.current), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [bellSchedule, saveBellSchedule]);
   
   // Пользовательские праздники
   type HolidayCategory = 'state' | 'memorial' | 'professional';
@@ -1807,6 +1840,7 @@ export default function StudentDiaryPage({
       ? [{ id: "summary", label: "📋 Сведения" }]
       : []),
     { id: "title", label: "📝 Титульный" },
+    { id: "awards", label: "🏆 Награды" },
     { id: "comments", label: "⚠️ Замечания" },
     { id: "contacts", label: "📞 Контакты" },
     { id: "subjects", label: "📚 Предметы" },
@@ -2232,6 +2266,16 @@ export default function StudentDiaryPage({
               </table>
             </div>
           </div>
+        )}
+
+        {/* Награды */}
+        {activeSection === "awards" && (
+          <AwardsSection
+            studentId={studentId}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+            userRole={effectiveUserRole}
+          />
         )}
 
         {/* Замечания */}
@@ -4454,6 +4498,172 @@ const holidayName = getHolidayNameByDate(dayDate);
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function AwardsSection({ studentId, currentUserId, currentUserName, userRole }: {
+  studentId: string;
+  currentUserId?: string;
+  currentUserName?: string;
+  userRole?: string;
+}) {
+  const [records, setRecords] = useState<{id: number; content: string; teacherId: string | null; createdAt: number | null}[]>([]);
+  const [newContent, setNewContent] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | number | null>(null);
+  const canEdit = userRole === "admin" || userRole === "principal" || userRole === "teacher";
+  const isAdmin = userRole === "admin";
+
+  useEffect(() => {
+    if (studentId) {
+      fetch(`/api/teacher-recommendations?studentId=${studentId}`)
+        .then(res => res.json())
+        .then(data => { if (Array.isArray(data)) setRecords(data); })
+        .catch(() => {});
+    }
+  }, [studentId]);
+
+  const handleAdd = async () => {
+    if (!newContent.trim()) return;
+    setAdding(true);
+    try {
+      const res = await fetch("/api/teacher-recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, content: newContent.trim() }),
+      });
+      if (res.ok) {
+        const added = await res.json();
+        setRecords(prev => [added, ...prev]);
+        setNewContent("");
+      }
+    } catch {}
+    setAdding(false);
+  };
+
+  const handleDelete = async (id: number) => {
+    await fetch("/api/teacher-recommendations", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    setRecords(prev => prev.filter(r => r.id !== id));
+    setShowDeleteConfirm(null);
+  };
+
+  const handleClearAll = async () => {
+    await fetch("/api/teacher-recommendations", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentId }),
+    });
+    setRecords([]);
+    setShowDeleteConfirm(null);
+  };
+
+  return (
+    <div className="min-h-[600px] p-8 md:p-12 bg-gradient-to-b from-violet-50/50 to-white dark:from-violet-900/20 dark:to-gray-900">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <div className="text-4xl mb-2">🏆</div>
+          <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-purple-600 dark:from-violet-400 dark:to-purple-400">
+            Рекомендации, благодарности и награды
+          </h2>
+          <p className="text-sm text-violet-600 dark:text-violet-400 mt-2">
+            Заполняется классным руководителем
+          </p>
+        </div>
+
+        {canEdit && (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 border border-violet-200 dark:border-violet-800 mb-6">
+            <div className="flex gap-3">
+              <textarea
+                value={newContent}
+                onChange={e => setNewContent(e.target.value)}
+                placeholder="Введите текст рекомендации, благодарности или награды..."
+                className="flex-1 border-2 border-violet-200 dark:border-violet-700 rounded-xl px-4 py-3 text-sm focus:border-violet-500 focus:outline-none resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-between mt-3">
+              <button
+                onClick={handleAdd}
+                disabled={adding || !newContent.trim()}
+                className="px-6 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold rounded-xl hover:from-violet-600 hover:to-purple-700 transition-all disabled:opacity-40 text-sm"
+              >
+                {adding ? "Сохранение..." : "➕ Добавить"}
+              </button>
+              {isAdmin && records.length > 0 && (
+                <button
+                  onClick={() => setShowDeleteConfirm("all")}
+                  className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-xl font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-all text-sm border border-red-200 dark:border-red-800"
+                >
+                  🗑 Очистить все
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {records.length === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-violet-100 dark:border-violet-900 p-10 text-center">
+            <div className="text-5xl mb-4">🏆</div>
+            <p className="text-violet-600 dark:text-violet-400 text-lg font-semibold">Нет наград</p>
+            <p className="text-violet-400 dark:text-violet-500 text-sm mt-1">У ученика пока нет рекомендаций и благодарностей</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {records.map(r => (
+              <div key={r.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-violet-100 dark:border-violet-900 p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">{r.content}</p>
+                    {r.createdAt && (
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">
+                        🕐 {new Date(r.createdAt).toLocaleDateString("ru-RU", { day: "2-digit", month: "long", year: "numeric" })}
+                      </p>
+                    )}
+                  </div>
+                  {canEdit && (
+                    <button
+                      onClick={() => setShowDeleteConfirm(r.id)}
+                      className="text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 transition-colors shrink-0"
+                      title="Удалить"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.707.293l-2 2A1 1 0 005 5h10a1 1 0 00-.293-.707l-2-2A1 1 0 0012 2H9zM3 7a1 1 0 011-1h12a1 1 0 01 1 1v1H3V7zm1 3h12l-1 9a2 2 0 01-2 2H6a2 2 0 01-2-2l-1-9z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {showDeleteConfirm !== null && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowDeleteConfirm(null)}>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
+                {showDeleteConfirm === "all" ? "Удалить все награды?" : "Удалить запись?"}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">Это действие нельзя отменить.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowDeleteConfirm(null)} className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
+                  Отмена
+                </button>
+                <button
+                  onClick={() => showDeleteConfirm === "all" ? handleClearAll() : handleDelete(showDeleteConfirm as number)}
+                  className="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-all"
+                >
+                  Удалить
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
