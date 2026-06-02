@@ -219,6 +219,7 @@ export default function TeacherForms({
     dueDate: "",
     dueTime: "",
   });
+  const [editHomeworkId, setEditHomeworkId] = useState<number | null>(null);
   const [savingHomework, setSavingHomework] = useState(false);
   const [homeworkMessage, setHomeworkMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const MAX_HOMEWORK_LENGTH = 50;
@@ -663,13 +664,23 @@ export default function TeacherForms({
     setSavingHomework(true);
     setHomeworkMessage(null);
     try {
-      const response = await fetch("/api/homework", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherId, groupId, subjectId, lessonDate: selectedSchedule?.lessonDate || homeworkForm.date || null, description: homeworkForm.description, dueDate: nextLesson?.lessonDate || null }),
-      });
+      let response;
+      if (editHomeworkId) {
+        response = await fetch(`/api/homework`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editHomeworkId, description: homeworkForm.description }),
+        });
+      } else {
+        response = await fetch("/api/homework", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ teacherId, groupId, subjectId, lessonDate: selectedSchedule?.lessonDate || homeworkForm.date || null, description: homeworkForm.description, dueDate: nextLesson?.lessonDate || null }),
+        });
+      }
       if (response.ok) {
-        setHomeworkMessage({ type: "success", text: `Домашнее задание добавлено!${nextLesson ? ` Срок сдачи: ${formatDate(nextLesson.lessonDate)} (${nextLesson.subjectName})` : ""}` });
+        setHomeworkMessage({ type: "success", text: editHomeworkId ? "Домашнее задание изменено!" : `Домашнее задание добавлено!${nextLesson ? ` Срок сдачи: ${formatDate(nextLesson.lessonDate)} (${nextLesson.subjectName})` : ""}` });
+        setEditHomeworkId(null);
         setHomeworkForm({ scheduleId: "", subjectId: "", description: "", date: localDateStr(new Date()), dueDate: "", dueTime: "" });
         fetch(`/api/homework?groupId=${groupId}`).then(res => res.json()).then(data => { if (Array.isArray(data)) setHomeworkList(data); });
       } else {
@@ -1218,7 +1229,13 @@ export default function TeacherForms({
                                 disabled={!lessonForSubject || isHoliday}
                                 onClick={() => {
                                   if (lessonForSubject) {
-                             setHomeworkForm((prev) => ({ ...prev, date: dateStr, dueDate: dateStr, dueTime: "" }));
+                                    if (existingHw) {
+                                      setEditHomeworkId(existingHw.id);
+                                      setHomeworkForm((prev) => ({ ...prev, scheduleId: String(lessonForSubject.id), subjectId: String(lessonForSubject.subjectId), date: dateStr, dueDate: dateStr, dueTime: "", description: existingHw.description }));
+                                    } else {
+                                      setEditHomeworkId(null);
+                              setHomeworkForm((prev) => ({ ...prev, date: dateStr, dueDate: dateStr, dueTime: "" }));
+                                    }
                                   }
                                 }}
                                 title={isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}${existingHw ? " (есть ДЗ)" : ""}` : "Недоступно")}
@@ -1271,7 +1288,7 @@ export default function TeacherForms({
                         <span className="ml-2 text-xs text-amber-700 font-medium">
                           ✓ {new Date(homeworkForm.dueDate + "T00:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
                         </span>
-                        <button type="button" onClick={() => setHomeworkForm((prev) => ({ ...prev, date: "", dueDate: "", dueTime: "" }))} className="ml-1 px-2 py-1 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
+                        <button type="button" onClick={() => { setHomeworkForm((prev) => ({ ...prev, date: "", dueDate: "", dueTime: "" })); setEditHomeworkId(null); }} className="ml-1 px-2 py-1 text-xs text-red-500 hover:text-red-700 font-medium underline">Сбросить</button>
                       </>
                     )}
                   </div>
@@ -1373,7 +1390,7 @@ export default function TeacherForms({
                 {savingHomework ? (
                   <span className="flex items-center justify-center gap-2"><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Сохранение...</span>
                 ) : (
-                  <span className="flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>Добавить домашнее задание</span>
+                  <span className="flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>{editHomeworkId ? "Изменить" : "Добавить"} домашнее задание</span>
                 )}
               </button>
             </form>
