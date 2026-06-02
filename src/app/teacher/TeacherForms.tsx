@@ -930,7 +930,14 @@ export default function TeacherForms({
                           : "bg-white border-gray-100 hover:border-indigo-200"
                       } ${selectingDueDate ? "cursor-pointer" : ""}`}>
                       <div className={`flex items-center justify-between mb-2 ${isToday ? "bg-indigo-50 -mx-3 -mt-3 px-3 py-1.5 rounded-t-xl border-b border-indigo-200" : ""}`}>
-                        <div>
+              {editHomeworkId && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                  <p className="text-xs font-bold text-blue-700">✏️ Редактирование существующего домашнего задания</p>
+                  <p className="text-xs text-blue-600 mt-0.5">Текущий текст отображается в поле ниже — измените его и нажмите "Изменить домашнее задание"</p>
+                </div>
+              )}
+
+              <div>
                           <h4 className={`text-sm font-bold ${isToday ? "text-indigo-800" : "text-gray-800"}`}>
                             {DAYS_OF_WEEK_TRANSLATIONS[dayOfWeek]}
                           </h4>
