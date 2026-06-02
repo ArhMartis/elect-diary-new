@@ -2120,7 +2120,8 @@ export default function StudentDiaryPage({
               onMouseMove={handleNavMouseMove}
               onMouseUp={handleNavMouseUp}
               onMouseLeave={handleNavMouseUp}
-              style={{ scrollbarWidth: 'thin', scrollbarColor: '#10b981 #e5e7eb', WebkitOverflowScrolling: 'touch' }}>
+              style={{ scrollbarWidth: 'thin', scrollbarColor: '#10b981 #e5e7eb', WebkitOverflowScrolling: 'touch', cursor: 'grab' }}
+              title="Зажмите и тяните для прокрутки">
               {sections.map(section => (
                 <button
                   key={section.id}
@@ -4594,7 +4595,7 @@ function AwardsSection({ studentId, currentUserId, currentUserName, userRole }: 
   };
 
   return (
-    <div className="min-h-[600px] p-8 md:p-12 bg-gradient-to-b from-violet-50/50 to-white dark:from-gray-900 dark:to-gray-900">
+    <div className="min-h-[600px] p-8 md:p-12 dark:bg-gray-900" style={{background: 'linear-gradient(to bottom, #ede9fe, #ffffff)'}}>
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <div className="text-4xl mb-2">🏆</div>
@@ -4607,13 +4608,14 @@ function AwardsSection({ studentId, currentUserId, currentUserName, userRole }: 
         </div>
 
         {canEdit && (
-          <div className="bg-[#ffffff] dark:bg-gray-800 rounded-2xl shadow-lg p-5 border border-violet-200 dark:border-violet-800 mb-6">
+          <div style={{backgroundColor: '#ffffff'}} className="rounded-2xl shadow-lg p-5 border border-violet-200 dark:border-violet-800 mb-6">
             <div className="flex gap-3">
               <textarea
                 value={newContent}
                 onChange={e => setNewContent(e.target.value)}
                 placeholder="Введите текст рекомендации, благодарности или награды..."
-                className="flex-1 border-2 border-violet-200 dark:border-violet-700 rounded-xl px-4 py-3 text-sm focus:border-violet-500 focus:outline-none resize-none bg-[#ffffff] dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="flex-1 border-2 border-violet-200 dark:border-violet-700 rounded-xl px-4 py-3 text-sm focus:border-violet-500 focus:outline-none resize-none dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                style={{backgroundColor: '#ffffff'}}
                 rows={3}
               />
             </div>
@@ -4638,7 +4640,7 @@ function AwardsSection({ studentId, currentUserId, currentUserName, userRole }: 
         )}
 
         {records.length === 0 ? (
-          <div className="bg-[#ffffff] dark:bg-gray-800 rounded-2xl shadow-sm border border-violet-100 dark:border-violet-900 p-10 text-center">
+          <div style={{backgroundColor: '#ffffff'}} className="dark:bg-gray-800 rounded-2xl shadow-sm border border-violet-100 dark:border-violet-900 p-10 text-center">
             <div className="text-5xl mb-4">🏆</div>
             <p className="text-violet-600 dark:text-violet-400 text-lg font-semibold">Нет наград</p>
             <p className="text-violet-400 dark:text-violet-500 text-sm mt-1">У ученика пока нет рекомендаций и благодарностей</p>
@@ -4646,7 +4648,7 @@ function AwardsSection({ studentId, currentUserId, currentUserName, userRole }: 
         ) : (
           <div className="space-y-3">
             {records.map(r => (
-              <div key={r.id} className="bg-[#ffffff] dark:bg-gray-800 rounded-2xl shadow-sm border border-violet-100 dark:border-violet-900 p-5 hover:shadow-md transition-shadow">
+              <div key={r.id} style={{backgroundColor: '#ffffff'}} className="dark:bg-gray-800 rounded-2xl shadow-sm border border-violet-100 dark:border-violet-900 p-5 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">{r.content}</p>
@@ -4675,7 +4677,7 @@ function AwardsSection({ studentId, currentUserId, currentUserName, userRole }: 
 
         {showDeleteConfirm !== null && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowDeleteConfirm(null)}>
-            <div className="bg-[#ffffff] dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+            <div style={{backgroundColor: '#ffffff'}} className="dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
                 {showDeleteConfirm === "all" ? "Удалить все награды?" : "Удалить запись?"}
               </h3>
