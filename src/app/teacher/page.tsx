@@ -226,6 +226,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
           <ClassGradeCalculator 
             students={students.map(s => ({ id: s.id, fullName: s.fullName }))} 
             subjects={allSubjects}
+            groupId={displayGroup.id}
           />
         )}
 
