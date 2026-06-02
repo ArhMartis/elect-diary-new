@@ -37,12 +37,12 @@ export default function GradeGoalCalculator({ grades, subjects, studentName }: G
 
   const result = useMemo(() => {
     const target = Number(targetGrade);
-    if (!target || isNaN(target) || target < 1 || target > 10 || subjectGrades.length === 0) return null;
+    if (!target || isNaN(target) || target < 1 || target > 10) return null;
 
     const nums = subjectGrades.map(g => Number(g.value)).filter(n => !isNaN(n));
     const sum = nums.reduce((a, b) => a + b, 0);
     const count = nums.length;
-    const current = sum / count;
+    const current = count > 0 ? sum / count : 0;
     const effectiveTarget = target - 0.5; // Спорная оценка: 8.5 = 9 в пользу ученика
 
     if (futureGrades.length === 0) {
