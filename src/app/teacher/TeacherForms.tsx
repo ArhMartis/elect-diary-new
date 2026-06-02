@@ -1448,20 +1448,21 @@ export default function TeacherForms({
                         </select>
                       </div>
                       <div className="grid grid-cols-7 gap-1">
-                        {(() => { const dates: any[] = []; for (let i = 1; i <= 6; i++) { const d = new Date(dueDateWeek); d.setDate(d.getDate() + (i - 1)); dates.push({ dayOfWeek: i, date: d, dateStr: localDateStr(d) }); } return dates.map(({ dayOfWeek, date, dateStr }) => { const lessonForSubject = schedule.find(s => s.subjectId === parseInt(gradeForm.subjectId) && ((s.lessonDate && s.lessonDate === dateStr) || (s.dayOfWeek != null && s.dayOfWeek === dayOfWeek))); const isSelected = gradeForm.date === dateStr; const hName = getHolidayNameByDate(date); const cel = getHolidayByDate(date); const isHoliday = hName !== null || cel !== null; const isPast = date < new Date(new Date().setHours(0, 0, 0, 0)); return (
-  <span key={dayOfWeek} className={`h-full w-full ${!lessonForSubject || isHoliday ? "cursor-not-allowed" : ""}`}>
+                        {(() => { const dates: any[] = []; for (let i = 1; i <= 6; i++) { const d = new Date(dueDateWeek); d.setDate(d.getDate() + (i - 1)); dates.push({ dayOfWeek: i, date: d, dateStr: localDateStr(d) }); } return dates.map(({ dayOfWeek, date, dateStr }) => { const lessonForSubject = schedule.find(s => s.subjectId === parseInt(gradeForm.subjectId) && ((s.lessonDate && s.lessonDate === dateStr) || (s.dayOfWeek != null && s.dayOfWeek === dayOfWeek))); const isSelected = gradeForm.date === dateStr; const hName = getHolidayNameByDate(date); const cel = getHolidayByDate(date); const isHoliday = hName !== null || cel !== null; const isPast = date < new Date(new Date().setHours(0, 0, 0, 0)); const hasGrade = existingGrades.some((g: any) => g.date && g.date.startsWith(dateStr)); return (
+  <span key={dayOfWeek} className={`h-full w-full ${!lessonForSubject || isHoliday || hasGrade ? "cursor-not-allowed" : ""}`}>
     <button
       type="button"
-      disabled={!lessonForSubject || isHoliday}
-      onClick={() => { if (lessonForSubject) setGradeForm((prev) => ({ ...prev, date: dateStr, scheduleId: String(lessonForSubject.id) })); }}
-      title={isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : "Недоступно")}
-      className={`w-full flex flex-col items-center rounded-lg text-xs font-semibold transition-all border ${isSelected ? "p-1 bg-purple-500 text-white border-purple-500 shadow-sm" : isHoliday ? "p-1 bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed" : lessonForSubject ? "p-1 bg-white border-purple-300 text-purple-800 hover:bg-purple-100 hover:border-purple-400 cursor-pointer" : "p-1.5 bg-gray-50 border-gray-100 text-gray-400"}`}
+      disabled={!lessonForSubject || isHoliday || hasGrade}
+      onClick={() => { if (lessonForSubject && !hasGrade) setGradeForm((prev) => ({ ...prev, date: dateStr, scheduleId: String(lessonForSubject.id) })); }}
+      title={hasGrade ? "Оценка уже выставлена на этот день" : isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : "Недоступно")}
+      className={`w-full flex flex-col items-center rounded-lg text-xs font-semibold transition-all border ${isSelected ? "p-1 bg-purple-500 text-white border-purple-500 shadow-sm" : hasGrade ? "p-1 bg-emerald-100 border-emerald-400 text-emerald-600 cursor-not-allowed" : isHoliday ? "p-1 bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed" : lessonForSubject ? "p-1 bg-white border-purple-300 text-purple-800 hover:bg-purple-100 hover:border-purple-400 cursor-pointer" : "p-1.5 bg-gray-50 border-gray-100 text-gray-400"}`}
     >
       <span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span>
-      <span className={`text-[10px] ${isSelected ? "text-purple-100" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>
+      <span className={`text-[10px] ${isSelected ? "text-purple-100" : hasGrade ? "text-emerald-600" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>
         {date.toLocaleDateString("ru-RU", { day: "numeric" })}
       </span>
-      {lessonForSubject && !isHoliday && <span className={`text-[10px] mt-0.5 leading-tight truncate max-w-full ${isSelected ? 'text-purple-100' : 'text-purple-600'}`}>{lessonForSubject.subjectName}</span>}
+      {lessonForSubject && !isHoliday && <span className={`text-[10px] mt-0.5 leading-tight truncate max-w-full ${isSelected ? 'text-purple-100' : hasGrade ? 'text-emerald-600' : 'text-purple-600'}`}>{hasGrade ? "✓" : lessonForSubject.subjectName}</span>}
+      {hasGrade && <span className="text-[8px] text-emerald-500 font-bold mt-0.5">оценка есть</span>}
     </button>
   </span>
 ); }); })()}
