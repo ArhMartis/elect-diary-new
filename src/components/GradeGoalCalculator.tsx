@@ -43,18 +43,14 @@ export default function GradeGoalCalculator({ grades, subjects, studentName }: G
     const sum = nums.reduce((a, b) => a + b, 0);
     const count = nums.length;
     const current = sum / count;
+    const effectiveTarget = target - 0.5; // Спорная оценка: 8.5 = 9 в пользу ученика
 
     if (futureGrades.length === 0) {
-      // How many more grades of what value?
       const results: { grade: number; needed: number }[] = [];
       for (let grade = 1; grade <= 10; grade++) {
-        // Solve: (sum + grade * x) / (count + x) >= target
-        // sum + grade * x >= target * (count + x)
-        // sum + grade * x >= target * count + target * x
-        // grade * x - target * x >= target * count - sum
-        // x * (grade - target) >= target * count - sum
-        const diff = target * count - sum;
-        const perGrade = grade - target;
+        // (sum + grade * x) / (count + x) >= effectiveTarget
+        const diff = effectiveTarget * count - sum;
+        const perGrade = grade - effectiveTarget;
         if (perGrade > 0) {
           const needed = Math.ceil(diff / perGrade);
           if (needed > 0 && needed <= 50) results.push({ grade, needed });
@@ -62,10 +58,9 @@ export default function GradeGoalCalculator({ grades, subjects, studentName }: G
           results.push({ grade, needed: 0 });
         }
       }
-      return { type: "count", current, target, currentCount, results: results.slice(0, 10) };
+      return { type: "count", current, target, effectiveTarget, currentCount, results: results.slice(0, 10) };
     }
 
-    // With specific future grades
     const futureSum = futureGrades.reduce((a, b) => a + b, 0);
     const futureCount = futureGrades.length;
     const totalSum = sum + futureSum;
@@ -79,8 +74,9 @@ export default function GradeGoalCalculator({ grades, subjects, studentName }: G
       currentCount,
       futureGrades: [...futureGrades],
       newAvg,
-      willReach: newAvg >= target,
-      gap: target - newAvg,
+      willReach: newAvg >= effectiveTarget,
+      gap: effectiveTarget - newAvg,
+      effectiveTarget,
     };
   }, [subjectGrades, targetGrade, futureGrades]);
 
@@ -211,6 +207,7 @@ function ResultDisplay({ result }: { result: any }) {
         <div className="text-center p-3 bg-emerald-50 rounded-xl">
           <div className="text-xs text-gray-500">Цель</div>
           <div className="text-xl font-black text-emerald-700">{r.target}</div>
+          <div className="text-[10px] text-emerald-600 mt-0.5">достаточно {(r.target - 0.5).toFixed(1)} (спорная)</div>
         </div>
       </div>
 
