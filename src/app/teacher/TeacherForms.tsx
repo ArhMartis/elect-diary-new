@@ -231,6 +231,7 @@ export default function TeacherForms({
     date: localDateStr(new Date()),
     comment: "",
   });
+  const [existingGrades, setExistingGrades] = useState<any[]>([]);
   const [savingGrade, setSavingGrade] = useState(false);
   const [gradeMessage, setGradeMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -696,6 +697,23 @@ export default function TeacherForms({
       }
     } catch { setHomeworkMessage({ type: "error", text: "Ошибка сети" }); }
   };
+
+  // Загружаем существующие оценки для выбранного ученика+предмета
+  useEffect(() => {
+    if (gradeForm.studentId && gradeForm.subjectId) {
+      fetch(`/api/grades?studentId=${gradeForm.studentId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            const filtered = data.filter((g: any) => String(g.subjectId) === gradeForm.subjectId);
+            setExistingGrades(filtered);
+          }
+        })
+        .catch(() => {});
+    } else {
+      setExistingGrades([]);
+    }
+  }, [gradeForm.studentId, gradeForm.subjectId]);
 
   const handleGradeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1449,6 +1467,25 @@ export default function TeacherForms({
 ); }); })()}
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Существующие оценки по выбранному предмету */}
+              {gradeForm.studentId && gradeForm.subjectId && existingGrades.length > 0 && (
+                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                  <label className="block text-sm font-bold text-purple-800 mb-2 tracking-wide">📋 Ранее выставленные оценки по предмету</label>
+                  <div className="flex flex-wrap gap-2">
+                    {existingGrades.map((g: any) => {
+                      const val = Number(g.value);
+                      const color = isNaN(val) ? '#9ca3af' : val >= 9 ? '#34d399' : val >= 7 ? '#60a5fa' : val >= 5 ? '#facc15' : val >= 4 ? '#fb923c' : '#f87171';
+                      return (
+                        <div key={g.id} className="flex items-center gap-1.5 p-2 bg-white rounded-lg border border-purple-200 shadow-sm" title={`${g.comment ? '💬 ' + g.comment : ''}`}>
+                          <span className="inline-flex items-center justify-center w-7 h-7 rounded text-[11px] font-extrabold text-white shadow-sm" style={{backgroundColor: color}}>{g.value}</span>
+                          <span className="text-[10px] text-gray-500 font-medium">{g.date ? new Date(g.date).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" }) : "—"}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
