@@ -1414,7 +1414,7 @@ export default function TeacherForms({
               {gradeForm.subjectId && schedule.length > 0 && (
                 <div>
                   <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">Дата урока <span className="text-red-400">*</span></label>
-                  <div ref={gradeFormRef} className="rounded-xl border-2 border-purple-200 dark:border-purple-700 overflow-hidden bg-white dark:bg-gray-800">
+                  <div ref={gradeFormRef} className="rounded-xl border-2 border-purple-200 dark:border-purple-700 overflow-hidden" style={{backgroundColor: '#ffffff'}}>
                     <div className="flex items-center justify-between px-3 py-2 bg-purple-50 border-b border-purple-200">
                       <button type="button" onClick={() => { const d = new Date(dueDateWeek); d.setDate(d.getDate() - 7); if (isDateInAcademicYear(d)) { setDueDateWeek(d); setSelectedQuarter(getQuarterNumberByDate(d)); } }} className="w-7 h-7 rounded-full bg-white border border-purple-200 hover:bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm transition-colors">‹</button>
                       <div className="text-center">
