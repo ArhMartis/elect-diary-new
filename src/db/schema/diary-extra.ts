@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 import { user, groups, subjects } from "./auth_schema";
 
 /**
@@ -74,6 +74,19 @@ export const electives = sqliteTable("electives", {
   groupId: integer("group_id").references(() => groups.id, { onDelete: "set null" }),
   
   // Дата создания
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+});
+
+/* =====================================================
+   ELECTIVE STUDENTS (Ученики на факультативах)
+   ===================================================== */
+
+export const electiveStudents = sqliteTable("elective_students", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  electiveId: integer("elective_id").notNull().references(() => electives.id, { onDelete: "cascade" }),
+  studentId: text("student_id").notNull().references(() => user.id, { onDelete: "cascade" }),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
@@ -303,3 +316,22 @@ export const academicYears = sqliteTable("academic_years", {
   
   isActive: integer("is_active", { mode: "boolean" }).default(false), // Текущий учебный год
 });
+
+export const electivesRelations = relations(electives, ({ one, many }) => ({
+  group: one(groups, {
+    fields: [electives.groupId],
+    references: [groups.id],
+  }),
+  students: many(electiveStudents),
+}));
+
+export const electiveStudentsRelations = relations(electiveStudents, ({ one }) => ({
+  elective: one(electives, {
+    fields: [electiveStudents.electiveId],
+    references: [electives.id],
+  }),
+  student: one(user, {
+    fields: [electiveStudents.studentId],
+    references: [user.id],
+  }),
+}));

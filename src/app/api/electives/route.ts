@@ -1,156 +1,146 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { sql } from "drizzle-orm";
+import { electives, electiveStudents } from "@/db/schema/diary-extra";
+import { eq, and, inArray } from "drizzle-orm";
 
-/**
- * API: GET /api/electives
- * 
- * Получение списка факультативов
- * 
- * Query параметры:
- * - groupId?: number - ID класса (для получения факультативов конкретного класса)
- * 
- * Таблица: electives (создать отдельно!)
- * Структура таблицы:
- * CREATE TABLE electives (
- *   id INTEGER PRIMARY KEY AUTOINCREMENT,
- *   name TEXT NOT NULL,
- *   teacherId TEXT,
- *   teacherName TEXT,
- *   schedule TEXT,
- *   groupId INTEGER,
- *   FOREIGN KEY (teacherId) REFERENCES user(id) ON DELETE SET NULL,
- *   FOREIGN KEY (groupId) REFERENCES groups(id) ON DELETE SET NULL
- * )
- * 
- * @returns Array<{
- *   id: number,
- *   name: string,
- *   teacherId: string,
- *   teacherName: string,
- *   schedule: string
- * }>
- */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const groupId = searchParams.get("groupId");
+    const studentId = searchParams.get("studentId");
 
-    // TODO: Создать таблицу electives и раскомментировать код
-    /*
-    let whereCondition = undefined;
+    let whereCondition: any = undefined;
     if (groupId) {
       whereCondition = eq(electives.groupId, parseInt(groupId));
     }
 
-    const electives = await db
-      .select({
-        id: electives.id,
-        name: electives.name,
-        teacherId: electives.teacherId,
-        teacherName: user.fullName,
-        schedule: electives.schedule,
-      })
-      .from(electives)
-      .leftJoin(user, eq(electives.teacherId, user.id))
-      .where(whereCondition);
+    const list = await db.query.electives.findMany({
+      where: whereCondition,
+      with: {
+        students: true,
+      },
+    });
 
-    return NextResponse.json(electives);
-    */
+    if (studentId) {
+      const studentElectiveIds = await db
+        .select({ electiveId: electiveStudents.electiveId })
+        .from(electiveStudents)
+        .where(eq(electiveStudents.studentId, studentId));
+      const ids = new Set(studentElectiveIds.map(r => r.electiveId));
+      return NextResponse.json(list.map(e => ({ ...e, assigned: ids.has(e.id) })));
+    }
 
-    // Возвращаем заглушку
-    return NextResponse.json([]);
+    return NextResponse.json(list);
   } catch (error) {
     console.error("Ошибка при получении факультативов:", error);
-    return NextResponse.json(
-      { error: "Внутренняя ошибка сервера" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
   }
 }
 
-/**
- * API: POST /api/electives
- * 
- * Добавление/обновление факультатива
- * 
- * Body:
- * - id?: number - ID для обновления
- * - name: string
- * - teacherId?: string
- * - teacherName?: string
- * - schedule?: string
- * - groupId?: number
- * 
- * Таблица: electives
- */
 export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { name, teacherId, teacherName, schedule, groupId } = body;
+
+    if (!name || !groupId) {
+      return NextResponse.json({ error: "Название и класс обязательны" }, { status: 400 });
+    }
+
+    const [newItem] = await db.insert(electives).values({
+      name,
+      teacherId: teacherId || null,
+      teacherName: teacherName || null,
+      schedule: schedule || null,
+      groupId: parseInt(groupId),
+    }).returning();
+
+    return NextResponse.json(newItem);
+  } catch (error) {
+    console.error("Ошибка при создании факультатива:", error);
+    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const { id, name, teacherId, teacherName, schedule, groupId } = body;
 
-    if (!name) {
-      return NextResponse.json({ error: "Название факультатива обязательно" }, { status: 400 });
+    if (!id || !name) {
+      return NextResponse.json({ error: "ID и название обязательны" }, { status: 400 });
     }
 
-    // TODO: Создать таблицу electives и раскомментировать код
-    /*
-    if (id) {
-      // Обновление существующего факультатива
-      await db
-        .update(electives)
-        .set({ name, teacherId, teacherName, schedule, groupId })
-        .where(eq(electives.id, id));
-    } else {
-      // Добавление нового факультатива
-      await db.insert(electives).values({
-        name,
-        teacherId,
-        teacherName,
-        schedule,
-        groupId,
-      });
-    }
-    */
+    const [updated] = await db.update(electives).set({
+      name,
+      teacherId: teacherId || null,
+      teacherName: teacherName || null,
+      schedule: schedule || null,
+      groupId: groupId ? parseInt(groupId) : null,
+    }).where(eq(electives.id, id)).returning();
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(updated);
   } catch (error) {
-    console.error("Ошибка при сохранении факультатива:", error);
-    return NextResponse.json(
-      { error: "Внутренняя ошибка сервера" },
-      { status: 500 }
-    );
+    console.error("Ошибка при обновлении факультатива:", error);
+    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
   }
 }
 
-/**
- * API: DELETE /api/electives
- * 
- * Удаление факультатива
- * 
- * Body:
- * - id: number
- */
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id } = body;
+    const { id, studentId, electiveId } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: "Не указан ID факультатива" }, { status: 400 });
+    if (studentId && electiveId) {
+      await db.delete(electiveStudents).where(and(
+        eq(electiveStudents.studentId, studentId),
+        eq(electiveStudents.electiveId, electiveId)
+      ));
+      return NextResponse.json({ success: true, type: "student-removed" });
     }
 
-    // TODO: Создать таблицу electives и раскомментировать код
-    /*
-    await db.delete(electives).where(eq(electives.id, id));
-    */
+    if (studentId && !electiveId) {
+      const ids = Array.isArray(studentId) ? studentId : [studentId];
+      await db.delete(electiveStudents).where(
+        and(
+          inArray(electiveStudents.studentId, ids),
+          eq(electiveStudents.electiveId, body.electiveId)
+        )
+      );
+      return NextResponse.json({ success: true, type: "students-synced" });
+    }
 
-    return NextResponse.json({ success: true });
+    if (id) {
+      await db.delete(electiveStudents).where(eq(electiveStudents.electiveId, id));
+      await db.delete(electives).where(eq(electives.id, id));
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: "Укажите id" }, { status: 400 });
   } catch (error) {
-    console.error("Ошибка при удалении факультатива:", error);
-    return NextResponse.json(
-      { error: "Внутренняя ошибка сервера" },
-      { status: 500 }
-    );
+    console.error("Ошибка при удалении:", error);
+    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { electiveId, studentIds } = body;
+
+    if (!electiveId || !Array.isArray(studentIds)) {
+      return NextResponse.json({ error: "electiveId и studentIds обязательны" }, { status: 400 });
+    }
+
+    await db.delete(electiveStudents).where(eq(electiveStudents.electiveId, electiveId));
+    if (studentIds.length > 0) {
+      await db.insert(electiveStudents).values(
+        studentIds.map((sid: string) => ({ electiveId, studentId: sid }))
+      );
+    }
+
+    return NextResponse.json({ success: true, assigned: studentIds.length });
+  } catch (error) {
+    console.error("Ошибка при назначении учеников:", error);
+    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
   }
 }
