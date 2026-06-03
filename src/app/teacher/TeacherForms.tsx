@@ -932,8 +932,9 @@ export default function TeacherForms({
                       <div className={`flex items-center justify-between mb-2 ${isToday ? "bg-indigo-50 -mx-3 -mt-3 px-3 py-1.5 rounded-t-xl border-b border-indigo-200" : ""}`}>
               {editHomeworkId && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                  <p className="text-xs font-bold text-blue-700">✏️ Редактирование существующего домашнего задания</p>
-                  <p className="text-xs text-blue-600 mt-0.5">Текущий текст отображается в поле ниже — измените его и нажмите "Изменить домашнее задание"</p>
+                  <p className="text-xs font-bold text-blue-700">✏️ Редактирование домашнего задания</p>
+                  <p className="text-xs text-blue-600 mt-1">Текущий текст:</p>
+                  <p className="text-sm text-gray-800 bg-white rounded-lg p-2 mt-1 border border-blue-100">{homeworkForm.description || "—"}</p>
                 </div>
               )}
 
@@ -1261,6 +1262,11 @@ export default function TeacherForms({
                                 {lessonForSubject && !isHoliday && (
                                   <span className={`text-[11px] mt-0.5 leading-tight truncate max-w-full font-bold ${isSelected ? 'text-amber-100' : 'text-amber-700 dark:text-amber-400'}`}>
                                     {existingHw ? "📝 " + lessonForSubject.subjectName : lessonForSubject.subjectName}
+                                  </span>
+                                )}
+                                {existingHw && !isHoliday && (
+                                  <span className={`text-[8px] leading-tight truncate max-w-full mt-0.5 ${isSelected ? 'text-amber-100' : 'text-amber-600 dark:text-amber-500'}`}>
+                                    {existingHw.description}
                                   </span>
                                 )}
                               </button>
