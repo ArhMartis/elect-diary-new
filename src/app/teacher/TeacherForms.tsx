@@ -238,7 +238,7 @@ export default function TeacherForms({
 
   const [attendanceForm, setAttendanceForm] = useState({
     date: localDateStr(new Date()),
-    attendance: {} as Record<string, "present" | "absent" | "unexcused">,
+    attendance: {} as Record<string, "present" | "absent" | "unexcused" | "late">,
     subjectId: "",
   });
   const [savingAttendance, setSavingAttendance] = useState(false);
@@ -390,7 +390,7 @@ export default function TeacherForms({
   };
 
   useEffect(() => {
-    const initialAttendance: Record<string, "present" | "absent" | "unexcused"> = {};
+    const initialAttendance: Record<string, "present" | "absent" | "unexcused" | "late"> = {};
     students.forEach((s) => { initialAttendance[s.id] = "present"; });
     setAttendanceForm((prev) => ({ ...prev, attendance: initialAttendance }));
   }, [attendanceForm.date, students]);
@@ -1722,6 +1722,7 @@ export default function TeacherForms({
                         <button type="button" onClick={() => setAttendanceForm({ ...attendanceForm, attendance: { ...attendanceForm.attendance, [student.id]: "present" } })} className={`flex-1 md:flex-none px-2 md:px-4 py-2 rounded-xl font-semibold text-[11px] md:text-sm transition-all ${attendanceForm.attendance[student.id] === "present" ? "bg-emerald-500 text-white shadow-md shadow-emerald-200/50" : "bg-gray-100 text-gray-600 hover:bg-emerald-50"}`}>✓</button>
                         <button type="button" onClick={() => setAttendanceForm({ ...attendanceForm, attendance: { ...attendanceForm.attendance, [student.id]: "absent" } })} className={`flex-1 md:flex-none px-2 md:px-4 py-2 rounded-xl font-semibold text-[11px] md:text-sm transition-all ${attendanceForm.attendance[student.id] === "absent" ? "bg-yellow-500 text-white shadow-md shadow-yellow-200/50" : "bg-gray-100 text-gray-600 hover:bg-yellow-50"}`}>⚠</button>
                         <button type="button" onClick={() => setAttendanceForm({ ...attendanceForm, attendance: { ...attendanceForm.attendance, [student.id]: "unexcused" } })} className={`flex-1 md:flex-none px-2 md:px-4 py-2 rounded-xl font-semibold text-[11px] md:text-sm transition-all ${attendanceForm.attendance[student.id] === "unexcused" ? "bg-red-500 text-white shadow-md shadow-red-200/50" : "bg-gray-100 text-gray-600 hover:bg-red-50"}`}>✗</button>
+                        <button type="button" onClick={() => setAttendanceForm({ ...attendanceForm, attendance: { ...attendanceForm.attendance, [student.id]: "late" } })} className={`flex-1 md:flex-none px-2 md:px-4 py-2 rounded-xl font-semibold text-[11px] md:text-sm transition-all ${attendanceForm.attendance[student.id] === "late" ? "bg-blue-500 text-white shadow-md shadow-blue-200/50" : "bg-gray-100 text-gray-600 hover:bg-blue-50"}`}>⏰</button>
                       </div>
                     </div>
                   ))}

@@ -2727,8 +2727,8 @@ const holidayName = getHolidayNameByDate(dayDate);
                                     const att = attendanceRecords.find(r => r.date === ds && r.subjectId === attSubjId);
                                     if (!att) return null;
                                     return (
-                                      <span className={`text-[12px] font-extrabold shrink-0 px-2 py-0.5 rounded-md border-2 ${att.type === 'absent' ? 'text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/40 border-orange-400 dark:border-orange-600' : 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/40 border-red-400 dark:border-red-600'}`}
-                                        title={att.type === 'absent' ? 'Пропуск' : 'Неуважительная причина'}>
+                                      <span className={`text-[12px] font-extrabold shrink-0 px-2 py-0.5 rounded-md border-2 ${att.type === 'absent' ? 'text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/40 border-orange-400 dark:border-orange-600' : att.type === 'late' ? 'text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 border-blue-400 dark:border-blue-600' : 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/40 border-red-400 dark:border-red-600'}`}
+                                        title={att.type === 'absent' ? 'Пропуск' : att.type === 'late' ? 'Опоздание' : 'Неуважительная причина'}>
                                         Н
                                       </span>
                                     );

@@ -184,7 +184,7 @@ export const attendanceRecords = sqliteTable("attendance_records", {
 
   date: text("date").notNull(), // YYYY-MM-DD
 
-  type: text("type").notNull(), // "absent" | "unexcused"
+  type: text("type").notNull(), // "absent" | "unexcused" | "late"
 
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
