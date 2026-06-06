@@ -12,62 +12,56 @@
 
   <rect width="900" height="620" fill="#f8fafc" rx="12"/>
 
-  <!-- Title -->
   <text x="450" y="38" text-anchor="middle" font-size="20" font-weight="bold" fill="#1e293b">Ролевая модель информационной системы «Электронный дневник»</text>
 
   <!-- Admin -->
-  <rect x="290" y="60" width="320" height="70" rx="14" fill="url(#adminG)" stroke="#1e40af" stroke-width="2"/>
-  <text x="450" y="92" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">👑 Администратор</text>
-  <text x="450" y="112" text-anchor="middle" font-size="12" fill="#e0e7ff">Полный доступ ко всем функциям системы</text>
+  <rect x="250" y="60" width="400" height="65" rx="14" fill="url(#adminG)" stroke="#1e40af" stroke-width="2"/>
+  <text x="450" y="90" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">👑 Администратор</text>
+  <text x="450" y="108" text-anchor="middle" font-size="11" fill="#e0e7ff">Полный доступ ко всем функциям системы</text>
 
-  <!-- Arrow Admin -> Principal -->
-  <line x1="450" y1="130" x2="450" y2="175" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="450" y1="125" x2="450" y2="165" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
 
   <!-- Principal -->
-  <rect x="290" y="175" width="320" height="70" rx="14" fill="url(#principalG)" stroke="#166534" stroke-width="2"/>
-  <text x="450" y="207" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">🎓 Директор</text>
-  <text x="450" y="227" text-anchor="middle" font-size="12" fill="#dcfce7">Просмотр сводных таблиц, новости, подтверждение четвертей</text>
+  <rect x="250" y="165" width="400" height="65" rx="14" fill="url(#principalG)" stroke="#166534" stroke-width="2"/>
+  <text x="450" y="195" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">🎓 Директор</text>
+  <text x="450" y="213" text-anchor="middle" font-size="11" fill="#dcfce7">Просмотр сводных таблиц, новости, подтверждение четвертей</text>
 
-  <!-- Arrow Principal -> Teacher -->
-  <line x1="450" y1="245" x2="450" y2="290" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="450" y1="230" x2="450" y2="270" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
 
   <!-- Teacher -->
-  <rect x="290" y="290" width="320" height="70" rx="14" fill="url(#teacherG)" stroke="#a16207" stroke-width="2"/>
-  <text x="450" y="322" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">👨‍🏫 Учитель</text>
-  <text x="450" y="342" text-anchor="middle" font-size="12" fill="#fef9c3">Выставление оценок, ДЗ, посещаемость, награды</text>
+  <rect x="250" y="270" width="400" height="65" rx="14" fill="url(#teacherG)" stroke="#a16207" stroke-width="2"/>
+  <text x="450" y="300" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">👨‍🏫 Учитель</text>
+  <text x="450" y="318" text-anchor="middle" font-size="11" fill="#fef9c3">Выставление оценок, ДЗ, посещаемость, награды</text>
 
-  <!-- Arrow Teacher -> Student -->
-  <line x1="350" y1="360" x2="200" y2="430" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
-  <!-- Arrow Teacher -> Parent -->
-  <line x1="550" y1="360" x2="700" y2="430" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="350" y1="335" x2="200" y2="395" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="550" y1="335" x2="700" y2="395" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
 
   <!-- Student -->
-  <rect x="40" y="430" width="320" height="70" rx="14" fill="url(#studentG)" stroke="#0369a1" stroke-width="2"/>
-  <text x="200" y="462" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">🎒 Ученик</text>
-  <text x="200" y="482" text-anchor="middle" font-size="12" fill="#e0f2fe">Просмотр оценок, расписания, ДЗ, заметки</text>
+  <rect x="40" y="395" width="320" height="65" rx="14" fill="url(#studentG)" stroke="#0369a1" stroke-width="2"/>
+  <text x="200" y="425" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">🎒 Ученик</text>
+  <text x="200" y="443" text-anchor="middle" font-size="11" fill="#e0f2fe">Просмотр оценок, расписания, ДЗ, заметки</text>
 
   <!-- Parent -->
-  <rect x="540" y="430" width="320" height="70" rx="14" fill="url(#parentG)" stroke="#c2410c" stroke-width="2"/>
-  <text x="700" y="462" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">👨‍👩‍👧 Родитель</text>
-  <text x="700" y="482" text-anchor="middle" font-size="12" fill="#ffedd5">Чтение дневника детей, подтверждение аттестации</text>
+  <rect x="540" y="395" width="320" height="65" rx="14" fill="url(#parentG)" stroke="#c2410c" stroke-width="2"/>
+  <text x="700" y="425" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">👨‍👩‍👧 Родитель</text>
+  <text x="700" y="443" text-anchor="middle" font-size="11" fill="#ffedd5">Чтение дневника детей, подтверждение аттестации</text>
 
-  <!-- Captions -->
-  <text x="200" y="520" text-anchor="middle" font-size="11" fill="#64748b">Управляет успеваемостью</text>
-  <text x="700" y="520" text-anchor="middle" font-size="11" fill="#64748b">Получает отчёты об успеваемости</text>
+  <text x="200" y="480" text-anchor="middle" font-size="11" fill="#64748b">Управляет успеваемостью</text>
+  <text x="700" y="480" text-anchor="middle" font-size="11" fill="#64748b">Получает отчёты об успеваемости</text>
 
   <!-- Bottom info -->
-  <text x="450" y="560" text-anchor="middle" font-size="13" fill="#64748b">Связь «родитель — ученик» реализована через таблицу parentsToStudents</text>
-  <text x="450" y="580" text-anchor="middle" font-size="12" fill="#94a3b8">Один ученик может быть привязан к двум родителям, один родитель — к нескольким ученикам</text>
+  <text x="450" y="530" text-anchor="middle" font-size="13" fill="#64748b">Связь «родитель — ученик» реализована через таблицу parentsToStudents</text>
+  <text x="450" y="550" text-anchor="middle" font-size="12" fill="#94a3b8">Один ученик может быть привязан к двум родителям, один родитель — к нескольким ученикам</text>
 
   <!-- Legend -->
-  <rect x="30" y="595" width="12" height="12" rx="2" fill="#2563eb"/>
-  <text x="48" y="606" font-size="11" fill="#475569">Админ</text>
-  <rect x="110" y="595" width="12" height="12" rx="2" fill="#16a34a"/>
-  <text x="128" y="606" font-size="11" fill="#475569">Директор</text>
-  <rect x="200" y="595" width="12" height="12" rx="2" fill="#eab308"/>
-  <text x="218" y="606" font-size="11" fill="#475569">Учитель</text>
-  <rect x="290" y="595" width="12" height="12" rx="2" fill="#38bdf8"/>
-  <text x="308" y="606" font-size="11" fill="#475569">Ученик</text>
-  <rect x="370" y="595" width="12" height="12" rx="2" fill="#f97316"/>
-  <text x="388" y="606" font-size="11" fill="#475569">Родитель</text>
+  <rect x="30" y="575" width="12" height="12" rx="2" fill="#2563eb"/>
+  <text x="48" y="586" font-size="11" fill="#475569">Админ</text>
+  <rect x="110" y="575" width="12" height="12" rx="2" fill="#16a34a"/>
+  <text x="128" y="586" font-size="11" fill="#475569">Директор</text>
+  <rect x="200" y="575" width="12" height="12" rx="2" fill="#eab308"/>
+  <text x="218" y="586" font-size="11" fill="#475569">Учитель</text>
+  <rect x="290" y="575" width="12" height="12" rx="2" fill="#38bdf8"/>
+  <text x="308" y="586" font-size="11" fill="#475569">Ученик</text>
+  <rect x="370" y="575" width="12" height="12" rx="2" fill="#f97316"/>
+  <text x="388" y="586" font-size="11" fill="#475569">Родитель</text>
 </svg>
