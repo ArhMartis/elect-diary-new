@@ -19,7 +19,7 @@
   <!-- Browser -->
   <rect x="250" y="55" width="300" height="60" rx="14" fill="url(#browserG)" stroke="#4338ca" stroke-width="2"/>
   <text x="400" y="81" text-anchor="middle" font-size="15" font-weight="bold" fill="#fff">🌐 Браузер пользователя</text>
-  <text x="400" y="99" text-anchor="middle" font-size="11" fill="#e0e7ff">Клиентская часть (JavaScript / React)</text>
+  <text x="400" y="99" text-anchor="middle" font-size="11" fill="#e0e7ff">Клиентская часть (TypeScript / React)</text>
 
   <!-- Request arrow Browser -> Next.js -->
   <line x1="470" y1="115" x2="470" y2="165" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrowR)"/>
