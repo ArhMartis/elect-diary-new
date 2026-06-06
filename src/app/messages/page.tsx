@@ -22,11 +22,15 @@ interface Message {
     id: string;
     fullName: string | null;
     role: string;
+    avatar?: string | null;
+    lastSeen?: number | null;
   };
   receiver?: {
     id: string;
     fullName: string | null;
     role: string;
+    avatar?: string | null;
+    lastSeen?: number | null;
   };
 }
 
@@ -68,7 +72,8 @@ export default function MessagesPage() {
   const [isBroadcast, setIsBroadcast] = useState(false);
   const [customSenderName, setCustomSenderName] = useState("");
   const [sending, setSending] = useState(false);
-  const [activeTab, setActiveTab] = useState<"inbox" | "sent">("inbox");
+  const [activeTab, setActiveTab] = useState<"inbox" | "sent" | "appeals">("inbox");
+  const [selectedChatPartner, setSelectedChatPartner] = useState<string | null>(null);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showConfirmClearMessages, setShowConfirmClearMessages] = useState(false);
   const [clearingMessages, setClearingMessages] = useState(false);
@@ -77,6 +82,9 @@ export default function MessagesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [contactAdminMessage, setContactAdminMessage] = useState("");
+  const [contactAdminSending, setContactAdminSending] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   // Проверка класса для учеников
   const [hasCheckedClass, setHasCheckedClass] = useState(false);
   const [userGroupId, setUserGroupId] = useState<number | null>(null);
@@ -152,6 +160,29 @@ export default function MessagesPage() {
     }
   }, [loadingSession, userId, fetchMessages, fetchAvailableUsers]);
 
+  // Heartbeat — отмечаем онлайн-статус каждые 30 секунд
+  useEffect(() => {
+    if (!userId) return;
+    const beat = () => fetch("/api/heartbeat", { method: "POST" }).catch(() => {});
+    beat();
+    const interval = setInterval(beat, 30000);
+    return () => clearInterval(interval);
+  }, [userId]);
+
+  // Обновляем список онлайн-пользователей при загрузке сообщений
+  useEffect(() => {
+    const now = Date.now();
+    const online = new Set<string>();
+    for (const msg of messages) {
+      for (const u of [msg.sender, msg.receiver]) {
+        if (u && u.lastSeen && (now - new Date(u.lastSeen).getTime() < 120000) && u.id !== userId) {
+          online.add(u.id);
+        }
+      }
+    }
+    setOnlineUsers(online);
+  }, [messages, userId]);
+
   // Закрыть dropdown при клике вне
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -207,6 +238,15 @@ export default function MessagesPage() {
     const sizes = ['Б', 'КБ', 'МБ'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  const markAsRead = async (msgId: number) => {
+    await fetch("/api/messages", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messageId: msgId }),
+    });
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, readAt: new Date().toISOString() } : m));
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -338,11 +378,18 @@ export default function MessagesPage() {
     return "Неизвестный получатель";
   };
 
+  const appealsMessages = messages.filter((msg) =>
+    msg.receiverId === userId && msg.sender?.role === "student"
+  );
+
   const filteredMessages = messages.filter((msg) => {
-    if (activeTab === "inbox") {
-      return msg.receiverId === userId || msg.isBroadcast;
+    if (activeTab === "inbox" || activeTab === "sent") {
+      return (msg.senderId === userId || msg.receiverId === userId || msg.isBroadcast) && !(msg.receiverId === userId && msg.sender?.role === "student");
     }
-    return msg.senderId === userId;
+    if (activeTab === "appeals") {
+      return msg.receiverId === userId && msg.sender?.role === "student";
+    }
+    return false;
   });
 
   const unreadCount = messages.filter(
@@ -476,7 +523,7 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-6 max-w-full">
           {/* Sidebar with compose form */}
           <div className="lg:col-span-1 space-y-4">
             <div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-indigo-100">
@@ -818,6 +865,39 @@ export default function MessagesPage() {
             </div>
 
             {/* Info block */}
+            {userRole !== "admin" && userRole !== "principal" && (
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl p-5 border-2 border-amber-200">
+                <h3 className="font-black text-amber-800 mb-3 flex items-center gap-2 text-base">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  Связаться с администратором
+                </h3>
+                <p className="text-xs text-amber-700 mb-3 font-medium">Отправьте сообщение администратору школы.</p>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!contactAdminMessage.trim()) return;
+                  setContactAdminSending(true);
+                  try {
+                    const res = await fetch("/api/contact-admin", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ content: contactAdminMessage.trim() }),
+                    });
+                    if (res.ok) {
+                      setContactAdminMessage("");
+                      fetchMessages();
+                    } else if (res.status === 409) {
+                      setContactAdminSending(false);
+                      return;
+                    }
+                  } catch {}
+                  setContactAdminSending(false);
+                }} className="space-y-2">
+                  <textarea value={contactAdminMessage} onChange={(e) => setContactAdminMessage(e.target.value)} placeholder="Ваше сообщение..." className="w-full px-3 py-2 border-2 border-amber-200 rounded-xl focus:border-amber-500 focus:outline-none bg-white text-xs min-h-[60px] resize-none" required />
+                  <button type="submit" disabled={contactAdminSending || !contactAdminMessage.trim()} className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold rounded-xl hover:from-amber-600 hover:to-orange-700 disabled:opacity-40 transition-all text-xs">Отправить</button>
+                </form>
+              </div>
+            )}
+
             <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-3xl p-6 border-2 border-blue-300">
               <h3 className="font-black text-indigo-900 mb-4 text-lg flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -896,7 +976,7 @@ export default function MessagesPage() {
 
           {/* Messages list */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-3xl shadow-xl border-2 border-indigo-100 overflow-hidden h-[800px] flex flex-col">
+            <div className="bg-white rounded-3xl shadow-xl border-2 border-indigo-100 overflow-hidden h-[800px] flex flex-col w-full max-w-full">
               {/* Tabs */}
               <div className="flex border-b-2 border-indigo-100">
                 <button
@@ -910,142 +990,164 @@ export default function MessagesPage() {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
-                  Входящие
+                  Чаты
                   {unreadCount > 0 && (
                     <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-bold">
                       {unreadCount}
                     </span>
                   )}
                 </button>
-                <button
-                  onClick={() => setActiveTab("sent")}
-                  className={`flex-1 py-5 px-6 font-bold text-lg transition-all flex items-center justify-center gap-2 ${
-                    activeTab === "sent"
-                      ? "text-indigo-700 border-b-4 border-indigo-500 bg-indigo-50"
-                      : "text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50"
-                  }`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                  Отправленные
-                </button>
+                {(userRole === "admin" || userRole === "principal") && (
+                  <button
+                    onClick={() => setActiveTab("appeals")}
+                    className={`flex-1 py-5 px-6 font-bold text-lg transition-all flex items-center justify-center gap-2 ${
+                      activeTab === "appeals"
+                        ? "text-amber-700 border-b-4 border-amber-500 bg-amber-50"
+                        : "text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50"
+                    }`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Обращения
+                    {appealsMessages.filter(m => !m.readAt).length > 0 && (
+                      <span className="px-2 py-0.5 bg-amber-500 text-white text-xs rounded-full font-bold">
+                        {appealsMessages.filter(m => !m.readAt).length}
+                      </span>
+                    )}
+                  </button>
+                )}
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {filteredMessages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center">
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-4">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                      </svg>
-                    </div>
-                    <p className="text-indigo-900 font-bold text-xl mb-2">
-                      {activeTab === "inbox" ? "Входящих сообщений нет" : "Отправленных сообщений нет"}
-                    </p>
-                    <p className="text-indigo-600 font-medium">
-                      {activeTab === "inbox" 
-                        ? "У вас пока нет новых сообщений" 
-                        : "Отправьте свое первое сообщение"}
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {filteredMessages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`p-5 rounded-2xl border-2 transition-all hover:shadow-md ${
-                          !msg.readAt && msg.receiverId === userId 
-                            ? "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-300" 
-                            : "bg-white border-indigo-100"
-                        }`}
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex items-center gap-3">
-                            {activeTab === "inbox" ? (
-                              <>
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                                  {getSenderName(msg).charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <span className="font-bold text-indigo-900 block">
-                                    {getSenderName(msg)}
-                                  </span>
-                                  <span className="text-sm text-indigo-600 font-medium">
-                                    {msg.sender?.role && getRoleLabel(msg.sender.role)}
-                                  </span>
-                                </div>
-                                {msg.isBroadcast && (
-                                  <span className="px-3 py-1 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs rounded-full font-bold shadow-md">
-                                    Объявление
-                                  </span>
-                                )}
-                                {!msg.readAt && msg.receiverId === userId && (
-                                  <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-bold">
-                                    Новое
-                                  </span>
-                                )}
-                              </>
+              <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 max-w-full">
+                {(() => {
+                  // Группируем сообщения по собеседнику
+                  const grouped = new Map<string, { partnerId: string; partnerName: string; partnerRole: string; partnerAvatar?: string | null; lastContent: string; lastDate: string | number; unread: number; messages: typeof filteredMessages }>();
+                  for (const msg of filteredMessages) {
+                    const isInbox = activeTab === "inbox" || activeTab === "appeals";
+                    const partnerId = isInbox ? msg.senderId : msg.receiverId;
+                    if (!partnerId) continue;
+                    const partnerName = isInbox ? getSenderName(msg) : getReceiverName(msg);
+                    const partnerRole = isInbox ? (msg.sender?.role || '') : (msg.receiver?.role || '');
+                    const partnerAvatar = isInbox ? msg.sender?.avatar : msg.receiver?.avatar;
+                    if (!grouped.has(partnerId)) {
+                      grouped.set(partnerId, { partnerId, partnerName, partnerRole, partnerAvatar, lastContent: msg.content, lastDate: msg.createdAt, unread: (!msg.readAt && msg.receiverId === userId) ? 1 : 0, messages: [] });
+                    }
+                    const g = grouped.get(partnerId)!;
+                    g.messages.push(msg);
+                    if (new Date(msg.createdAt).getTime() > new Date(g.lastDate).getTime()) { g.lastContent = msg.content; g.lastDate = msg.createdAt; }
+                    if (!msg.readAt && msg.receiverId === userId) g.unread++;
+                  }
+
+                  if (filteredMessages.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-4">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                        </div>
+                        <p className="text-indigo-900 font-bold text-xl mb-2">{activeTab === "inbox" ? "Входящих сообщений нет" : activeTab === "sent" ? "Отправленных сообщений нет" : "Обращений нет"}</p>
+                        <p className="text-indigo-600 font-medium">{activeTab === "inbox" ? "У вас пока нет новых сообщений" : activeTab === "sent" ? "Отправьте свое первое сообщение" : "Ученики ещё не отправляли обращений"}</p>
+                      </div>
+                    );
+                  }
+
+                  if (selectedChatPartner) {
+                    // Берём ВСЕ сообщения между текущим пользователем и выбранным собеседником
+                    const chatMessages = messages.filter(m =>
+                      (m.senderId === userId && m.receiverId === selectedChatPartner) ||
+                      (m.senderId === selectedChatPartner && m.receiverId === userId)
+                    ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+                    // Находим данные собеседника
+                    const partnerMsg = messages.find(m => m.senderId === selectedChatPartner || m.receiverId === selectedChatPartner);
+                    const partnerInfo = partnerMsg
+                      ? (partnerMsg.senderId === selectedChatPartner ? partnerMsg.sender : partnerMsg.receiver)
+                      : null;
+                    const partnerName = partnerInfo?.fullName || selectedChatPartner;
+                    const partnerAvatar = partnerInfo?.avatar || null;
+                    const partnerRole = partnerInfo?.role || '';
+                    const partnerLastSeen = partnerInfo?.lastSeen || null;
+                    const isOnline = partnerLastSeen ? (Date.now() - new Date(partnerLastSeen).getTime() < 120000) : false;
+                    const lastSeenText = partnerLastSeen
+                      ? (isOnline ? 'в сети' : `был(а) ${formatDate(partnerLastSeen)}`)
+                      : '';
+
+                    return (
+                      <>
+                        <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-200">
+                          <button onClick={() => setSelectedChatPartner(null)} className="shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600 hover:text-indigo-800" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>
+                          </button>
+                          <div className="relative shrink-0">
+                            {partnerAvatar ? (
+                              <img src={partnerAvatar} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-indigo-200" />
                             ) : (
-                              <>
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold">
-                                  К
-                                </div>
-                                <div>
-                                  <span className="font-bold text-indigo-900 block">
-                                    Кому: {getReceiverName(msg)}
-                                  </span>
-                                  {msg.isBroadcast && (
-                                    <span className="text-sm text-indigo-600 font-medium">Всем пользователям</span>
-                                  )}
-                                </div>
-                              </>
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">{partnerName.charAt(0).toUpperCase()}</div>
+                            )}
+                            {isOnline && <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>}
+                          </div>
+                          <div>
+                            <p className="font-bold text-indigo-900 text-sm">{partnerName}</p>
+                            <p className="text-xs text-gray-500">
+                              {partnerRole && <span className="font-medium text-indigo-500">{getRoleLabel(partnerRole)}</span>}
+                              {lastSeenText && <span className="ml-1 text-gray-400">· {lastSeenText}</span>}
+                            </p>
+                          </div>
+                        </div>
+                        {chatMessages.map((msg) => (
+                          <div key={msg.id} className={`p-3 md:p-4 rounded-2xl border-2 ${msg.senderId === userId ? 'bg-indigo-50 border-indigo-200 ml-4 md:ml-8' : 'bg-white border-gray-200 mr-4 md:mr-8'}`}>
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="font-semibold text-gray-700 text-xs">{msg.senderId === userId ? 'Вы' : getSenderName(msg)}</span>
+                              <span className="text-[10px] text-gray-400 shrink-0 ml-2">{formatDate(msg.createdAt)}</span>
+                            </div>
+                            <p className="text-gray-800 text-sm">{msg.content}</p>
+                            {!msg.readAt && msg.receiverId === userId && (
+                              <button onClick={() => markAsRead(msg.id)} className="mt-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-all">Прочитать</button>
                             )}
                           </div>
-                          <span className="text-sm text-indigo-400 font-medium whitespace-nowrap">
-                            {formatDate(msg.createdAt)}
-                          </span>
-                        </div>
-                        <p className="text-indigo-900 font-medium leading-relaxed whitespace-pre-wrap pl-[52px]">{msg.content}</p>
-                        
-                        {/* File Attachment */}
-                        {msg.fileUrl && (
-                          <div className="mt-3 pl-[52px]">
-                            <a
-                              href={msg.fileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-3 p-3 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-xl border-2 border-indigo-200 hover:border-indigo-400 hover:shadow-md transition-all group"
-                            >
-                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                                {msg.fileType?.startsWith('image/') ? (
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                ) : (
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                  </svg>
-                                )}
+                        ))}
+                        <div ref={messagesEndRef} />
+                      </>
+                    );
+                  }
+
+                  // Показываем список чатов (сгруппированные по собеседнику)
+                  return (
+                    <>
+                      {Array.from(grouped.values()).map((conv) => (
+                        <button key={conv.partnerId} onClick={() => setSelectedChatPartner(conv.partnerId)} className={`w-full p-3 md:p-4 rounded-2xl border-2 transition-all text-left hover:shadow-md ${conv.unread > 0 ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-300' : 'bg-white border-indigo-100'}`}>
+                          <div className="flex items-center gap-3">
+                            <div className="relative shrink-0">
+                              {conv.partnerAvatar ? (
+                                <img src={conv.partnerAvatar} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-indigo-200" />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                                  {conv.partnerName.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              {onlineUsers.has(conv.partnerId) && (
+                                <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-bold text-indigo-900 truncate text-sm">{conv.partnerName}</span>
+                                <span className="text-[10px] text-gray-400 shrink-0">{formatDate(conv.lastDate)}</span>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-bold text-indigo-900 truncate max-w-[200px]">{msg.fileName || "Файл"}</p>
-                                {msg.fileSize && (
-                                  <p className="text-sm text-indigo-600">{formatFileSize(msg.fileSize)}</p>
-                                )}
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs text-gray-600 truncate">{conv.lastContent}</p>
+                                {conv.partnerRole && <span className="text-[10px] text-indigo-500 font-medium shrink-0">{getRoleLabel(conv.partnerRole)}</span>}
                               </div>
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-400 group-hover:text-indigo-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                              </svg>
-                            </a>
+                            </div>
+                            {conv.unread > 0 && <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-bold shrink-0">{conv.unread}</span>}
                           </div>
-                        )}
-                      </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </>
-                )}
+                        </button>
+                      ))}
+                      <div ref={messagesEndRef} />
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>

@@ -28,11 +28,17 @@ export default function SubjectsAdminPage({
   teachersData,
   classesData,
   teacherSubjectsData,
+  studentsData,
+  electivesData,
+  electiveStudentsData,
 }: {
   allSubjectsData: Subject[];
   teachersData: any[];
   classesData: ClassGroup[];
   teacherSubjectsData: any[];
+  studentsData?: any[];
+  electivesData?: any[];
+  electiveStudentsData?: any[];
 }) {
   const classNumbers = Array.from(new Set(
     classesData.map(cls => {
@@ -411,6 +417,10 @@ export default function SubjectsAdminPage({
                 teachers={teachersData}
                 teacherSubjects={teacherSubjectsData}
                 onShowToast={showToast}
+                students={studentsData}
+                electivesData={electivesData}
+                electiveStudentsData={electiveStudentsData}
+                classes={classesData}
               />
             ))}
             {electiveSubjects.map((subject) => (
@@ -420,6 +430,10 @@ export default function SubjectsAdminPage({
                 teachers={teachersData}
                 teacherSubjects={teacherSubjectsData}
                 onShowToast={showToast}
+                students={studentsData}
+                electivesData={electivesData}
+                electiveStudentsData={electiveStudentsData}
+                classes={classesData}
               />
             ))}
           </div>

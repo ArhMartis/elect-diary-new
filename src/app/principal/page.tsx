@@ -167,20 +167,22 @@ export default async function PrincipalPage() {
       const gsRows = await db.select().from(groupSubjects).where(eq(groupSubjects.groupId, group.id));
       const gsSubjectIds = gsRows.map(gs => gs.subjectId);
       
-      const uniqueSubjects: { id: number; name: string; teacherName: string }[] = [];
+      const uniqueSubjects: { id: number; name: string; teacherName: string; type: string | null }[] = [];
       for (const sid of gsSubjectIds) {
         const subject = await db.query.subjects.findFirst({ where: eq(subjects.id, sid) });
         if (!subject) continue;
-        const tsRows = await db.select().from(teacherSubjects).where(eq(teacherSubjects.subjectId, sid));
-        const teacherNames = [];
-        for (const ts of tsRows) {
-          const t = allTeachers.find(tt => tt.id === ts.teacherId);
-          if (t?.fullName) teacherNames.push(t.fullName);
+        const noTeacherTypes = ['class_hour', 'event'];
+        let teacherName = '';
+        if (!noTeacherTypes.includes(subject.type || '')) {
+          const tsRows = await db.select().from(teacherSubjects).where(eq(teacherSubjects.subjectId, sid));
+          const names = tsRows.map(ts => allTeachers.find(t => t.id === ts.teacherId)?.fullName).filter(Boolean);
+          teacherName = names.join(', ');
         }
         uniqueSubjects.push({
           id: subject.id,
           name: subject.name,
-          teacherName: teacherNames.join(', '),
+          teacherName,
+          type: subject.type,
         });
       }
 
@@ -196,7 +198,7 @@ export default async function PrincipalPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-[#1e1e2e] dark:via-[#181825] dark:to-[#1e1e2e] p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-[#1e1e2e] dark:via-[#181825] dark:to-[#1e1e2e] p-3 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Навигация */}
         <div className="bg-white dark:bg-[#1e1e2e] rounded-xl shadow-lg p-6 border border-gray-100 dark:border-[#45475a]">

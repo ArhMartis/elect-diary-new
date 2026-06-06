@@ -24,22 +24,63 @@ interface TeacherSubject {
   subjectId: number;
 }
 
+interface ElectiveItem {
+  id: number;
+  name: string;
+  subjectId: number | null;
+}
+
+interface ElectiveStudentRow {
+  id: number;
+  electiveId: number;
+  studentId: string;
+}
+
+interface ClassGroup {
+  id: number;
+  name: string;
+  teacherId: string | null;
+}
+
+interface Student {
+  id: string;
+  fullName: string;
+  groupId: number | null;
+}
+
 interface SubjectItemProps {
   subject: Subject;
   teachers: Teacher[];
   teacherSubjects: TeacherSubject[];
   onShowToast: (message: string, type: 'success' | 'error') => void;
+  students?: Student[];
+  electivesData?: ElectiveItem[];
+  electiveStudentsData?: ElectiveStudentRow[];
+  classes?: ClassGroup[];
 }
 
 export function SubjectItem({
   subject,
   teachers,
   teacherSubjects,
-  onShowToast
+  onShowToast,
+  students,
+  electivesData,
+  electiveStudentsData,
+  classes
 }: SubjectItemProps) {
   const [isTeachersOpen, setIsTeachersOpen] = useState(false);
+  const [isStudentsOpen, setIsStudentsOpen] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  // Находим запись в electives для текущего предмета
+  const electiveEntry = electivesData?.find(e => e.subjectId === subject.id);
+  const relatedElectiveStudents = electiveEntry
+    ? (electiveStudentsData?.filter(es => es.electiveId === electiveEntry.id) || [])
+    : [];
   
   // Получаем IDs учителей, закреплённых за ЭТИМ предметом (исправлено - было для всех предметов)
   const subjectTeacherSubjects = teacherSubjects.filter(ts => ts.subjectId === subject.id);
@@ -286,6 +327,111 @@ export function SubjectItem({
                 <p className="text-gray-500 text-sm text-center py-4">
                   В системе нет учителей
                 </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Секция учеников для специализированных предметов */}
+      {(subject.type === 'elective' || subject.type === 'olympiad') && students && electivesData && electiveStudentsData && (
+        <div className="bg-gray-50 rounded-lg overflow-hidden mt-3">
+          <button
+            onClick={() => setIsStudentsOpen(!isStudentsOpen)}
+            className="w-full p-4 flex items-center justify-between hover:bg-gray-100 transition-colors"
+          >
+            <h4 className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+              </svg>
+              Ученики на предмете:
+              <span className="text-xs font-normal text-gray-500">
+                ({relatedElectiveStudents.length} записано)
+              </span>
+            </h4>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">{isStudentsOpen ? 'Скрыть' : 'Показать'}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 text-gray-500 transition-transform duration-300 ${isStudentsOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </div>
+          </button>
+
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isStudentsOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className="p-4 pt-0 space-y-2">
+              {electiveEntry ? (
+                <div className="flex flex-col sm:flex-row gap-2 p-3 bg-white border border-gray-200 rounded-lg">
+                  <select value={selectedClassId ?? ""} onChange={(e) => { setSelectedClassId(e.target.value ? Number(e.target.value) : null); setSelectedStudentId(""); }} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                    <option value="">Выберите класс</option>
+                    {[...new Set(students.filter(s => s.groupId).map(s => s.groupId))].map(gid => {
+                      const cls = classes?.find(c => c.id === gid);
+                      return <option key={gid} value={gid ?? ""}>{cls?.name || `Класс ${gid}`}</option>;
+                    })}
+                  </select>
+                  <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" disabled={!selectedClassId}>
+                    <option value="">Выберите ученика</option>
+                    {students.filter(s => s.groupId === selectedClassId).filter(s => !relatedElectiveStudents.some(es => es.studentId === s.id)).map(s => (
+                      <option key={s.id} value={s.id}>{s.fullName}</option>
+                    ))}
+                  </select>
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    startTransition(async () => {
+                      try {
+                        const currentIds = relatedElectiveStudents.map(es => es.studentId);
+                        const res = await fetch("/api/electives", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ electiveId: electiveEntry.id, studentIds: [...currentIds, selectedStudentId] }),
+                        });
+                        if (!res.ok) throw new Error();
+                        onShowToast("Ученик добавлен на предмет", 'success');
+                        router.refresh();
+                      } catch { onShowToast("Ошибка при добавлении ученика", 'error'); }
+                    });
+                  }}>
+                    <button type="submit" disabled={isPending || !selectedStudentId} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all text-sm font-medium whitespace-nowrap">Добавить</button>
+                  </form>
+                </div>
+              ) : (
+                <p className="text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">Запись в таблице electives не найдена. Пересоздайте предмет.</p>
+              )}
+
+              {relatedElectiveStudents.map(es => {
+                const student = students.find(s => s.id === es.studentId);
+                return (
+                  <div key={es.id} className="flex justify-between items-center p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <span className="text-emerald-700 font-semibold text-sm">{student?.fullName?.charAt(0).toUpperCase() || "?"}</span>
+                      </div>
+                      <span className="font-medium text-emerald-800">{student?.fullName || "Неизвестный ученик"}</span>
+                    </div>
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      startTransition(async () => {
+                        try {
+                          const res = await fetch("/api/electives", {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ studentId: es.studentId, electiveId: electiveEntry!.id }),
+                          });
+                          if (!res.ok) throw new Error();
+                          onShowToast("Ученик удалён с предмета", 'success');
+                          router.refresh();
+                        } catch { onShowToast("Ошибка при удалении ученика", 'error'); }
+                      });
+                    }}>
+                      <button type="submit" disabled={isPending} className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white flex items-center justify-center transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg>
+                      </button>
+                    </form>
+                  </div>
+                );
+              })}
+              
+              {relatedElectiveStudents.length === 0 && (
+                <p className="text-gray-500 text-sm text-center py-4">Нет записанных учеников. Используйте форму выше, чтобы добавить учеников.</p>
               )}
             </div>
           </div>

@@ -50,7 +50,7 @@ export default async function HomePage() {
                 />
               </svg>
             </div>
-            <h1 className="text-5xl md:text-6xl font-extrabold text-white tracking-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-white tracking-tight break-all sm:break-normal">
               Knowledge<span className="opacity-80">BY</span>
             </h1>
           </div>

@@ -908,7 +908,7 @@ export default function TeacherForms({
                 <p className="text-gray-400 text-sm mt-1">Добавьте расписание через Админ → Расписание</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
                 {weekDates.map(({ dayOfWeek, date, dateStr }) => {
                   const dayLessons = scheduleByDayOfWeek[dayOfWeek] || [];
                   const isToday = localDateStr(new Date()) === dateStr;
@@ -922,7 +922,7 @@ export default function TeacherForms({
                           setSelectingDueDate(false);
                         }
                       }}
-                      className={`rounded-xl border-2 p-3 transition-all flex flex-col ${
+                      className={`rounded-xl border-2 p-2 md:p-3 transition-all flex flex-col ${
                       isToday
                         ? "bg-white border-indigo-400 shadow-md shadow-indigo-100/50"
                         : selectingDueDate
@@ -1041,70 +1041,75 @@ export default function TeacherForms({
       </div>
 
       {/* ===== TABS ===== */}
-      <div className="px-6 pt-5 flex gap-1 border-b border-gray-200">
+      <div className="px-3 md:px-6 pt-3 md:pt-5 flex gap-1 border-b border-gray-200 overflow-x-auto overflow-y-hidden flex-nowrap scrollbar-none" style={{scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch'}}>
         <button
           onClick={() => setActiveTab("homework")}
-          className={`px-5 py-3 font-semibold text-sm tracking-wide border-b-2 transition-all ${
+          className={`shrink-0 px-3 md:px-5 py-2.5 md:py-3 font-semibold text-xs md:text-sm tracking-wide border-b-2 transition-all ${
             activeTab === "homework" ? "border-blue-600 text-blue-700 bg-blue-50/50" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
           }`}
         >
-          <span className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" /></svg>
-            Домашнее задание
+          <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" /></svg>
+            <span className="hidden sm:inline">Домашнее задание</span>
+            <span className="sm:hidden">ДЗ</span>
           </span>
         </button>
         <button
           onClick={() => setActiveTab("grades")}
-          className={`px-5 py-3 font-semibold text-sm tracking-wide border-b-2 transition-all ${
+          className={`shrink-0 px-3 md:px-5 py-2.5 md:py-3 font-semibold text-xs md:text-sm tracking-wide border-b-2 transition-all ${
             activeTab === "grades" ? "border-purple-600 text-purple-700 bg-purple-50/50" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
           }`}
         >
-          <span className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-            Выставить оценку
+          <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+            <span className="hidden sm:inline">Выставить оценку</span>
+            <span className="sm:hidden">Оценка</span>
           </span>
         </button>
         <button
           onClick={() => setActiveTab("attendance")}
-          className={`px-5 py-3 font-semibold text-sm tracking-wide border-b-2 transition-all ${
+          className={`shrink-0 px-3 md:px-5 py-2.5 md:py-3 font-semibold text-xs md:text-sm tracking-wide border-b-2 transition-all ${
             activeTab === "attendance" ? "border-amber-600 text-amber-700 bg-amber-50/50" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
           }`}
         >
-          <span className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-            Отметка отсутствующих
+          <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+            <span className="hidden sm:inline">Отметка отсутствующих</span>
+            <span className="sm:hidden">Посещаемость</span>
           </span>
         </button>
         <button
           onClick={() => setActiveTab("quarterly")}
-          className={`px-5 py-3 font-semibold text-sm tracking-wide border-b-2 transition-all ${
+          className={`shrink-0 px-3 md:px-5 py-2.5 md:py-3 font-semibold text-xs md:text-sm tracking-wide border-b-2 transition-all ${
             activeTab === "quarterly" ? "border-emerald-600 text-emerald-700 bg-emerald-50/50" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
           }`}
         >
-          <span className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
-            Выставить четвертную
+          <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
+            <span className="hidden sm:inline">Выставить четвертную</span>
+            <span className="sm:hidden">Четвертная</span>
           </span>
         </button>
         <button
           onClick={() => setActiveTab("yearly")}
-          className={`px-5 py-3 font-semibold text-sm tracking-wide border-b-2 transition-all ${
+          className={`shrink-0 px-3 md:px-5 py-2.5 md:py-3 font-semibold text-xs md:text-sm tracking-wide border-b-2 transition-all ${
             activeTab === "yearly" ? "border-violet-600 text-violet-700 bg-violet-50/50" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
           }`}
         >
-          <span className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" /></svg>
-            Годовая оценка
+          <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" /></svg>
+            <span className="hidden sm:inline">Годовая оценка</span>
+            <span className="sm:hidden">Годовая</span>
           </span>
         </button>
       </div>
 
-      <div className="p-6">
+      <div className="p-3 md:p-6">
         {/* ===== HOMEWORK TAB ===== */}
         {activeTab === "homework" && (
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-1 tracking-tight flex items-center gap-3">
-              <span className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 text-lg">📝</span>
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-3 md:p-6 border border-blue-100">
+            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1 tracking-tight flex items-center gap-2 md:gap-3">
+              <span className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 text-base md:text-lg shrink-0">📝</span>
               Добавить домашнее задание
             </h3>
 
@@ -1206,7 +1211,7 @@ export default function TeacherForms({
                           <option value="4" className="text-gray-900">IV четверть</option>
                         </select>
                       </div>
-                      <div className="grid grid-cols-7 gap-1">
+                      <div className="grid grid-cols-6 gap-0.5 md:gap-1">
                       {(() => {
                         const dates: { dayOfWeek: number; date: Date; dateStr: string }[] = [];
                         for (let i = 1; i <= 6; i++) {
@@ -1247,26 +1252,21 @@ export default function TeacherForms({
                                   }
                                 }}
                                 title={isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}${existingHw ? " (есть ДЗ)" : ""}` : "Недоступно")}
-                                className={`w-full flex flex-col items-center rounded-lg text-xs font-semibold transition-all border ${
+                                className={`w-full flex flex-col items-center rounded-lg text-[10px] md:text-xs font-semibold transition-all border min-h-[60px] md:min-h-[72px] ${
                                   isSelected
-                                    ? "p-1 bg-amber-500 text-white border-amber-500 shadow-sm"
+                                    ? "p-0.5 md:p-1 bg-amber-500 text-white border-amber-500 shadow-sm"
                                     : isHoliday
-                                      ? "p-1 bg-[#f3f4f6] dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400"
+                                      ? "p-0.5 md:p-1 bg-[#f3f4f6] dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400"
                                       : lessonForSubject
-                                        ? existingHw ? "p-1 bg-[#fef3c7] border-amber-500 text-amber-800 hover:bg-[#fde68a] hover:border-amber-600 cursor-pointer" : "p-1 bg-[#fffbeb] border-amber-400 text-amber-800 hover:bg-[#fef3c7] hover:border-amber-500 cursor-pointer"
-                                         : "p-1.5 no-theme-empty text-gray-400 dark:text-gray-500"
+                                        ? existingHw ? "p-0.5 md:p-1 bg-[#fef3c7] border-amber-500 text-amber-800 hover:bg-[#fde68a] hover:border-amber-600 cursor-pointer" : "p-0.5 md:p-1 bg-[#fffbeb] border-amber-400 text-amber-800 hover:bg-[#fef3c7] hover:border-amber-500 cursor-pointer"
+                                        : "p-1 md:p-1.5 no-theme-empty text-gray-400 dark:text-gray-500"
                                 }`}
                               >
-                                <span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span>
-                                <span className={`text-[10px] ${isSelected ? "text-amber-100" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>
+                                <span className="font-bold text-[11px] md:text-xs">{SHORT_DAYS[dayOfWeek]}</span>
+                                <span className={`text-[9px] md:text-[10px] ${isSelected ? "text-amber-100" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>{date.toLocaleDateString("ru-RU", { day: "numeric" })}</span>
                                 {lessonForSubject && !isHoliday && (
-                                  <span className={`text-[11px] mt-0.5 leading-tight truncate max-w-full font-bold ${isSelected ? 'text-amber-100' : 'text-amber-700 dark:text-amber-400'}`}>
-                                    {existingHw ? "📝 " + lessonForSubject.subjectName : lessonForSubject.subjectName}
-                                  </span>
-                                )}
-                                {existingHw && !isHoliday && (
-                                  <span className={`text-[8px] leading-tight truncate max-w-full mt-0.5 ${isSelected ? 'text-amber-100' : 'text-amber-600 dark:text-amber-500'}`}>
-                                    {existingHw.description}
+                                  <span className={`text-[9px] md:text-[11px] mt-0.5 leading-tight truncate max-w-full font-bold ${isSelected ? 'text-amber-100' : 'text-amber-700 dark:text-amber-400'}`}>
+                                    {existingHw ? "📝 " : ""}{lessonForSubject.subjectName}
                                   </span>
                                 )}
                               </button>
@@ -1274,10 +1274,10 @@ export default function TeacherForms({
                                 <button
                                   type="button"
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteHomework(existingHw.id); }}
-                                  className="mt-1 w-full text-[10px] text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded py-0.5 transition-colors z-10 relative"
+                                  className="mt-0.5 w-full text-[9px] md:text-[10px] text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded py-0.5 transition-colors z-10 relative"
                                   title="Удалить ДЗ"
                                 >
-                                  Удалить ДЗ
+                                  Удалить
                                 </button>
                               )}
                             </span>
@@ -1323,8 +1323,8 @@ export default function TeacherForms({
                       return getHolidayNameByDate(date) !== null;
                     };
                     return (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowCalendarPopup(false)}>
-                        <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5" onClick={(e) => e.stopPropagation()}>
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3" onClick={() => setShowCalendarPopup(false)} style={{overscrollBehavior: 'contain'}}>
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-3 md:p-5 mx-2" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-between mb-3">
                             <h3 className="text-sm font-bold text-gray-900">Выберите дату</h3>
                             <button onClick={() => setShowCalendarPopup(false)} className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors">
@@ -1477,7 +1477,7 @@ export default function TeacherForms({
                           <option value="1">I четверть</option><option value="2">II четверть</option><option value="3">III четверть</option><option value="4">IV четверть</option>
                         </select>
                       </div>
-                      <div className="grid grid-cols-7 gap-1">
+                      <div className="grid grid-cols-6 gap-0.5 md:gap-1">
                         {(() => { const dates: any[] = []; for (let i = 1; i <= 6; i++) { const d = new Date(dueDateWeek); d.setDate(d.getDate() + (i - 1)); dates.push({ dayOfWeek: i, date: d, dateStr: localDateStr(d) }); } return dates.map(({ dayOfWeek, date, dateStr }) => { const lessonForSubject = schedule.find(s => s.subjectId === parseInt(gradeForm.subjectId) && ((s.lessonDate && s.lessonDate === dateStr) || (s.dayOfWeek != null && s.dayOfWeek === dayOfWeek))); const isSelected = gradeForm.date === dateStr; const hName = getHolidayNameByDate(date); const cel = getHolidayByDate(date); const isHoliday = hName !== null || cel !== null; const isPast = date < new Date(new Date().setHours(0, 0, 0, 0)); const hasGrade = existingGrades.some((g: any) => g.date && g.date.startsWith(dateStr)); return (
   <span key={dayOfWeek} className={`h-full w-full ${!lessonForSubject || isHoliday || hasGrade ? "cursor-not-allowed" : ""}`}>
     <button
@@ -1485,14 +1485,13 @@ export default function TeacherForms({
       disabled={!lessonForSubject || isHoliday || hasGrade}
       onClick={() => { if (lessonForSubject && !hasGrade) setGradeForm((prev) => ({ ...prev, date: dateStr, scheduleId: String(lessonForSubject.id) })); }}
       title={hasGrade ? "Оценка уже выставлена на этот день" : isHoliday ? (hName || cel?.name || "Выходной") : (lessonForSubject ? `${SHORT_DAYS[dayOfWeek]} — ${lessonForSubject.subjectName}` : "Недоступно")}
-      className={`w-full flex flex-col items-center rounded-lg text-xs font-semibold transition-all border ${isSelected ? "p-1 bg-purple-500 text-white border-purple-500 shadow-sm" : hasGrade ? "p-1 bg-emerald-100 border-emerald-400 text-emerald-600 cursor-not-allowed" : isHoliday ? "p-1 bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed" : lessonForSubject ? "p-1 bg-white border-purple-300 text-purple-800 hover:bg-purple-100 hover:border-purple-400 cursor-pointer" : "p-1.5 bg-gray-50 border-gray-100 text-gray-400"}`}
+      className={`w-full flex flex-col items-center rounded-lg text-[10px] md:text-xs font-semibold transition-all border min-h-[56px] md:min-h-[68px] ${isSelected ? "p-0.5 md:p-1 bg-purple-500 text-white border-purple-500 shadow-sm" : hasGrade ? "p-0.5 md:p-1 bg-emerald-100 border-emerald-400 text-emerald-600 cursor-not-allowed" : isHoliday ? "p-0.5 md:p-1 bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed" : lessonForSubject ? "p-0.5 md:p-1 bg-white border-purple-300 text-purple-800 hover:bg-purple-100 hover:border-purple-400 cursor-pointer" : "p-1 md:p-1.5 bg-gray-50 border-gray-100 text-gray-400"}`}
     >
-      <span className="font-bold">{SHORT_DAYS[dayOfWeek]}</span>
-      <span className={`text-[10px] ${isSelected ? "text-purple-100" : hasGrade ? "text-emerald-600" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>
+      <span className="font-bold text-[11px] md:text-xs">{SHORT_DAYS[dayOfWeek]}</span>
+      <span className={`text-[9px] md:text-[10px] ${isSelected ? "text-purple-100" : hasGrade ? "text-emerald-600" : isHoliday ? "text-gray-400 line-through" : "text-gray-400"}`}>
         {date.toLocaleDateString("ru-RU", { day: "numeric" })}
       </span>
-      {lessonForSubject && !isHoliday && <span className={`text-[10px] mt-0.5 leading-tight truncate max-w-full ${isSelected ? 'text-purple-100' : hasGrade ? 'text-emerald-600' : 'text-purple-600'}`}>{hasGrade ? "✓" : lessonForSubject.subjectName}</span>}
-      {hasGrade && <span className="text-[8px] text-emerald-500 font-bold mt-0.5">оценка есть</span>}
+      {lessonForSubject && !isHoliday && <span className={`text-[9px] md:text-[10px] mt-0.5 leading-tight truncate max-w-full ${isSelected ? 'text-purple-100' : hasGrade ? 'text-emerald-600' : 'text-purple-600'}`}>{hasGrade ? "✓" : lessonForSubject.subjectName}</span>}
     </button>
   </span>
 ); }); })()}
@@ -1711,18 +1710,18 @@ export default function TeacherForms({
               </div>
 
               <div className="bg-white rounded-2xl border border-amber-200 overflow-hidden">
-                <div className="grid grid-cols-12 gap-2 p-4 bg-amber-100/80 font-bold text-amber-900 text-sm">
-                  <div className="col-span-5">Ученик</div>
-                  <div className="col-span-7 text-center">Статус</div>
+                <div className="hidden md:grid grid-cols-12 gap-2 p-4 bg-amber-100/80 font-bold text-amber-900 text-sm">
+                  <div className="col-span-4 md:col-span-5">Ученик</div>
+                  <div className="col-span-8 md:col-span-7 text-center">Статус</div>
                 </div>
                 <div className="divide-y divide-amber-50">
                   {students.map((student) => (
-                    <div key={student.id} className="grid grid-cols-12 gap-2 p-4 items-center hover:bg-amber-50/30">
-                      <div className="col-span-5 font-semibold text-gray-800">{student.fullName}</div>
-                      <div className="col-span-7 flex justify-center gap-2">
-                        <button type="button" onClick={() => setAttendanceForm({ ...attendanceForm, attendance: { ...attendanceForm.attendance, [student.id]: "present" } })} className={`px-4 py-2 rounded-xl font-semibold text-sm transition-all ${attendanceForm.attendance[student.id] === "present" ? "bg-emerald-500 text-white shadow-md shadow-emerald-200/50" : "bg-gray-100 text-gray-600 hover:bg-emerald-50"}`}>✓ Присутствует</button>
-                        <button type="button" onClick={() => setAttendanceForm({ ...attendanceForm, attendance: { ...attendanceForm.attendance, [student.id]: "absent" } })} className={`px-4 py-2 rounded-xl font-semibold text-sm transition-all ${attendanceForm.attendance[student.id] === "absent" ? "bg-yellow-500 text-white shadow-md shadow-yellow-200/50" : "bg-gray-100 text-gray-600 hover:bg-yellow-50"}`}>⚠ Пропуск</button>
-                        <button type="button" onClick={() => setAttendanceForm({ ...attendanceForm, attendance: { ...attendanceForm.attendance, [student.id]: "unexcused" } })} className={`px-4 py-2 rounded-xl font-semibold text-sm transition-all ${attendanceForm.attendance[student.id] === "unexcused" ? "bg-red-500 text-white shadow-md shadow-red-200/50" : "bg-gray-100 text-gray-600 hover:bg-red-50"}`}>✗ Неуваж.</button>
+                    <div key={student.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 p-3 md:p-4 items-center hover:bg-amber-50/30">
+                      <div className="md:col-span-4 md:col-span-5 font-semibold text-gray-800 text-sm md:text-base">{student.fullName}</div>
+                      <div className="md:col-span-8 md:col-span-7 flex justify-start md:justify-center gap-1.5 md:gap-2">
+                        <button type="button" onClick={() => setAttendanceForm({ ...attendanceForm, attendance: { ...attendanceForm.attendance, [student.id]: "present" } })} className={`flex-1 md:flex-none px-2 md:px-4 py-2 rounded-xl font-semibold text-[11px] md:text-sm transition-all ${attendanceForm.attendance[student.id] === "present" ? "bg-emerald-500 text-white shadow-md shadow-emerald-200/50" : "bg-gray-100 text-gray-600 hover:bg-emerald-50"}`}>✓</button>
+                        <button type="button" onClick={() => setAttendanceForm({ ...attendanceForm, attendance: { ...attendanceForm.attendance, [student.id]: "absent" } })} className={`flex-1 md:flex-none px-2 md:px-4 py-2 rounded-xl font-semibold text-[11px] md:text-sm transition-all ${attendanceForm.attendance[student.id] === "absent" ? "bg-yellow-500 text-white shadow-md shadow-yellow-200/50" : "bg-gray-100 text-gray-600 hover:bg-yellow-50"}`}>⚠</button>
+                        <button type="button" onClick={() => setAttendanceForm({ ...attendanceForm, attendance: { ...attendanceForm.attendance, [student.id]: "unexcused" } })} className={`flex-1 md:flex-none px-2 md:px-4 py-2 rounded-xl font-semibold text-[11px] md:text-sm transition-all ${attendanceForm.attendance[student.id] === "unexcused" ? "bg-red-500 text-white shadow-md shadow-red-200/50" : "bg-gray-100 text-gray-600 hover:bg-red-50"}`}>✗</button>
                       </div>
                     </div>
                   ))}
@@ -1738,9 +1737,9 @@ export default function TeacherForms({
 
         {/* ===== QUARTERLY GRADE TAB ===== */}
         {activeTab === "quarterly" && (
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-1 tracking-tight flex items-center gap-3">
-              <span className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-lg">📋</span>
+          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-3 md:p-6 border border-emerald-100">
+            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1 tracking-tight flex items-center gap-2 md:gap-3">
+              <span className="w-8 h-8 md:w-10 md:h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-base md:text-lg shrink-0">📋</span>
               Выставить четвертную оценку
             </h3>
             <p className="text-sm text-emerald-700 mt-1 ml-[52px]">Четвертные оценки по вашим предметам</p>
@@ -2063,8 +2062,8 @@ function SchedulePickerModal({
   useEffect(() => { if (dayKeys.length > 0 && !byDay[selectedDay]) { setSelectedDay(dayKeys[0]); } }, [dayKeys, selectedDay, byDay, setSelectedDay]);
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4 overscroll-contain" onClick={onClose} style={{overscrollBehavior: 'contain'}}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 mx-1 md:mx-0" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-white tracking-wide">Расписание: {subjectName}</h3>

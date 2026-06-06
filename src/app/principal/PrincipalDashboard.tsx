@@ -30,7 +30,7 @@ interface Group {
   teacherId: string | null;
   teacherName?: string;
   students: Student[];
-  subjects: { id: number; name: string; teacherName: string }[];
+  subjects: { id: number; name: string; teacherName: string; type: string | null }[];
 }
 
 interface PrincipalDashboardProps {
@@ -50,16 +50,13 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
   if (activeView === "main") {
     return (
       <div className="space-y-6">
-        {/* Кнопка Посты как в админке - выше трех форм */}
-        <div className="flex justify-end">
+        {/* Кнопка Посты */}
+        <div className="flex justify-center">
           <Link
             href="/principal/posts"
-            className="inline-flex items-center gap-2 px-5 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all shadow-md hover:shadow-lg font-medium text-sm"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all shadow-md hover:shadow-lg font-bold text-sm"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
-              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
             Посты
           </Link>
         </div>
@@ -136,17 +133,17 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
     
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => setActiveView("main")}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-white border-2 border-gray-200 text-gray-800 rounded-xl hover:bg-gray-50 transition-all font-bold shadow-md"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-800 rounded-xl hover:bg-gray-50 transition-all font-bold shadow-md text-sm"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
             Назад
           </button>
-          <h2 className="text-3xl font-bold text-gray-900">Список всех учителей</h2>
+          <h2 className="text-xl md:text-3xl font-bold text-gray-900">Список всех учителей</h2>
         </div>
 
         <div className="grid gap-4">
@@ -231,7 +228,7 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
           const sortedClasses = Array.from(classHoursMap.entries()).sort((a, b) => a[1].name.localeCompare(b[1].name));
 
           return (
-            <div className="fixed inset-0 backdrop-blur-md bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSelectedTeacher(null)}>
+            <div className="fixed inset-0 backdrop-blur-md bg-black/40 z-50 flex items-center justify-center p-2 md:p-4" onClick={() => setSelectedTeacher(null)} style={{overscrollBehavior: 'contain'}}>
               <div className="bg-white dark:bg-[#181825] rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                 <div className="p-6 border-b border-gray-200 dark:border-[#45475a] bg-gradient-to-r from-blue-500 to-indigo-600 rounded-t-2xl">
                   <div className="flex justify-between items-start">
@@ -269,7 +266,7 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
                       </svg>
                       Выберите четверть
                     </p>
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
                       {[1, 2, 3, 4].map((q) => (
                         <button
                           key={q}
@@ -401,14 +398,14 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
         <div className="flex items-center gap-4">
           <button
             onClick={() => setActiveView("main")}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-white border-2 border-gray-200 text-gray-800 rounded-xl hover:bg-gray-50 transition-all font-bold shadow-md"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-800 rounded-xl hover:bg-gray-50 transition-all font-bold shadow-md text-sm"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
             Назад
           </button>
-          <h2 className="text-3xl font-bold text-gray-900">Список всех учеников</h2>
+          <h2 className="text-xl md:text-3xl font-bold text-gray-900">Список всех учеников</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
@@ -444,8 +441,8 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
 
         {/* Модальное окно с дневником ученика */}
         {selectedStudent && (
-          <div className="fixed inset-0 backdrop-blur-md bg-black/40 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          <div className="fixed inset-0 backdrop-blur-md bg-black/40 z-50 flex items-center justify-center p-2 md:p-4" style={{overscrollBehavior: 'contain'}}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] md:max-h-[80vh] overflow-y-auto">
               <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-purple-50 to-pink-50">
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold text-2xl">
@@ -491,14 +488,21 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
         <div className="flex items-center gap-4">
           <button
             onClick={() => setActiveView("main")}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-white border-2 border-gray-200 text-gray-800 rounded-xl hover:bg-gray-50 transition-all font-bold shadow-md"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-800 rounded-xl hover:bg-gray-50 transition-all font-bold shadow-md text-sm"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
             Назад
           </button>
-          <h2 className="text-3xl font-bold text-gray-900">Список всех классов</h2>
+          <h2 className="text-xl md:text-3xl font-bold text-gray-900">Список всех классов</h2>
+          <Link
+            href="/principal/posts"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all shadow-md hover:shadow-lg font-bold text-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
+            Посты
+          </Link>
         </div>
 
         <div className="grid gap-6">
@@ -542,7 +546,7 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
                           key={idx}
                           className="px-3 py-1.5 bg-white border-2 border-emerald-300 text-emerald-800 rounded-lg text-sm font-bold"
                         >
-                          {subject.name}{subject.teacherName ? ` — ${subject.teacherName}` : ""}
+                          {subject.name}{subject.type === 'class_hour' || subject.type === 'event' ? '' : subject.teacherName ? ` — ${subject.teacherName}` : ''}
                         </span>
                       ))}
                       {group.subjects.length > 4 && (
@@ -562,8 +566,8 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
 
         {/* Модальное окно с деталями класса */}
         {selectedGroup && (
-          <div className="fixed inset-0 backdrop-blur-md bg-black/40 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-y-auto">
+          <div className="fixed inset-0 backdrop-blur-md bg-black/40 z-50 flex items-center justify-center p-2 md:p-4" style={{overscrollBehavior: 'contain'}}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] md:max-h-[85vh] overflow-y-auto">
               <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-emerald-50 to-teal-50">
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-2xl">
@@ -626,7 +630,7 @@ export default function PrincipalDashboard({ teachers, students, groups }: Princ
                       >
                         <span className="font-bold text-gray-900">{subject.name}</span>
                         <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm font-bold">
-                          {subject.teacherName || <span className="text-red-500">Не назначен</span>}
+                          {subject.type === 'class_hour' || subject.type === 'event' ? <span className="text-gray-400">—</span> : (subject.teacherName || <span className="text-red-500">Не назначен</span>)}
                         </span>
                       </div>
                     ))}

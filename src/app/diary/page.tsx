@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { user, groups, grades, schedule, subjects, groupSubjects, teacherSubjects, teacherClasses, parentsToStudents, homework } from "@/db/schema/auth_schema";
+import { electives, electiveStudents } from "@/db/schema/diary-extra";
 import { eq, and, lte, gte } from "drizzle-orm";
 import StudentDiaryPage from "@/components/StudentDiaryPage";
 import { isTeacherHomeroomTeacher, isUserParentOfStudent, getDirector, getHomeroomTeacherByGroup, getDiarySettings } from "@/app/student/actions";
@@ -241,6 +242,39 @@ export default async function DiaryPage({ searchParams }: PageProps) {
     specialSubjectNames = [];
   }
 
+  // Загружаем информацию о записи ученика на специализированные предметы (через electives)
+  let specialSubjectEnrollment: Record<string, { enrolled: boolean; hasStudents: boolean }> = {};
+  try {
+    const allElectiveSubjects = await db.select().from(subjects).where(eq(subjects.type, 'elective'));
+    const allOlympiadSubjects = await db.select().from(subjects).where(eq(subjects.type, 'olympiad'));
+    const allSpecialSubjects = [...allElectiveSubjects, ...allOlympiadSubjects];
+
+    const allElectiveRows = await db.select().from(electives);
+    const allEnrollments = await db.select().from(electiveStudents);
+    const studentEnrolledElectiveIds = new Set(
+      allEnrollments.filter(e => e.studentId === targetStudentId).map(e => e.electiveId)
+    );
+
+    for (const subj of allSpecialSubjects) {
+      const electiveRow = allElectiveRows.find(e => e.subjectId === subj.id);
+      if (electiveRow) {
+        const enrollmentsForElective = allEnrollments.filter(e => e.electiveId === electiveRow.id);
+        specialSubjectEnrollment[subj.name] = {
+          enrolled: studentEnrolledElectiveIds.has(electiveRow.id),
+          hasStudents: enrollmentsForElective.length > 0,
+        };
+      } else {
+        // Если нет записи в electives, считаем что учеников нет
+        specialSubjectEnrollment[subj.name] = {
+          enrolled: false,
+          hasStudents: false,
+        };
+      }
+    }
+  } catch {
+    specialSubjectEnrollment = {};
+  }
+
   // Получаем названия предметов из groupSubjects (привязка предметов к классу)
   let filteredSubjectNames: string[] = [];
   let allSubjectNamesForSchedule: string[] = [];
@@ -341,6 +375,7 @@ export default async function DiaryPage({ searchParams }: PageProps) {
       subjectTeacherMap={subjectTeacherMap}
       eventSubjectNames={eventSubjectNames}
       specialSubjectNames={specialSubjectNames}
+      specialSubjectEnrollment={specialSubjectEnrollment}
       initialContacts={diarySettings ? {
         director: effectiveDirector || diarySettings.director,
         directorPhone: diarySettings.directorPhone,

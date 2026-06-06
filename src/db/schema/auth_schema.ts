@@ -52,6 +52,9 @@ export const user = sqliteTable("user", {
     .$onUpdate(() => new Date())
     .notNull(),
 
+  // Последняя активность (online)
+  lastSeen: integer("last_seen", { mode: "timestamp_ms" }),
+
     avatar: text("avatar"),
 
   /* ===== поля admin plugin ===== */

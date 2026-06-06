@@ -107,6 +107,7 @@ interface StudentDiaryPageProps {
   subjectTeacherMap?: Record<string, string>;
   eventSubjectNames?: string[];
   specialSubjectNames?: string[];
+  specialSubjectEnrollment?: Record<string, { enrolled: boolean; hasStudents: boolean }>;
   homework?: { id: number; subjectId: number; subjectName: string | null; lessonDate: string; description: string }[];
   initialContacts?: {
     director: string;
@@ -817,6 +818,7 @@ export default function StudentDiaryPage({
   subjectTeacherMap = {},
   eventSubjectNames = [],
   specialSubjectNames = [],
+  specialSubjectEnrollment = {},
   homework = [],
   initialContacts,
   initialHolidays,
@@ -2143,7 +2145,7 @@ export default function StudentDiaryPage({
             {/* Кнопка Назад — слева */}
             <div className="w-[65px] md:w-[85px] shrink-0">
               <a
-                href={effectiveUserRole === "admin" ? "/admin" : effectiveUserRole === "teacher" ? (studentGroupId ? `/teacher?groupId=${studentGroupId}` : "/teacher") : "/diary"}
+                href={effectiveUserRole === "admin" ? "/admin" : effectiveUserRole === "teacher" ? (studentGroupId ? `/teacher?groupId=${studentGroupId}` : "/teacher") : effectiveUserRole === "student" ? "/" : "/"}
                 className="inline-flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 bg-white border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-all text-xs md:text-sm font-semibold"
               >
                 Назад
@@ -2696,6 +2698,10 @@ const holidayName = getHolidayNameByDate(dayDate);
                                 const lessonKey = `${selectedQuarter}-${day.name}-${lesson.lessonNumber - 1}`;
                                 const isEventLesson = eventSubjectNames.includes(lesson.subject);
                                 const isSpecialLesson = specialSubjectNames.includes(lesson.subject);
+                                const subjEnrollment = specialSubjectEnrollment[lesson.subject];
+                                const isEnrolledElective = isSpecialLesson && subjEnrollment?.enrolled;
+                                const isInactiveElective = isSpecialLesson && subjEnrollment?.hasStudents === false;
+                                const electiveExtraClass = isEnrolledElective ? 'elective-glow' : isInactiveElective ? 'elective-inactive' : '';
                                 const eventClass = isEventLesson ? 'bg-emerald-200 border-emerald-500 shadow-sm' : isSpecialLesson ? 'bg-blue-200 border-blue-500 shadow-sm' : '';
                                 const eventTextClass = isEventLesson ? 'text-emerald-900' : isSpecialLesson ? 'text-blue-900' : 'text-gray-900';
                                 const lessonSubjectKey = lesson.subject.trim().toLowerCase();
@@ -2705,14 +2711,14 @@ const holidayName = getHolidayNameByDate(dayDate);
                                 return (
                               <div
                                 key={lesson.lessonNumber}
-                                className={`flex items-center gap-2 p-1.5 rounded border ${markClass} ${eventClass} group`}
+                                className={`flex items-center gap-2 p-1.5 rounded border ${markClass} ${eventClass} ${electiveExtraClass} group`}
                               >
                                 <span className={`w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold shrink-0 ${isEventLesson ? 'bg-emerald-600 text-white shadow-sm' : isSpecialLesson ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-200 text-emerald-800'}`}>{lesson.lessonNumber}</span>
                                 <div className="flex-1 min-w-0">
                                   <span className={`text-xs font-bold truncate block ${eventTextClass}`}>
                                     {isEventLesson && <span className="mr-0.5">🎯</span>}
                                     {isSpecialLesson && <span className="mr-0.5">🏆</span>}
-                                    {lesson.subject}
+                                    <span className={isEnrolledElective ? 'elective-blink' : ''}>{lesson.subject}</span>
                                   </span>
                                   {(() => { const hwItem = homework.find(h => h.subjectName?.trim().toLowerCase() === lesson.subject.trim().toLowerCase() && h.lessonDate === ds); if (!hwItem) return null; return (<span className="text-[11px] text-amber-700 dark:text-amber-400 truncate block font-semibold" title={hwItem.description}>📝 {hwItem.description}</span>); })()}
                                   {(() => {
@@ -3189,6 +3195,7 @@ const holidayName = getHolidayNameByDate(dayDate);
               const dayHomework = homework.filter(h => h.lessonDate === dateStr && h.description?.trim());
               const dayEventSubjects = dayLessons.filter(l => eventSubjectNames.includes(l.subject));
               const daySpecialSubjects = dayLessons.filter(l => specialSubjectNames.includes(l.subject));
+
               const dayEvents = dayEventSubjects.map(l => l.subject);
               const daySpecials = daySpecialSubjects.map(l => l.subject);
               return { dayLessons, dayGrades, marksForDay, holidayName, celebration, hasAbsence, absenceTypes, hasEventLesson, hasSpecialLesson, hasHomework, dayHomework, dayEvents, daySpecials };

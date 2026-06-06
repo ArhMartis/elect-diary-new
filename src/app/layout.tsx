@@ -41,11 +41,11 @@ export default async function RootLayout({
   const flash = cookieStore.get("flash")?.value;
 
 return (
-  <html lang="ru" suppressHydrationWarning>
+    <html lang="ru" suppressHydrationWarning className="overflow-x-hidden">
     <head>
       <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark')}else if(t==='light'){document.documentElement.setAttribute('data-theme','light');document.documentElement.classList.remove('dark')}else if(!t||t==='system'){var d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(d){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark')}else{document.documentElement.setAttribute('data-theme','light');document.documentElement.classList.remove('dark')}}}catch(e){}})()` }} />
     </head>
-    <body className={`${geistSans.variable} ${geistMono.variable} antialiased pt-16 pb-16 md:pb-0`}>
+    <body className={`${geistSans.variable} ${geistMono.variable} antialiased pt-16 pb-16 md:pb-0 overflow-x-hidden`}>
       <ThemeProvider>
         <Navbar />
         <AuthRefresh />

@@ -66,6 +66,8 @@ export const electives = sqliteTable("electives", {
   
   name: text("name").notNull(), // Название факультатива
   
+  subjectId: integer("subject_id").references(() => subjects.id, { onDelete: "cascade" }), // связь с subjects (спецпредметы)
+  
   teacherId: text("teacher_id").references(() => user.id, { onDelete: "set null" }),
   teacherName: text("teacher_name"), // ФИО учителя (кэшируется)
   
@@ -321,6 +323,10 @@ export const electivesRelations = relations(electives, ({ one, many }) => ({
   group: one(groups, {
     fields: [electives.groupId],
     references: [groups.id],
+  }),
+  subject: one(subjects, {
+    fields: [electives.subjectId],
+    references: [subjects.id],
   }),
   students: many(electiveStudents),
 }));

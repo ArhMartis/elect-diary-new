@@ -47,7 +47,7 @@ export default async function Navbar() {
         <div className="flex justify-between items-center">
           {/* Меню + Логотип */}
           <div className="flex items-center">
-            <Drawer isLoggedIn={!!session} hasClass={hasClass} />
+            <Drawer isLoggedIn={!!session} hasClass={hasClass} userRole={role || undefined} />
             <Link href="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-all">
               <svg

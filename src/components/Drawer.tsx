@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 import UnreadMessagesBadge from "./UnreadMessagesBadge";
 
-export default function Drawer({ isLoggedIn, hasClass = true }: { isLoggedIn: boolean; hasClass?: boolean }) {
+export default function Drawer({ isLoggedIn, hasClass = true, userRole }: { isLoggedIn: boolean; hasClass?: boolean; userRole?: string }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -148,6 +148,22 @@ export default function Drawer({ isLoggedIn, hasClass = true }: { isLoggedIn: bo
                 </div>
               )}
             </li>
+            {isLoggedIn && userRole === "student" && !hasClass && (
+              <li>
+                <Link 
+                  href="/contact-admin" 
+                  onClick={closeDrawer} 
+                  className="flex items-center gap-3 text-lg text-yellow-200 hover:text-yellow-100 hover:bg-yellow-500/20 rounded-xl p-3 transition-all border border-yellow-400/30"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-yellow-400/20 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <span className="font-semibold">Связаться с администратором</span>
+                </Link>
+              </li>
+            )}
           </ul>
           
 {/* Нижняя часть с переключателем темы */}

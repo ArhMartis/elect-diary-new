@@ -165,6 +165,9 @@ export async function GET(request: NextRequest) {
             id: true,
             fullName: true,
             role: true,
+            groupId: true,
+            avatar: true,
+            lastSeen: true,
           }
         },
         receiver: {
@@ -172,6 +175,8 @@ export async function GET(request: NextRequest) {
             id: true,
             fullName: true,
             role: true,
+            avatar: true,
+            lastSeen: true,
           }
         }
       }
