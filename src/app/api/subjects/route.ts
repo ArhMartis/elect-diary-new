@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       }
 
       const subjectList = await db
-        .select({ id: subjects.id, name: subjects.name })
+        .select({ id: subjects.id, name: subjects.name, gradeType: subjects.gradeType })
         .from(subjects)
         .where(inArray(subjects.id, subjectIds));
 
@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
         .select({
           id: subjects.id,
           name: subjects.name,
+          gradeType: subjects.gradeType,
         })
         .from(subjects)
         .where(inArray(subjects.id, subjectIds));
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
       .select({
         id: subjects.id,
         name: subjects.name,
+        gradeType: subjects.gradeType,
       })
       .from(subjects)
       .where(inArray(subjects.id, uniqueSubjectIds));

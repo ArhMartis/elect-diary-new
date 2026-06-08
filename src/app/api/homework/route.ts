@@ -122,9 +122,8 @@ import { eq, and, gte, lte } from "drizzle-orm";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { teacherId, groupId, subjectId, lessonDate, description, dueDate } = body;
+    const { teacherId, groupId, subjectId, lessonDate, description, comment, dueDate } = body;
 
-    // Валидация обязательных полей
     if (!teacherId || !groupId || !subjectId || !lessonDate || !description) {
       return NextResponse.json(
         { error: "Заполните все обязательные поля" },
@@ -132,7 +131,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Вставляем новое домашнее задание
     const [newHomework] = await db
       .insert(homework)
       .values({
@@ -141,6 +139,7 @@ export async function POST(request: NextRequest) {
         subjectId,
         lessonDate,
         description,
+        comment: comment || null,
         dueDate: dueDate || null,
       })
       .returning();
@@ -168,18 +167,19 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, description, dueDate } = body;
+    const { id, description, comment, dueDate } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Не указан ID домашнего задания" }, { status: 400 });
     }
 
-    // Обновляем домашнее задание
     const [updatedHomework] = await db
       .update(homework)
       .set({
         description: description,
+        comment: comment,
         dueDate: dueDate,
+        updatedAt: new Date(),
       })
       .where(eq(homework.id, id))
       .returning();

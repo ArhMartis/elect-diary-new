@@ -61,9 +61,9 @@ const icons = {
 // Цвета для кнопок меню - точно как на скриншоте
 const menuButtons = [
   { href: "/admin/users", label: "Пользователи", icon: icons.users, color: "bg-rose-600 hover:bg-rose-700" },
-  { href: "/admin/subjects", label: "Предметы", icon: icons.subjects, color: "bg-indigo-600 hover:bg-indigo-700" },
-  { href: "/diary", label: "Дневник", icon: icons.diary, color: "bg-emerald-600 hover:bg-emerald-700" },
   { href: "/admin/groups", label: "Классы", icon: icons.classes, color: "bg-blue-600 hover:bg-blue-700" },
+  { href: "/diary", label: "Дневник", icon: icons.diary, color: "bg-emerald-600 hover:bg-emerald-700" },
+  { href: "/admin/subjects", label: "Предметы", icon: icons.subjects, color: "bg-indigo-600 hover:bg-indigo-700" },
   { href: "/admin/teacher-classes", label: "Классы учителей", icon: icons.teacherClasses, color: "bg-cyan-600 hover:bg-cyan-700" },
   { href: "/admin/parent-student-links", label: "Связи", icon: icons.links, color: "bg-amber-600 hover:bg-amber-700" },
   { href: "/admin/posts", label: "Посты", icon: icons.posts, color: "bg-teal-600 hover:bg-teal-700" },

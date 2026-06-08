@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const type = (formData.get("type") as string) || "regular";
+    const gradeType = formData.get("gradeType") as string || "numeric";
 
     if (!name || name.trim() === "") {
       return NextResponse.json(
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
     const [newSubject] = await db.insert(subjects).values({
       name: name.trim(),
       type: type,
+      gradeType: gradeType,
     }).returning();
 
     // Для спецпредметов создаём запись в electives

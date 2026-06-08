@@ -239,6 +239,7 @@ export const subjects = sqliteTable("subjects", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   type: text("type").default("regular"),
+  gradeType: text("grade_type").default("numeric"), // "numeric" | "passfail"
   teacherId: text("teacher_id").references(() => user.id, { onDelete: "set null" }),
 });
 
@@ -411,6 +412,9 @@ export const homework = sqliteTable("homework", {
   // Текст домашнего задания
   description: text("description").notNull(),
 
+  // Комментарий к заданию
+  comment: text("comment"),
+
   // Дата, к которой нужно выполнить (срок)
   dueDate: text("due_date"), // формат YYYY-MM-DD
 
@@ -418,6 +422,9 @@ export const homework = sqliteTable("homework", {
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
+
+  // Дата последнего изменения
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
 });
 
 /* =========================================================

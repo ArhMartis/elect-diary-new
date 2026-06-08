@@ -22,6 +22,13 @@ interface Student {
 interface Subject {
   id: number;
   name: string;
+  gradeType?: string | null;
+}
+
+// Проверяет, является ли предмет зачётным
+function isPassFailSubject(subjectId: string, subjects: Subject[]): boolean {
+  const subject = subjects.find(s => String(s.id) === subjectId);
+  return subject?.gradeType === "passfail";
 }
 
 interface ScheduleItem {
@@ -215,6 +222,7 @@ export default function TeacherForms({
     scheduleId: "",
     subjectId: "",
     description: "",
+    comment: "",
     date: localDateStr(new Date()),
     dueDate: "",
     dueTime: "",
@@ -669,19 +677,19 @@ export default function TeacherForms({
         response = await fetch(`/api/homework`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: editHomeworkId, description: homeworkForm.description }),
+          body: JSON.stringify({ id: editHomeworkId, description: homeworkForm.description, comment: homeworkForm.comment || null }),
         });
       } else {
         response = await fetch("/api/homework", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ teacherId, groupId, subjectId, lessonDate: selectedSchedule?.lessonDate || homeworkForm.date || null, description: homeworkForm.description, dueDate: nextLesson?.lessonDate || null }),
+          body: JSON.stringify({ teacherId, groupId, subjectId, lessonDate: selectedSchedule?.lessonDate || homeworkForm.date || null, description: homeworkForm.description, comment: homeworkForm.comment || null, dueDate: nextLesson?.lessonDate || null }),
         });
       }
       if (response.ok) {
         setHomeworkMessage({ type: "success", text: editHomeworkId ? "Домашнее задание изменено!" : `Домашнее задание добавлено!${nextLesson ? ` Срок сдачи: ${formatDate(nextLesson.lessonDate)} (${nextLesson.subjectName})` : ""}` });
         setEditHomeworkId(null);
-        setHomeworkForm({ scheduleId: "", subjectId: "", description: "", date: localDateStr(new Date()), dueDate: "", dueTime: "" });
+        setHomeworkForm({ scheduleId: "", subjectId: "", description: "", comment: "", date: localDateStr(new Date()), dueDate: "", dueTime: "" });
         fetch(`/api/homework?groupId=${groupId}`).then(res => res.json()).then(data => { if (Array.isArray(data)) setHomeworkList(data); });
       } else {
         const error = await response.json();
@@ -1399,6 +1407,18 @@ export default function TeacherForms({
                 {homeworkForm.description.length >= MAX_HOMEWORK_LENGTH && (<p className="text-red-400 text-xs mt-1 font-medium">Достигнуто максимальное количество символов</p>)}
               </div>
 
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-2.5 tracking-wide">
+                  Комментарий к заданию <span className="text-gray-400 font-normal">(необязательно)</span>
+                </label>
+                <textarea
+                  value={homeworkForm.comment}
+                  onChange={(e) => setHomeworkForm((prev) => ({ ...prev, comment: e.target.value }))}
+                  rows={2} placeholder="Дополнительные пояснения к заданию..."
+                  className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white text-gray-900 font-medium resize-none"
+                />
+              </div>
+
               <button type="submit" disabled={savingHomework || !homeworkForm.description.trim() || !homeworkForm.date || (!homeworkForm.scheduleId && !homeworkForm.subjectId)} className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-200/40 text-sm tracking-wide">
                 {savingHomework ? (
                   <span className="flex items-center justify-center gap-2"><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Сохранение...</span>
@@ -1528,23 +1548,31 @@ export default function TeacherForms({
               )}
 
               <div>
-                <label className="block text-sm font-bold text-gray-800 mb-3 tracking-wide">Оценка (10-балльная) <span className="text-red-400">*</span></label>
-                <div className="flex flex-wrap gap-2.5">
-                  {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => {
-                    const isSelected = gradeForm.value === grade.toString();
-                    const getGradeColor = (g: number) => { if (g >= 9) return "from-emerald-400 to-emerald-500"; if (g >= 7) return "from-blue-400 to-blue-500"; if (g >= 5) return "from-yellow-400 to-yellow-500"; if (g >= 4) return "from-orange-400 to-orange-500"; return "from-red-400 to-red-500"; };
-                    const getGradeLabel = (g: number) => { if (g >= 9) return "Отлично"; if (g >= 7) return "Хорошо"; if (g >= 5) return "Удовл."; if (g >= 4) return "Неуд."; return "Плохо"; };
-                    return (
-                      <button key={grade} type="button" onClick={() => setGradeForm((prev) => ({ ...prev, value: grade.toString() }))}
-                        className={`relative w-16 h-20 rounded-2xl font-extrabold text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg bg-gradient-to-br ${getGradeColor(grade)} ${isSelected ? "ring-4 ring-offset-2 scale-110" : "opacity-75 hover:opacity-100"}`}
-                        style={isSelected ? { '--tw-ring-color': grade >= 9 ? '#34d399' : grade >= 7 ? '#60a5fa' : grade >= 5 ? '#facc15' : grade >= 4 ? '#fb923c' : '#f87171' } as React.CSSProperties : {}}
-                      >
-                        <span className="text-2xl">{grade}</span>
-                        <span className="block text-[10px] font-semibold mt-0.5 opacity-90">{getGradeLabel(grade)}</span>
-                        {isSelected && (<span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-md"><svg className="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg></span>)}
+                <label className="block text-sm font-bold text-gray-800 mb-3 tracking-wide">{isPassFailSubject(gradeForm.subjectId, subjects) ? 'Зачёт/Незачёт' : 'Оценка (10-балльная)'} <span className="text-red-400">*</span></label>
+                  <div className="flex flex-wrap gap-2.5">
+                  {isPassFailSubject(gradeForm.subjectId, subjects) ? (
+                    ['Зачёт', 'Незачёт'].map((label) => (
+                      <button key={label} type="button" onClick={() => setGradeForm((prev) => ({ ...prev, value: label }))} className={`px-6 py-3 rounded-xl font-bold text-sm transition-all border-2 ${gradeForm.value === label ? label === 'Зачёт' ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-200/50' : 'bg-red-500 text-white border-red-500 shadow-lg shadow-red-200/50' : 'bg-white text-gray-700 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'}`}>
+                        {label === 'Зачёт' ? '✅ Зачёт' : '❌ Незачёт'}
                       </button>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => {
+                      const isSelected = gradeForm.value === grade.toString();
+                      const getGradeColor = (g: number) => { if (g >= 9) return "from-emerald-400 to-emerald-500"; if (g >= 7) return "from-blue-400 to-blue-500"; if (g >= 5) return "from-yellow-400 to-yellow-500"; if (g >= 4) return "from-orange-400 to-orange-500"; return "from-red-400 to-red-500"; };
+                      const getGradeLabel = (g: number) => { if (g >= 9) return "Отлично"; if (g >= 7) return "Хорошо"; if (g >= 5) return "Удовл."; if (g >= 4) return "Неуд."; return "Плохо"; };
+                      return (
+                        <button key={grade} type="button" onClick={() => setGradeForm((prev) => ({ ...prev, value: grade.toString() }))}
+                          className={`relative w-16 h-20 rounded-2xl font-extrabold text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg bg-gradient-to-br ${getGradeColor(grade)} ${isSelected ? "ring-4 ring-offset-2 scale-110" : "opacity-75 hover:opacity-100"}`}
+                          style={isSelected ? { '--tw-ring-color': grade >= 9 ? '#34d399' : grade >= 7 ? '#60a5fa' : grade >= 5 ? '#facc15' : grade >= 4 ? '#fb923c' : '#f87171' } as React.CSSProperties : {}}
+                        >
+                          <span className="block text-lg">{grade}</span>
+                          <span className="block text-[10px] font-semibold mt-0.5 opacity-90">{getGradeLabel(grade)}</span>
+                          {isSelected && (<span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-md"><svg className="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg></span>)}
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
                 <input type="hidden" value={gradeForm.value} required />
               </div>
@@ -1827,9 +1855,16 @@ export default function TeacherForms({
 
               {quarterlyForm.studentId && quarterlyForm.subjectId && quarterlyForm.quarter && (
                 <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-3 tracking-wide">Четвертная оценка (10-балльная) <span className="text-red-400">*</span></label>
+                  <label className="block text-sm font-bold text-gray-800 mb-3 tracking-wide">{isPassFailSubject(quarterlyForm.subjectId, subjects) ? 'Зачёт/Незачёт' : 'Четвертная оценка (10-балльная)'} <span className="text-red-400">*</span></label>
                   <div className="flex flex-wrap gap-2.5">
-                    {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => {
+                    {isPassFailSubject(quarterlyForm.subjectId, subjects) ? (
+                      ['Зачёт', 'Незачёт'].map((label) => (
+                        <button key={label} type="button" onClick={() => setQuarterlyForm((prev) => ({ ...prev, value: label }))} className={`px-6 py-3 rounded-xl font-bold text-sm transition-all border-2 ${quarterlyForm.value === label ? label === 'Зачёт' ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-200/50' : 'bg-red-500 text-white border-red-500 shadow-lg shadow-red-200/50' : 'bg-white text-gray-700 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'}`}>
+                          {label === 'Зачёт' ? '✅ Зачёт' : '❌ Незачёт'}
+                        </button>
+                      ))
+                    ) : (
+                    [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => {
                       const isSelected = quarterlyForm.value === grade.toString();
                       const getGradeColor = (g: number) => { if (g >= 9) return "from-emerald-400 to-emerald-500"; if (g >= 7) return "from-blue-400 to-blue-500"; if (g >= 5) return "from-yellow-400 to-yellow-500"; if (g >= 4) return "from-orange-400 to-orange-500"; return "from-red-400 to-red-500"; };
                       const getGradeLabel = (g: number) => { if (g >= 9) return "Отлично"; if (g >= 7) return "Хорошо"; if (g >= 5) return "Удовл."; if (g >= 4) return "Неуд."; return "Плохо"; };
@@ -1843,7 +1878,8 @@ export default function TeacherForms({
                           {isSelected && (<span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-md"><svg className="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg></span>)}
                         </button>
                       );
-                    })}
+                    })
+                  )}
                   </div>
                   <input type="hidden" value={quarterlyForm.value} required />
                 </div>
@@ -2018,21 +2054,29 @@ function YearlyGradeSection({ students, subjects, groupId, teacherId, isHomeroom
 
         {selectedStudent && selectedSubject && allQuartersPresent && recommended !== null && (
           <div>
-            <label className="block text-sm font-bold text-gray-800 mb-3 tracking-wide">Годовая оценка <span className="text-red-400">*</span></label>
+            <label className="block text-sm font-bold text-gray-800 mb-3 tracking-wide">{isPassFailSubject(selectedSubject, subjects) ? 'Зачёт/Незачёт' : 'Годовая оценка'} <span className="text-red-400">*</span></label>
             <div className="flex flex-wrap gap-2.5">
-              {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => {
-                const isAuto = grade === recommended;
-                const getColor = (g: number) => { if (g >= 9) return "from-emerald-400 to-emerald-500"; if (g >= 7) return "from-blue-400 to-blue-500"; if (g >= 5) return "from-yellow-400 to-yellow-500"; if (g >= 4) return "from-orange-400 to-orange-500"; return "from-red-400 to-red-500"; };
-                return (
-                  <button key={grade} type="submit" disabled={saving} onClick={() => setYearlyMessage(null)}
-                    className={`relative w-16 h-20 rounded-2xl font-extrabold text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg bg-gradient-to-br ${getColor(grade)} ${isAuto ? "ring-4 ring-offset-2 ring-violet-400 scale-110" : "opacity-75 hover:opacity-100"}`}
-                    style={isAuto ? { '--tw-ring-color': '#8b5cf6' } as React.CSSProperties : {}}
-                  >
-                    {grade}
-                    {isAuto && <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-900 shadow">★</div>}
+              {(isPassFailSubject(selectedSubject, subjects) ? (
+                ['Зачёт', 'Незачёт'].map((label) => (
+                  <button key={label} type="button" onClick={() => document.getElementById('yearlyGradeValue')?.setAttribute('value', label)} className={`px-6 py-3 rounded-xl font-bold text-sm transition-all border-2 ${label === 'Зачёт' ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg' : 'bg-red-500 text-white border-red-500 shadow-lg'}`}>
+                    {label === 'Зачёт' ? '✅ Зачёт' : '❌ Незачёт'}
                   </button>
-                );
-              })}
+                ))
+              ) : (
+                [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => {
+                  const isAuto = grade === recommended;
+                  const getColor = (g: number) => { if (g >= 9) return "from-emerald-400 to-emerald-500"; if (g >= 7) return "from-blue-400 to-blue-500"; if (g >= 5) return "from-yellow-400 to-yellow-500"; if (g >= 4) return "from-orange-400 to-orange-500"; return "from-red-400 to-red-500"; };
+                  return (
+                    <button key={grade} type="submit" disabled={saving} onClick={() => setYearlyMessage(null)}
+                      className={`relative w-16 h-20 rounded-2xl font-extrabold text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg bg-gradient-to-br ${getColor(grade)} ${isAuto ? "ring-4 ring-offset-2 ring-violet-400 scale-110" : "opacity-75 hover:opacity-100"}`}
+                      style={isAuto ? { '--tw-ring-color': '#8b5cf6' } as React.CSSProperties : {}}
+                    >
+                      {grade}
+                      {isAuto && <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center text-[10px] font-bold text-yellow-900 shadow">★</div>}
+                    </button>
+                  );
+                })
+              ))}
             </div>
             <input type="hidden" id="yearlyGradeValue" name="yearlyGradeValue" />
           </div>

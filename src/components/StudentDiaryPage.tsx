@@ -238,8 +238,8 @@ function getQuarterNumber(date: Date): string {
   // Весенние каникулы: 24 мар - 30 мар -> 4 четверть
   if (month === 3 && day >= 24 && day <= 30) return '4';
   
-  // Летние каникулы: 1 июн - 31 авг -> 1 четверть (следующего года)
-  if (month >= 6 && month <= 8) return '1';
+  // Летние каникулы: 1 июн - 31 авг -> показываем 4 четверть (прошедшая)
+  if (month >= 6 && month <= 8) return '4';
   
   // Периоды четвертей (с учетом каникул):
   // 1 четверть: 1 сент - 27 окт (до осенних каникул)
@@ -829,9 +829,19 @@ export default function StudentDiaryPage({
   const [activeSection, setActiveSection] = useState<string>("week");
   const [quarterConfirmations, setQuarterConfirmations] = useState<Record<string, { confirmedByTeacher: string | null; confirmedByTeacherAt: string | null; confirmedByParent: string | null; confirmedByParentAt: string | null }>>({});
   const [isLoaded, setIsLoaded] = useState(false);
-  const [selectedWeek, setSelectedWeek] = useState<Date>(getStartOfWeek(new Date()));
+  const [selectedWeek, setSelectedWeek] = useState<Date>(() => {
+    const now = new Date();
+    const m = now.getMonth();
+    // Если июнь-август — показываем последнюю учебную неделю (конец мая)
+    if (m >= 5 && m <= 7) {
+      const mayEnd = new Date(now.getFullYear(), 4, 31);
+      return getStartOfWeek(mayEnd);
+    }
+    return getStartOfWeek(now);
+  });
   const [viewMonthIdx, setViewMonthIdx] = useState<number>(() => {
     const m = new Date().getMonth();
+    if (m >= 5 && m <= 7) return 8;
     const map: Record<number, number> = { 8:0, 9:1, 10:2, 11:3, 0:4, 1:5, 2:6, 3:7, 4:8 };
     return map[m] ?? 0;
   });
@@ -1863,9 +1873,7 @@ export default function StudentDiaryPage({
   const baseSections = [
     { id: "week", label: "📅 Расписание" },
     { id: "allgrades", label: "📈 Оценки" },
-    ...(effectiveUserRole === "admin" || effectiveUserRole === "principal" || isHomeroomTeacher || effectiveUserRole === "parent"
-      ? [{ id: "summary", label: "📋 Сведения" }]
-      : []),
+    { id: "summary", label: "📋 Сведения" },
     { id: "title", label: "📝 Титульный" },
     { id: "awards", label: "🏆 Награды" },
     { id: "comments", label: "⚠️ Замечания" },
@@ -2180,7 +2188,7 @@ export default function StudentDiaryPage({
 
             {/* Правая часть */}
             <div className="flex items-center gap-1.5 md:gap-2 w-[65px] md:w-auto justify-end shrink-0">
-              {effectiveUserRole === "admin" ? (
+              {userRole === "admin" ? (
                 <>
                   <a
                     href="/diary"
@@ -2573,7 +2581,7 @@ export default function StudentDiaryPage({
                   <p className="text-xs opacity-75">{weekStart.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })} - {weekEnd.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => { setSelectedWeek(getStartOfWeek(new Date())); setSelectedQuarter(getQuarterNumber(new Date())); }} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-lg font-bold transition-colors" title="Сегодня">📅</button>
+                  <button onClick={() => { const now = new Date(); const m = now.getMonth(); let targetDate = now; if (m >= 5 && m <= 7) { targetDate = new Date(now.getFullYear(), 4, 31); } setSelectedWeek(getStartOfWeek(targetDate)); setSelectedQuarter(getQuarterNumber(targetDate)); }} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-lg font-bold transition-colors" title="Сегодня">📅</button>
                   <button onClick={() => navigateWeek("next")} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-xl font-bold">›</button>
                 </div>
               </div>
@@ -3250,8 +3258,8 @@ const holidayName = getHolidayNameByDate(dayDate);
                         <button onClick={() => { 
                           const now = new Date();
                           const m = now.getMonth();
-                          const map: Record<number, number> = { 8:0, 9:1, 10:2, 11:3, 0:4, 1:5, 2:6, 3:7, 4:8 };
-                          const idx = map[m] ?? 0;
+                          let idx = 0;
+                          if (m >= 5 && m <= 7) { idx = 8; } else { const map: Record<number, number> = { 8:0, 9:1, 10:2, 11:3, 0:4, 1:5, 2:6, 3:7, 4:8 }; idx = map[m] ?? 0; }
                           setViewMonthIdx(idx);
                           setSelectedQuarter(getQuarterForMonth(idx));
                         }} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-sm font-bold transition-colors ml-1" title="Сегодня">📅</button>

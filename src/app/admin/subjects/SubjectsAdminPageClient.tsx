@@ -51,9 +51,9 @@ export default function SubjectsAdminPage({
   const [selectedSubjects, setSelectedSubjects] = useState<number[]>([]);
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
-  const [eventForm, setEventForm] = useState({ name: "", type: "class_hour" });
+  const [eventForm, setEventForm] = useState({ name: "", type: "event" });
   const [specialForm, setSpecialForm] = useState({ name: "", type: "elective" });
-  const [regularForm, setRegularForm] = useState({ name: "" });
+  const [regularForm, setRegularForm] = useState({ name: "", gradeType: "numeric" });
   const [isAdding, setIsAdding] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -165,6 +165,7 @@ export default function SubjectsAdminPage({
       const formData = new FormData();
       formData.append("name", regularForm.name);
       formData.append("type", "regular");
+      formData.append("gradeType", regularForm.gradeType);
 
       const response = await fetch("/api/subjects/create", {
         method: "POST",
@@ -172,7 +173,7 @@ export default function SubjectsAdminPage({
       });
 
       if (response.ok) {
-        setRegularForm({ name: "" });
+        setRegularForm({ name: "", gradeType: "numeric" });
         showToast('Предмет успешно добавлен!');
         setTimeout(() => window.location.reload(), 500);
       } else {
@@ -211,11 +212,27 @@ export default function SubjectsAdminPage({
         <form onSubmit={handleAddRegular} className="flex flex-col sm:flex-row gap-3">
           <input
             value={regularForm.name}
-            onChange={(e) => setRegularForm({ name: e.target.value })}
+            onChange={(e) => setRegularForm((prev) => ({ ...prev, name: e.target.value }))}
             placeholder="Название предмета"
             className="flex-1 border-2 border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-indigo-500"
             required
           />
+          <div className="flex gap-1 items-center bg-gray-100 rounded-lg p-1">
+            <button
+              type="button"
+              onClick={() => setRegularForm(prev => ({ ...prev, gradeType: "numeric" }))}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${regularForm.gradeType === "numeric" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500"}`}
+            >
+              Баллы
+            </button>
+            <button
+              type="button"
+              onClick={() => setRegularForm(prev => ({ ...prev, gradeType: "passfail" }))}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${regularForm.gradeType === "passfail" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500"}`}
+            >
+              Зачёт
+            </button>
+          </div>
           <button
             type="submit"
             disabled={isAdding}
@@ -230,7 +247,7 @@ export default function SubjectsAdminPage({
       <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl shadow-lg p-4 md:p-6 border-2 border-emerald-200">
         <h2 className="text-lg font-semibold text-emerald-800 mb-4 flex items-center gap-2">
           <span className="text-xl">🎯</span>
-          Добавить мероприятие или классный час
+          Добавить мероприятие
         </h2>
         <form onSubmit={handleAddEvent} className="flex flex-col sm:flex-row gap-3">
           <input
@@ -241,14 +258,6 @@ export default function SubjectsAdminPage({
             className="flex-1 border-2 border-emerald-200 rounded-lg px-4 py-2.5 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-emerald-500 bg-white"
             required
           />
-          <select
-            value={eventForm.type}
-            onChange={(e) => setEventForm({ ...eventForm, type: e.target.value })}
-            className="border-2 border-emerald-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:border-emerald-500 bg-white"
-          >
-            <option value="class_hour">Классный час</option>
-            <option value="event">Мероприятие</option>
-          </select>
           <button
             type="submit"
             className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-md font-medium whitespace-nowrap"
@@ -628,6 +637,11 @@ export default function SubjectsAdminPage({
         }
       `}</style>
       </div>
+
+      <Link href="/admin" className="hidden md:inline-flex fixed bottom-6 right-6 z-40 items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-xl hover:from-indigo-700 hover:to-purple-700 hover:shadow-2xl hover:scale-105 transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>
+        Назад
+      </Link>
     </div>
   );
 }
