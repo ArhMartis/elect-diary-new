@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { diaryNotes, diaryVerification, parentVerification } from "@/db/schema/diary";
-import { schoolContacts, schoolInfo, holidays } from "@/db/schema/diary-extra";
+import { schoolContacts, schoolInfo, holidays, directorProfile } from "@/db/schema/diary-extra";
 import { user, groups } from "@/db/schema/auth_schema";
 import { eq, and } from "drizzle-orm";
 
@@ -201,6 +201,7 @@ export async function saveDiarySettings(settings: {
       schoolAddress: settings.schoolAddress || "",
       schoolPhone: "",
       director: settings.director || "",
+      directorPhone: settings.directorPhone || "",
       vicePrincipal: settings.vicePrincipal || "",
       vicePrincipalEdu: settings.vicePrincipalEdu || "",
       homeroomTeacher: settings.homeroomTeacher || "",
@@ -212,6 +213,14 @@ export async function saveDiarySettings(settings: {
       await db.update(schoolContacts).set(values).where(eq(schoolContacts.id, existing.id));
     } else {
       await db.insert(schoolContacts).values(values);
+    }
+
+    // Синхронизируем телефон с профилем директора
+    const dp = await db.query.directorProfile.findFirst();
+    if (dp) {
+      // телефон хранится только в school_contacts, director_profile не хранит телефон
+    } else {
+      await db.insert(directorProfile).values({ fullName: settings.director || "" });
     }
 
     const existingSchool = await db.query.schoolInfo.findFirst();
