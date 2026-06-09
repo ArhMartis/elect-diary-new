@@ -16,6 +16,9 @@ export default function DirectorPage() {
   const [form, setForm] = useState<any>({});
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactMsg, setContactMsg] = useState("");
+  const [contactSending, setContactSending] = useState(false);
 
   useEffect(() => {
     fetch("/api/director-profile")
@@ -66,9 +69,16 @@ export default function DirectorPage() {
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Телефон</p>
                   <p className="text-lg font-bold text-gray-900">{profile.phone || "Не указан"}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Управляется через Контакты школы (админ)</p>
                 </div>
               </div>
+
+              {/* Кнопка связи с директором */}
+              {userRole !== "admin" && userRole !== "principal" && (
+                <button onClick={() => setShowContactForm(true)} className="w-full p-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold rounded-2xl hover:from-blue-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-base">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  Связаться с директором
+                </button>
+              )}
 
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
                 <div className="flex items-center gap-3 mb-3">
@@ -111,6 +121,29 @@ export default function DirectorPage() {
           </div>
         ) : (
           <div className="text-center py-20"><p className="text-gray-500 font-medium">Информация о директоре не загружена</p></div>
+        )}
+
+        {showContactForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowContactForm(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">📩 Связаться с директором</h3>
+              <p className="text-sm text-gray-500 mb-4">Опишите ваш вопрос. Сообщение будет отправлено директору школы.</p>
+              <textarea value={contactMsg} onChange={e => setContactMsg(e.target.value)} placeholder="Ваше сообщение..." className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none text-sm min-h-[100px] resize-none mb-4" required />
+              <div className="flex gap-3">
+                <button onClick={() => setShowContactForm(false)} className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-all">Отмена</button>
+                <button onClick={async () => {
+                  if (!contactMsg.trim()) return;
+                  setContactSending(true);
+                  try {
+                    const res = await fetch("/api/contact-director", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: contactMsg.trim() }) });
+                    if (res.ok) { setContactMsg(""); setShowContactForm(false); } else { alert("Ошибка отправки"); }
+                  } catch { alert("Ошибка отправки"); } finally { setContactSending(false); }
+                }} disabled={contactSending || !contactMsg.trim()} className="flex-1 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold text-sm hover:from-blue-600 hover:to-indigo-700 disabled:opacity-40 transition-all">
+                  {contactSending ? "Отправка..." : "Отправить"}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
