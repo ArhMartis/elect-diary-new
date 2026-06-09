@@ -10,6 +10,8 @@ const DAY_KEYS = ["monHours", "tueHours", "wedHours", "thuHours", "friHours", "s
 export default function DirectorPage() {
   const { data: session } = authClient.useSession();
   const userRole = session?.user?.role;
+  const userGroupId = (session?.user as any)?.groupId;
+  const isRestricted = userRole === "student" && !userGroupId;
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -34,6 +36,21 @@ export default function DirectorPage() {
       if (res.ok) { setProfile(form); setEditing(false); setMsg("Сохранено"); } else { setMsg("Ошибка"); }
     } catch { setMsg("Ошибка"); } finally { setSaving(false); }
   };
+
+  if (isRestricted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-3xl shadow-2xl border-2 border-amber-300">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+          </div>
+          <p className="text-2xl text-amber-800 font-bold mb-2">Доступ ограничен</p>
+          <p className="text-gray-600 mb-6">Страница директора недоступна до назначения в класс. Обратитесь к администратору.</p>
+          <Link href="/" className="inline-block px-8 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg">На главную</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 p-4 md:p-8">

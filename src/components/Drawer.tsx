@@ -6,9 +6,10 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 import UnreadMessagesBadge from "./UnreadMessagesBadge";
 
-function DirectorProfileSection() {
+function DirectorProfileSection({ hasClass, userRole }: { hasClass: boolean; userRole?: string }) {
   const [profile, setProfile] = useState<{ fullName: string; phone: string } | null>(null);
   const closeDrawer = () => { const cb = document.getElementById("my-drawer-1") as HTMLInputElement | null; if (cb) cb.checked = false; };
+  const isRestricted = userRole === "student" && !hasClass;
 
   useEffect(() => {
     fetch("/api/director-profile")
@@ -19,15 +20,18 @@ function DirectorProfileSection() {
 
   if (!profile) return null;
 
-  return (
-    <Link href="/director" onClick={closeDrawer} className="flex items-center gap-3 text-sm text-white/80 hover:text-white hover:bg-white/10 rounded-xl p-2.5 transition-all text-left">
+  const content = (
+    <div className={`flex items-center gap-3 text-sm ${isRestricted ? 'text-white/50 cursor-default' : 'text-white/80 hover:text-white hover:bg-white/10 cursor-pointer'} rounded-xl p-2.5 transition-all text-left`}>
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white font-bold shrink-0 text-sm">🎓</div>
       <div className="flex-1 min-w-0">
         <p className="font-semibold truncate">{profile.fullName || "Директор"}</p>
-        {profile.phone && <p className="text-[11px] text-white/60 truncate">{profile.phone}</p>}
+        {!isRestricted && profile.phone && <p className="text-[11px] text-white/60 truncate">{profile.phone}</p>}
       </div>
-    </Link>
+    </div>
   );
+
+  if (isRestricted) return content;
+  return <Link href="/director" onClick={closeDrawer}>{content}</Link>;
 }
 
 export default function Drawer({ isLoggedIn, hasClass = true, userRole, unreadCount = 0 }: { isLoggedIn: boolean; hasClass?: boolean; userRole?: string; unreadCount?: number }) {
@@ -198,7 +202,7 @@ export default function Drawer({ isLoggedIn, hasClass = true, userRole, unreadCo
           
       {/* Профиль директора */}
           <div className="relative z-10 mt-4 pt-2 border-t border-white/20">
-            <DirectorProfileSection />
+            <DirectorProfileSection hasClass={hasClass} userRole={userRole} />
           </div>
 
       {/* Нижняя часть с переключателем темы */}
