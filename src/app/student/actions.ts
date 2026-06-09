@@ -215,12 +215,14 @@ export async function saveDiarySettings(settings: {
       await db.insert(schoolContacts).values(values);
     }
 
-    // Синхронизируем телефон с профилем директора
+    // Синхронизируем ФИО с профилем директора
     const dp = await db.query.directorProfile.findFirst();
-    if (dp) {
-      // телефон хранится только в school_contacts, director_profile не хранит телефон
-    } else {
-      await db.insert(directorProfile).values({ fullName: settings.director || "" });
+    if (settings.director) {
+      if (dp) {
+        await db.update(directorProfile).set({ fullName: settings.director }).where(eq(directorProfile.id, dp.id));
+      } else {
+        await db.insert(directorProfile).values({ fullName: settings.director });
+      }
     }
 
     const existingSchool = await db.query.schoolInfo.findFirst();
