@@ -1043,9 +1043,10 @@ export default function MessagesPage() {
                     const isInbox = activeTab === "inbox" || activeTab === "appeals";
                     const partnerId = isInbox ? msg.senderId : msg.receiverId;
                     if (!partnerId) continue;
-                    const partnerName = isInbox ? getSenderName(msg) : getReceiverName(msg);
-                    const partnerRole = isInbox ? (msg.sender?.role || '') : (msg.receiver?.role || '');
-                    const partnerAvatar = isInbox ? msg.sender?.avatar : msg.receiver?.avatar;
+                    const isSelfMsg = partnerId === userId;
+                    const partnerName = isSelfMsg ? '📝 Заметки' : (isInbox ? getSenderName(msg) : getReceiverName(msg));
+                    const partnerRole = isSelfMsg ? '' : (isInbox ? (msg.sender?.role || '') : (msg.receiver?.role || ''));
+                    const partnerAvatar = isSelfMsg ? null : (isInbox ? msg.sender?.avatar : msg.receiver?.avatar);
                     if (!grouped.has(partnerId)) {
                       grouped.set(partnerId, { partnerId, partnerName, partnerRole, partnerAvatar, lastContent: msg.content, lastDate: msg.createdAt, unread: (!msg.readAt && msg.receiverId === userId) ? 1 : 0, messages: [] });
                     }
@@ -1068,20 +1069,17 @@ export default function MessagesPage() {
                   }
 
                   if (selectedChatPartner) {
-                    // Берём ВСЕ сообщения между текущим пользователем и выбранным собеседником
+                    const isSelfChat = selectedChatPartner === userId;
                     const chatMessages = messages.filter(m =>
                       (m.senderId === userId && m.receiverId === selectedChatPartner) ||
                       (m.senderId === selectedChatPartner && m.receiverId === userId)
                     ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-                    // Находим данные собеседника
                     const partnerMsg = messages.find(m => m.senderId === selectedChatPartner || m.receiverId === selectedChatPartner);
-                    const partnerInfo = partnerMsg
-                      ? (partnerMsg.senderId === selectedChatPartner ? partnerMsg.sender : partnerMsg.receiver)
-                      : null;
-                    const partnerName = partnerInfo?.fullName || selectedChatPartner;
-                    const partnerAvatar = partnerInfo?.avatar || null;
-                    const partnerRole = partnerInfo?.role || '';
+                    const partnerInfo = isSelfChat ? null : (partnerMsg ? (partnerMsg.senderId === selectedChatPartner ? partnerMsg.sender : partnerMsg.receiver) : null);
+                    const partnerName = isSelfChat ? '📝 Заметки' : (partnerInfo?.fullName || selectedChatPartner);
+                    const partnerAvatar = isSelfChat ? null : (partnerInfo?.avatar || null);
+                    const partnerRole = isSelfChat ? '' : (partnerInfo?.role || '');
                     const partnerLastSeen = partnerInfo?.lastSeen || null;
                     const isOnline = partnerLastSeen ? (Date.now() - new Date(partnerLastSeen).getTime() < 120000) : false;
                     const lastSeenText = partnerLastSeen
@@ -1095,18 +1093,19 @@ export default function MessagesPage() {
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600 hover:text-indigo-800" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>
                           </button>
                           <div className="relative shrink-0">
-                            {partnerAvatar ? (
+                            {isSelfChat ? (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-lg">📝</div>
+                            ) : partnerAvatar ? (
                               <img src={partnerAvatar} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-indigo-200" />
                             ) : (
                               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">{partnerName.charAt(0).toUpperCase()}</div>
                             )}
-                            {isOnline && <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>}
+                            {!isSelfChat && isOnline && <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>}
                           </div>
                           <div>
-                            <p className="font-bold text-indigo-900 text-sm">{partnerName}</p>
+                            <p className="font-bold text-gray-900 text-sm">{isSelfChat ? '📝 Заметки' : partnerName}</p>
                             <p className="text-xs text-gray-500">
-                              {partnerRole && <span className="font-medium text-indigo-500">{getRoleLabel(partnerRole)}</span>}
-                              {lastSeenText && <span className="ml-1 text-gray-400">· {lastSeenText}</span>}
+                              {isSelfChat ? 'Личные заметки' : (<>{partnerRole && <span className="font-medium text-indigo-500">{getRoleLabel(partnerRole)}</span>}{lastSeenText && <span className="ml-1 text-gray-400">· {lastSeenText}</span>}</>)}
                             </p>
                           </div>
                         </div>
@@ -1150,14 +1149,16 @@ export default function MessagesPage() {
                         <button key={conv.partnerId} onClick={() => setSelectedChatPartner(conv.partnerId)} className={`w-full p-3 md:p-4 rounded-2xl border-2 transition-all text-left hover:shadow-md ${conv.unread > 0 ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-300' : 'bg-white border-indigo-100'}`}>
                           <div className="flex items-center gap-3">
                             <div className="relative shrink-0">
-                              {conv.partnerAvatar ? (
+                              {conv.partnerId === userId ? (
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-lg">📝</div>
+                              ) : conv.partnerAvatar ? (
                                 <img src={conv.partnerAvatar} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-indigo-200" />
                               ) : (
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
                                   {conv.partnerName.charAt(0).toUpperCase()}
                                 </div>
                               )}
-                              {onlineUsers.has(conv.partnerId) && (
+                              {conv.partnerId !== userId && onlineUsers.has(conv.partnerId) && (
                                 <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
                               )}
                             </div>
