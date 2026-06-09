@@ -2,6 +2,20 @@ import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core
 import { sql, relations } from "drizzle-orm";
 import { user, groups, subjects } from "./auth_schema";
 
+// Профиль директора (ФИО, телефон, время работы, график приёма)
+export const directorProfile = sqliteTable("director_profile", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  fullName: text("full_name").notNull().default(""),
+  phone: text("phone").default(""),
+  workdaysHours: text("workdays_hours").default("Пн–Пт: 8:00 – 17:00"),
+  weekendHours: text("weekend_hours").default("Сб–Вс: выходной"),
+  receptionHours: text("reception_hours").default("Вт: 14:00 – 16:00"),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
 /**
  * ============================================================================
  * ДОПОЛНИТЕЛЬНЫЕ ТАБЛИЦЫ ДЛЯ ДНЕВНИКА УЧАЩЕГОСЯ

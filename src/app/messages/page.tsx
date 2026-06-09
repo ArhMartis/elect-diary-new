@@ -84,6 +84,8 @@ export default function MessagesPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [contactAdminMessage, setContactAdminMessage] = useState("");
   const [contactAdminSending, setContactAdminSending] = useState(false);
+  const [contactDirectorMessage, setContactDirectorMessage] = useState("");
+  const [contactDirectorSending, setContactDirectorSending] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   // Проверка класса для учеников
   const [hasCheckedClass, setHasCheckedClass] = useState(false);
@@ -379,15 +381,15 @@ export default function MessagesPage() {
   };
 
   const appealsMessages = messages.filter((msg) =>
-    msg.receiverId === userId && msg.sender?.role === "student"
+    msg.receiverId === userId && msg.sender?.role !== "admin" && msg.sender?.role !== "principal"
   );
 
   const filteredMessages = messages.filter((msg) => {
     if (activeTab === "inbox" || activeTab === "sent") {
-      return (msg.senderId === userId || msg.receiverId === userId || msg.isBroadcast) && !(msg.receiverId === userId && msg.sender?.role === "student");
+      return (msg.senderId === userId || msg.receiverId === userId || msg.isBroadcast) && !(msg.receiverId === userId && msg.sender?.role !== "admin" && msg.sender?.role !== "principal");
     }
     if (activeTab === "appeals") {
-      return msg.receiverId === userId && msg.sender?.role === "student";
+      return msg.receiverId === userId && msg.sender?.role !== "admin" && msg.sender?.role !== "principal";
     }
     return false;
   });
@@ -877,23 +879,33 @@ export default function MessagesPage() {
                   if (!contactAdminMessage.trim()) return;
                   setContactAdminSending(true);
                   try {
-                    const res = await fetch("/api/contact-admin", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ content: contactAdminMessage.trim() }),
-                    });
-                    if (res.ok) {
-                      setContactAdminMessage("");
-                      fetchMessages();
-                    } else if (res.status === 409) {
-                      setContactAdminSending(false);
-                      return;
-                    }
-                  } catch {}
-                  setContactAdminSending(false);
+                    const res = await fetch("/api/contact-admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: contactAdminMessage.trim() }) });
+                    if (res.ok) { setContactAdminMessage(""); fetchMessages(); }
+                  } catch {} finally { setContactAdminSending(false); }
                 }} className="space-y-2">
                   <textarea value={contactAdminMessage} onChange={(e) => setContactAdminMessage(e.target.value)} placeholder="Ваше сообщение..." className="w-full px-3 py-2 border-2 border-amber-200 rounded-xl focus:border-amber-500 focus:outline-none bg-white text-xs min-h-[60px] resize-none" required />
                   <button type="submit" disabled={contactAdminSending || !contactAdminMessage.trim()} className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold rounded-xl hover:from-amber-600 hover:to-orange-700 disabled:opacity-40 transition-all text-xs">Отправить</button>
+                </form>
+              </div>
+            )}
+            {userRole !== "admin" && userRole !== "principal" && (
+              <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-3xl p-5 border-2 border-blue-200">
+                <h3 className="font-black text-indigo-800 mb-3 flex items-center gap-2 text-base">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  Связаться с директором
+                </h3>
+                <p className="text-xs text-indigo-700 mb-3 font-medium">Отправьте сообщение директору школы.</p>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!contactDirectorMessage.trim()) return;
+                  setContactDirectorSending(true);
+                  try {
+                    const res = await fetch("/api/contact-director", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: contactDirectorMessage.trim() }) });
+                    if (res.ok) { setContactDirectorMessage(""); fetchMessages(); }
+                  } catch {} finally { setContactDirectorSending(false); }
+                }} className="space-y-2">
+                  <textarea value={contactDirectorMessage} onChange={(e) => setContactDirectorMessage(e.target.value)} placeholder="Ваше сообщение..." className="w-full px-3 py-2 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white text-xs min-h-[60px] resize-none" required />
+                  <button type="submit" disabled={contactDirectorSending || !contactDirectorMessage.trim()} className="w-full py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-600 hover:to-indigo-700 disabled:opacity-40 transition-all text-xs">Отправить</button>
                 </form>
               </div>
             )}

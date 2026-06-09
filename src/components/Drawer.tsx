@@ -1,9 +1,45 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 import UnreadMessagesBadge from "./UnreadMessagesBadge";
+
+function DirectorProfileSection() {
+  const [profile, setProfile] = useState<{ fullName: string; phone: string; workdaysHours: string; weekendHours: string; receptionHours: string } | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/director-profile")
+      .then(res => res.json())
+      .then(data => setProfile(data))
+      .catch(() => {});
+  }, []);
+
+  if (!profile) return null;
+
+  return (
+    <div>
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-3 text-sm text-white/80 hover:text-white hover:bg-white/10 rounded-xl p-2.5 transition-all text-left">
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white font-bold shrink-0 text-sm">🎓</div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold truncate">{profile.fullName || "Директор"}</p>
+          {profile.phone && <p className="text-[11px] text-white/60 truncate">{profile.phone}</p>}
+        </div>
+        <svg className={`h-4 w-4 text-white/50 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+      </button>
+      {open && (
+        <div className="ml-11 mt-1 space-y-1.5 text-xs text-white/70">
+          <p><span className="text-white/50">📞</span> {profile.phone || "—"}</p>
+          <p><span className="text-white/50">🕐</span> {profile.workdaysHours || "—"}</p>
+          <p><span className="text-white/50">🛌</span> {profile.weekendHours || "—"}</p>
+          <p><span className="text-white/50">📋</span> {profile.receptionHours || "—"}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Drawer({ isLoggedIn, hasClass = true, userRole }: { isLoggedIn: boolean; hasClass?: boolean; userRole?: string }) {
   const pathname = usePathname();
@@ -166,8 +202,13 @@ export default function Drawer({ isLoggedIn, hasClass = true, userRole }: { isLo
             )}
           </ul>
           
-{/* Нижняя часть с переключателем темы */}
-          <div className="relative z-10 mt-auto pt-6 space-y-3">
+      {/* Профиль директора */}
+          <div className="relative z-10 mt-4 pt-2 border-t border-white/20">
+            <DirectorProfileSection />
+          </div>
+
+      {/* Нижняя часть с переключателем темы */}
+          <div className="relative z-10 pt-4 space-y-3">
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
               <label className="flex items-center justify-between gap-3 cursor-pointer">
                 <div className="flex items-center gap-2">
