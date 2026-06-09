@@ -30,7 +30,7 @@ function DirectorProfileSection() {
   );
 }
 
-export default function Drawer({ isLoggedIn, hasClass = true, userRole }: { isLoggedIn: boolean; hasClass?: boolean; userRole?: string }) {
+export default function Drawer({ isLoggedIn, hasClass = true, userRole, unreadCount = 0 }: { isLoggedIn: boolean; hasClass?: boolean; userRole?: string; unreadCount?: number }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -68,12 +68,17 @@ export default function Drawer({ isLoggedIn, hasClass = true, userRole }: { isLo
         {/* Page content here */}
         <label 
           htmlFor="my-drawer-1" 
-          className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-all mr-2 cursor-pointer hidden md:flex"
+          className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-all mr-2 cursor-pointer hidden md:flex relative"
           aria-label="Меню"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-md">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </label>
       </div>
       <div className="drawer-side z-[100]">

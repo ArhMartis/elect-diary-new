@@ -3,7 +3,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import { user } from "@/db/schema/auth_schema";
-import { eq } from "drizzle-orm";
+import { messages } from "@/db/schema/messages";
+import { eq, and, isNull } from "drizzle-orm";
 import LogoutButton from "./LogoutButton";
 import AccountSwitcher from "./AccountSwitcher";
 import Avatar from "./Avatar";
@@ -33,6 +34,11 @@ export default async function Navbar() {
   
   const hasClass = role !== "student" || !!userGroupId;
 
+  // Считаем непрочитанные сообщения
+  const unreadCount = session?.user?.id
+    ? await db.$count(messages, and(eq(messages.receiverId, session.user.id), isNull(messages.readAt)))
+    : 0;
+
   const roleNames: Record<string, string> = {
     admin: "Админ",
     principal: "Директор",
@@ -47,7 +53,7 @@ export default async function Navbar() {
         <div className="flex justify-between items-center">
           {/* Меню + Логотип */}
           <div className="flex items-center">
-            <Drawer isLoggedIn={!!session} hasClass={hasClass} userRole={role || undefined} />
+            <Drawer isLoggedIn={!!session} hasClass={hasClass} userRole={role || undefined} unreadCount={unreadCount} />
             <Link href="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-all">
               <svg

@@ -74,6 +74,9 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [activeTab, setActiveTab] = useState<"inbox" | "sent" | "appeals">("inbox");
   const [selectedChatPartner, setSelectedChatPartner] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState("");
+  // Сброс выбранного чата при переключении вкладок
+  useEffect(() => { setSelectedChatPartner(null); }, [activeTab]);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showConfirmClearMessages, setShowConfirmClearMessages] = useState(false);
   const [clearingMessages, setClearingMessages] = useState(false);
@@ -1119,6 +1122,22 @@ export default function MessagesPage() {
                             )}
                           </div>
                         ))}
+                        <div className="sticky bottom-0 pt-2 bg-white dark:bg-gray-800">
+                          <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (!replyContent.trim() || !selectedChatPartner) return;
+                            try {
+                              const fd = new FormData();
+                              fd.append("content", replyContent);
+                              fd.append("receiverId", selectedChatPartner);
+                              const res = await fetch("/api/messages", { method: "POST", body: fd });
+                              if (res.ok) { setReplyContent(""); fetchMessages(); }
+                            } catch {}
+                          }} className="flex gap-2">
+                            <input type="text" value={replyContent} onChange={e => setReplyContent(e.target.value)} placeholder="Написать сообщение..." className="flex-1 px-3 py-2 border-2 border-indigo-200 rounded-xl focus:border-indigo-500 focus:outline-none text-sm" />
+                            <button type="submit" disabled={!replyContent.trim()} className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-40 text-sm font-bold shrink-0">Отправить</button>
+                          </form>
+                        </div>
                         <div ref={messagesEndRef} />
                       </>
                     );
