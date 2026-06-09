@@ -200,10 +200,12 @@ export default function Drawer({ isLoggedIn, hasClass = true, userRole, unreadCo
             )}
           </ul>
           
-      {/* Профиль директора */}
+      {/* Профиль директора (только для авторизованных) */}
+      {isLoggedIn && (
           <div className="relative z-10 mt-4 pt-2 border-t border-white/20">
             <DirectorProfileSection hasClass={hasClass} userRole={userRole} />
           </div>
+      )}
 
       {/* Нижняя часть с переключателем темы */}
           <div className="relative z-10 pt-4 space-y-3">

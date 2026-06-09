@@ -11,7 +11,7 @@ export default function DirectorPage() {
   const { data: session } = authClient.useSession();
   const userRole = session?.user?.role;
   const userGroupId = (session?.user as any)?.groupId;
-  const isRestricted = userRole === "student" && !userGroupId;
+  const isRestricted = !userRole || (userRole === "student" && !userGroupId);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
