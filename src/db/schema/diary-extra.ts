@@ -2,13 +2,19 @@ import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core
 import { sql, relations } from "drizzle-orm";
 import { user, groups, subjects } from "./auth_schema";
 
-// Профиль директора (ФИО, телефон, время работы, график приёма)
+// Профиль директора (ФИО, телефон, время работы по дням)
 export const directorProfile = sqliteTable("director_profile", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   fullName: text("full_name").notNull().default(""),
   phone: text("phone").default(""),
-  workdaysHours: text("workdays_hours").default("Пн–Пт: 8:00 – 17:00"),
-  weekendHours: text("weekend_hours").default("Сб–Вс: выходной"),
+  // Режим работы по дням недели
+  monHours: text("mon_hours").default("8:00 – 17:00"),
+  tueHours: text("tue_hours").default("8:00 – 17:00"),
+  wedHours: text("wed_hours").default("8:00 – 17:00"),
+  thuHours: text("thu_hours").default("8:00 – 17:00"),
+  friHours: text("fri_hours").default("8:00 – 17:00"),
+  satHours: text("sat_hours").default("выходной"),
+  sunHours: text("sun_hours").default("выходной"),
   receptionHours: text("reception_hours").default("Вт: 14:00 – 16:00"),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
@@ -42,6 +48,7 @@ export const schoolContacts = sqliteTable("school_contacts", {
   
   // Должностные лица
   director: text("director"), // Руководитель учреждения
+  directorPhone: text("director_phone"), // Телефон руководителя
   vicePrincipal: text("vice_principal"), // Заместитель по учебной работе
   vicePrincipalEdu: text("vice_principal_edu"), // Заместитель по воспитательной работе
   homeroomTeacher: text("homeroom_teacher"), // Классный руководитель
