@@ -139,7 +139,7 @@ export async function getDiarySettings() {
       schoolName: contacts?.schoolName || school?.name || "",
       schoolAddress: contacts?.schoolAddress || school?.address || "",
       director: contacts?.director || "",
-      directorPhone: school?.phone || "",
+      directorPhone: contacts?.directorPhone || school?.phone || "",
       vicePrincipal: contacts?.vicePrincipal || "",
       vicePrincipalPhone: "",
       vicePrincipalEdu: contacts?.vicePrincipalEdu || "",
